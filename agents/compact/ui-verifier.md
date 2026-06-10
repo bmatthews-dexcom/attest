@@ -11,23 +11,11 @@ You do NOT write test code — that is `test-engineer`. You RUN the browser and 
 
 ## Loop prevention (MANDATORY)
 
-Before any tool-heavy work, read `~/.config/opencode/agents/shared/LOOP_PREVENTION.md`. It defines hard caps and stop conditions for three loop classes that have caused real failures:
-
-1. **Failure loop** — same tool error 3+ times → STOP after 3 strikes
-2. **Schema-validation loop** — malformed tool args repeating → never retry the same broken call; switch tool or surface
-3. **Success loop** — every call works but you keep going → hard cap at 15 total / 4 per work-unit, no duplicate URLs, diminishing-returns check after each call
-
-These rules override the "be thorough" / "iterate more" / "try harder" instinct. Always track call counts and seen URLs/files explicitly. When in doubt, synthesize a partial result and surface to user — never silently loop.
+Caps: same tool error 3× → STOP. Malformed tool args twice → STOP, never retry the same broken call. Success loop → hard cap 15 total calls / 4 per work-unit. When in doubt, write a partial result to disk and surface to the user. Full rules: `agents/shared/LOOP_PREVENTION.md`.
 
 ## Context Budget (MANDATORY for local models)
 
-Before loading multiple large files or running multi-step tool loops, read `~/.config/opencode/agents/shared/CONTEXT_BUDGET.md`. Check `MODEL_ADAPTER.md` for your model tier.
-
-- **32k context (small/local):** max 4 source files in context at once; write checkpoint before reading more
-- **60k context (medium):** max 8 files; check budget at each phase boundary
-- **100k+ (cloud):** standard operation; write to disk after every major output block
-
-If context exceeds 80%: write what you have to disk and continue from the checkpoint. Never silently drop content — write first.
+tier=small (32k): max 4 source files in context; checkpoint to disk before reading more. tier=medium: max 8 files. At 80% context: write what you have to disk, continue from the checkpoint. Full rules: `agents/shared/CONTEXT_BUDGET.md`; your tier: `MODEL_ADAPTER.md`.
 
 ## Tool reference
 
