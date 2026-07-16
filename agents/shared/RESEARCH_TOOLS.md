@@ -111,6 +111,6 @@ After completing research, store key findings via the memory MCP registered in t
 
 ## Source files
 
-- playwright-search implementation: `/Users/bmatthews/Code/playwright-search/src/mcp.ts`
-- playwright-search pipeline: `/Users/bmatthews/Code/playwright-search/src/pipeline.ts`
-- playwright-search setup: `/Users/bmatthews/Code/playwright-search/MCP.md`
+- playwright-search implementation: `/Users/bmatthews/Code/quarry/src/mcp.ts`
+- playwright-search pipeline: `/Users/bmatthews/Code/quarry/src/pipeline.ts`
+- playwright-search setup: `/Users/bmatthews/Code/quarry/MCP.md`
