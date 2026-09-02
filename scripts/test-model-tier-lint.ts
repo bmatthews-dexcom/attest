@@ -82,6 +82,28 @@ export async function testModelTierLint(
     ok("model-tiers — max_output_real lookup, unknown model -> null");
   else fail("model-tiers — max_output_real unknown model", "expected null");
 
+  // The CLI entry guard must survive symlinked paths such as macOS /tmp ->
+  // /private/tmp; otherwise verification exits 0 without running main().
+  const cliFixture = fs.mkdtempSync(path.join(fs.realpathSync(root), ".tmp-model-tier-cli-"));
+  try {
+    const cliAlias = path.join(cliFixture, "model-tiers.mjs");
+    fs.symlinkSync(path.join(root, "scripts/lib/model-tiers.mjs"), cliAlias);
+    const result = spawnSync(
+      process.execPath,
+      [cliAlias, "resolve", "github-copilot/claude-sonnet-5", path.join(root, "models.json")],
+      { encoding: "utf8" },
+    );
+    if (result.status === 0 && result.stdout.trim() === "frontier")
+      ok("model-tiers — CLI runs through a symlinked script path");
+    else
+      fail(
+        "model-tiers — CLI symlink path",
+        `exit=${result.status}; stdout=${JSON.stringify(result.stdout)}; stderr=${JSON.stringify(result.stderr)}`,
+      );
+  } finally {
+    fs.rmSync(cliFixture, { recursive: true, force: true });
+  }
+
   // -- 2. G3 config-pin lint: planted fixtures via the real CLI ------------
   const scriptPath = path.join(
     root,
