@@ -229,6 +229,26 @@ test('conductor.mjs: 3-ticket fixture lands 2, releases the gate-failing one, ne
   }
 });
 
+test('conductor.mjs: shares its lock through the common Git directory when root is a linked worktree', { timeout: 180_000 }, () => {
+  const { base, target, stub } = setupFixture();
+  const linkedRoot = resolve(base, 'linked-target');
+  try {
+    sh('git', ['checkout', '--detach', '-q'], { cwd: target });
+    sh('git', ['worktree', 'add', '-q', linkedRoot, 'main'], { cwd: target });
+
+    sh('node', [CONDUCTOR, '--root', linkedRoot, '--rounds', '1', '--actor', 'conductor', '--reviewer-actor', 'conductor-review', '--max-attempts', '1', '--max-tickets', '1', '--no-push'], {
+      cwd: linkedRoot,
+      env: { ...process.env, OPENCODE_BIN: stub },
+    });
+
+    const commonDir = sh('git', ['rev-parse', '--git-common-dir'], { cwd: linkedRoot }).trim();
+    assert.equal(existsSync(resolve(linkedRoot, commonDir, 'conductor.lock')), false,
+      'the process exit handler should remove the shared lock from the common Git directory');
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
 test('attempt outcome reports the terminal cause before historical failures', () => {
   const attempts = [
     ['formatting failed in changed source'],
