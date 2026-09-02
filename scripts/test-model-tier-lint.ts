@@ -44,6 +44,7 @@ export async function testModelTierLint(
     ],
     ["cheap — *haiku*", "anthropic/claude-haiku-4-5", "cheap"],
     ["frontier — *opus*", "anthropic/claude-opus-4-8", "frontier"],
+    ["frontier — *sonnet*", "github-copilot/claude-sonnet-5", "frontier"],
     ["frontier — *fable*", "claude-fable-5", "frontier"],
     ["frontier — *gpt-5*", "openai/gpt-5", "frontier"],
     ["frontier — *gemini-*-pro*", "google/gemini-2.5-pro", "frontier"],
