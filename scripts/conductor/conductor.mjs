@@ -1483,7 +1483,8 @@ async function main() {
   // (after a human looks at the gap history) is free to retry.
   const skippedThisRun = new Set();
   const landedThisRun = new Set();
-  while (landed < MAX_TICKETS) {
+  let processed = landed;
+  while (processed < MAX_TICKETS) {
     if (existsSync(STOPFILE)) { log('conductor.stop', { msg: 'STOP file present' }); break; }
 
     let plan = loadFreshPlan();
@@ -1509,6 +1510,7 @@ async function main() {
     persistPlan(plan, `chore(${next.id}): conductor claims ticket`);
 
     log('ticket.start', { ticket: next.id, msg: next.title });
+    processed++;
     const res = await executeTicket(plan, next);
     if (res.ok) {
       const landedOk = land(plan, next, res.branch, res.wt);
@@ -1533,7 +1535,7 @@ async function main() {
 
   const finalPlan = loadFreshPlan();
   const counts = tallyStatuses(finalPlan);
-  log('conductor.end', { msg: `landed=${landed} board=${JSON.stringify(counts)}` });
+  log('conductor.end', { msg: `processed=${processed} landed=${landed} board=${JSON.stringify(counts)}` });
 }
 
 main().catch((e) => { log('conductor.fatal', { msg: e.message }); process.exit(1); });
