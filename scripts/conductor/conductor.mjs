@@ -548,13 +548,34 @@ async function runSession(prompt, wt, { agent = CODER_AGENT, model = CODER_MODEL
     const runArgs = ['run', prompt, '--dir', wt];
     if (agent) runArgs.push('--agent', String(agent));
     if (model) runArgs.push('--model', String(model));
-    const res = spawnSync(OPENCODE_BIN, runArgs, {
+    // On POSIX, isolate every session in its own process group. Killing only
+    // the direct opencode child on timeout can leave tool subprocesses alive;
+    // retrying in the same worktree would then race those orphans.
+    const grouped = process.platform !== 'win32';
+    const pidFile = resolve(RUNTIME_DIR, `session-${process.pid}-${Date.now()}-${attempt}.pid`);
+    if (grouped) mkdirSync(RUNTIME_DIR, { recursive: true });
+    const command = grouped ? 'bash' : OPENCODE_BIN;
+    const commandArgs = grouped
+      ? ['-c', 'printf "%s" "$$" > "$1"; shift; exec "$@"', 'conductor-session', pidFile, OPENCODE_BIN, ...runArgs]
+      : runArgs;
+    const res = spawnSync(command, commandArgs, {
       cwd: wt, encoding: 'utf8', timeout: SESSION_MIN * 60_000, maxBuffer: 64 * 1024 * 1024,
       env: sessionEnv(),
+      detached: grouped,
     });
     const out = `${res.stdout || ''}\n${res.stderr || ''}`;
     const timedOut = res.error?.code === 'ETIMEDOUT' || Boolean(res.signal);
     if (timedOut) {
+      if (grouped && existsSync(pidFile)) {
+        const groupPid = Number(readFileSync(pidFile, 'utf8').trim());
+        if (groupPid > 0) {
+          try {
+            process.kill(-groupPid, 'SIGKILL');
+            log('session.process-group-killed', { msg: `killed timed-out process group ${groupPid}` });
+          } catch { /* the group may already have exited */ }
+        }
+      }
+      if (grouped) rmSync(pidFile, { force: true });
       timeoutRetries++;
       log('session.timeout', { msg: `killed after ${SESSION_MIN}m (${res.signal || res.error?.code || 'timeout'})` });
       if (timeoutRetries <= SESSION_TIMEOUT_RETRIES) {
@@ -563,6 +584,7 @@ async function runSession(prompt, wt, { agent = CODER_AGENT, model = CODER_MODEL
       }
       return { out: `${out}\n${res.error?.message || ''}`, code: 124 };
     }
+    if (grouped) rmSync(pidFile, { force: true });
     if (res.error) return { out: `${out}\n${res.error.message}`, code: 1 };
     if (res.status !== 0 && LIMIT_RE.test(out)) {
       const wait = Math.min(backoff, 60 * 60_000);

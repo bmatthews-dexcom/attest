@@ -110,7 +110,10 @@ the fail-closed scope, review, runtime, or close gates.
 
 A timed-out session is retried once in the same worktree by default
 (`--session-timeout-retries 1`), allowing a continuation to inspect and finish
-partial work without spending a feature attempt. Session prompts also require
+partial work without spending a feature attempt. On POSIX systems each session
+runs in its own process group and the whole group is killed before retry, so a
+tool subprocess cannot outlive its timed-out parent and race the continuation.
+Session prompts also require
 the ticket's configured verify command exactly; ad hoc bare compiler commands
 must not replace the project-aware typecheck and create false failures.
 

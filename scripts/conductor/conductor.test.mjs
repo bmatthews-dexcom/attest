@@ -346,6 +346,7 @@ exit 9
 test('conductor.mjs: a timed-out session retries once in the same worktree', { timeout: 60_000 }, () => {
   const { base, target, stub } = setupRoleRoutingFixture();
   const marker = resolve(base, 'timed-out-once');
+  const descendant = resolve(base, 'timed-out-descendant');
   try {
     writeFileSync(stub, `#!/usr/bin/env bash
 set -euo pipefail
@@ -359,7 +360,17 @@ while [[ $# -gt 0 ]]; do
 done
 if [[ ! -f ${JSON.stringify(marker)} ]]; then
   touch ${JSON.stringify(marker)}
-  sleep 2
+  sleep 30 &
+  echo $! > ${JSON.stringify(descendant)}
+  wait
+fi
+if [[ -f ${JSON.stringify(descendant)} ]]; then
+  PID=$(cat ${JSON.stringify(descendant)})
+  STATE=$(ps -p "$PID" -o stat= 2>/dev/null || true)
+  if [[ -n "$STATE" && "$STATE" != Z* ]]; then
+    echo "timed-out descendant still active: $PID ($STATE)" >&2
+    exit 17
+  fi
 fi
 mkdir -p "$DIR/a" "$DIR/docs/reviews"
 echo hello > "$DIR/a/hello.txt"
@@ -393,6 +404,7 @@ EOF
     const log = readFileSync(resolve(target, 'docs/work/conductor-log.jsonl'), 'utf8');
     assert.match(log, /"kind":"session.timeout"/);
     assert.match(log, /"kind":"session.retry"/);
+    assert.match(log, /"kind":"session.process-group-killed"/);
   } finally {
     rmSync(base, { recursive: true, force: true });
   }
