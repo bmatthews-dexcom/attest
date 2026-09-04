@@ -17,7 +17,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, chmodSync, rmSync,
 import { resolve, dirname } from 'node:path';
 import { triggeredReviewers } from '../lib/review-triggers.mjs';
 import { isGroundedFailure, RUNTIME_PASS_RE, extractFailureReason } from '../lib/runtime-verdict.mjs';
-import { exhaustionReason, latestAttemptGaps } from '../lib/attempt-outcome.mjs';
+import { exhaustionReason, latestAttemptGaps, reviewFailureFeedback } from '../lib/attempt-outcome.mjs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
@@ -229,6 +229,27 @@ test('conductor.mjs: 3-ticket fixture lands 2, releases the gate-failing one, ne
   }
 });
 
+test('conductor.mjs: --max-processed bounds claims even when --max-tickets asks for more landings', { timeout: 60_000 }, () => {
+  const { base, target, stub } = setupFixture();
+  try {
+    sh('node', [CONDUCTOR, '--root', target, '--rounds', '1', '--max-attempts', '1', '--max-tickets', '5', '--max-processed', '1', '--no-push'], {
+      cwd: target,
+      env: { ...process.env, OPENCODE_BIN: stub },
+    });
+
+    const plan = JSON.parse(readFileSync(resolve(target, 'plan.json'), 'utf8'));
+    assert.equal(plan.modules.find((m) => m.id === 'TICK-1').status, 'done');
+    assert.equal(plan.modules.find((m) => m.id === 'TICK-2').status, 'ready');
+    assert.equal(plan.modules.find((m) => m.id === 'TICK-3').status, 'ready');
+    const rows = readFileSync(resolve(target, 'docs/work/conductor-log.jsonl'), 'utf8')
+      .trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
+    assert.equal(rows.filter((r) => r.kind === 'ticket.start').length, 1);
+    assert.match(rows.find((r) => r.kind === 'conductor.end').msg, /landed=1 processed=1/);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
 test('attempt outcome reports the terminal cause before historical failures', () => {
   const attempts = [
     ['formatting failed in changed source'],
@@ -239,6 +260,17 @@ test('attempt outcome reports the terminal cause before historical failures', ()
   assert.match(reason, /latest: repository baseline integration test failed/);
   assert.match(reason, /prior: \[1\] formatting failed in changed source/);
   assert.ok(reason.indexOf('latest:') < reason.indexOf('prior:'), 'terminal cause must be shown first');
+});
+
+test('review failure feedback carries exact blocking findings into the next attempt', () => {
+  const verdicts = [
+    { reviewer: 'code-reviewer', doc: 'CODE.md', approved: false },
+    { reviewer: 'security', doc: 'SECURITY.md', approved: true },
+  ];
+  const feedback = reviewFailureFeedback(verdicts, (doc) => doc === 'CODE.md' ? 'Finding F-1: fix the real defect.' : 'approved');
+  assert.deepEqual(feedback, [
+    'code-reviewer still blocks; exact findings from CODE.md:\nFinding F-1: fix the real defect.',
+  ]);
 });
 
 test('supervisor preserves resume state and does not restart deterministic gate exits', () => {
@@ -306,6 +338,61 @@ exit 9
       'a provider failure must not start a second feature coding attempt');
     assert.ok(rows.some((r) => r.kind === 'ticket.blocked' && r.category === 'coder-session'));
     assert.equal(rows.some((r) => r.kind === 'ticket.exhausted'), false);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test('conductor.mjs: a timed-out session retries once in the same worktree', { timeout: 60_000 }, () => {
+  const { base, target, stub } = setupRoleRoutingFixture();
+  const marker = resolve(base, 'timed-out-once');
+  try {
+    writeFileSync(stub, `#!/usr/bin/env bash
+set -euo pipefail
+if [[ "\${1:-}" == "models" ]]; then
+  printf '%s\\n' fixture/coder-model fixture/reviewer-model
+  exit 0
+fi
+DIR=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in --dir) DIR="$2"; shift 2 ;; *) shift ;; esac
+done
+if [[ ! -f ${JSON.stringify(marker)} ]]; then
+  touch ${JSON.stringify(marker)}
+  sleep 2
+fi
+mkdir -p "$DIR/a" "$DIR/docs/reviews"
+echo hello > "$DIR/a/hello.txt"
+cat > "$DIR/docs/reviews/MANIFEST_TICK-ROLE.md" <<EOF
+# Completion Manifest — TICK-ROLE
+Maker: conductor
+Verifier: conductor-review
+Tracker updated: CHANGELOG.md
+## Files produced
+- \\\`a/hello.txt\\\`
+## Decisions
+- continued safely
+## Known issues
+- none
+## Verify result
+- \\\`a/hello.txt\\\`
+## Memory written
+- None — nothing durable
+TICK-ROLE done -- wrote a/hello.txt.
+EOF
+`);
+    chmodSync(stub, 0o755);
+
+    sh('node', [CONDUCTOR, '--root', target, '--rounds', '1', '--max-attempts', '1', '--session-minutes', '0.001', '--session-timeout-retries', '1', '--no-push'], {
+      cwd: target,
+      env: { ...process.env, OPENCODE_BIN: stub },
+    });
+
+    const plan = JSON.parse(readFileSync(resolve(target, 'plan.json'), 'utf8'));
+    assert.equal(plan.modules[0].status, 'done');
+    const log = readFileSync(resolve(target, 'docs/work/conductor-log.jsonl'), 'utf8');
+    assert.match(log, /"kind":"session.timeout"/);
+    assert.match(log, /"kind":"session.retry"/);
   } finally {
     rmSync(base, { recursive: true, force: true });
   }
@@ -477,6 +564,83 @@ test('conductor.mjs: T28.2 role routing — resolved coder-role model reaches th
 
     const sessionStarts = log.filter((r) => r.kind === 'session.start');
     assert.ok(sessionStarts.length > 0 && sessionStarts.every((r) => r.role === 'coder' && r.model === 'fixture/coder-model'), 'every session.start entry must be tagged with the coder role + its resolved model');
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
+test('conductor.mjs: a runtime failure gets one in-place repair and independent re-review', { timeout: 120_000 }, () => {
+  const { base, target, stub } = setupRoleRoutingFixture();
+  try {
+    const planPath = resolve(target, 'plan.json');
+    const plan = JSON.parse(readFileSync(planPath, 'utf8'));
+    plan.modules[0].verify = `test -f a/runtime-fixed.txt && bash ${GATES_SH} --scope a --manifest docs/reviews/MANIFEST_TICK-ROLE.md --root .`;
+    writeFileSync(planPath, JSON.stringify(plan, null, 2) + '\n');
+    sh('git', ['add', 'plan.json'], { cwd: target });
+    sh('git', ['commit', '-q', '-m', 'require runtime repair'], { cwd: target });
+
+    writeFileSync(stub, `#!/usr/bin/env bash
+set -euo pipefail
+if [[ "\${1:-}" == "models" ]]; then
+  printf '%s\\n' fixture/coder-model fixture/reviewer-model
+  exit 0
+fi
+PROMPT="\${2:-}"
+DIR=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in --dir) DIR="$2"; shift 2 ;; *) shift ;; esac
+done
+mkdir -p "$DIR/a" "$DIR/docs/reviews"
+if grep -qF 'Review the work already committed' <<<"$PROMPT"; then
+  cat > "$DIR/docs/reviews/CODE_REVIEW_TICK-ROLE.md" <<EOF
+# Review
+VERDICT: APPROVED
+EOF
+elif grep -qF 'Runtime-validate ticket' <<<"$PROMPT"; then
+  if [[ -f "$DIR/a/runtime-fixed.txt" ]]; then
+    printf '# Runtime\\nexit code: 0\\nRUNTIME: PASS\\n' > "$DIR/docs/reviews/RUNTIME_TICK-ROLE.md"
+  else
+    printf '# Runtime\\n## Why it failed\\nverify exited 1 because runtime-fixed.txt is missing.\\nRUNTIME: FAIL\\n' > "$DIR/docs/reviews/RUNTIME_TICK-ROLE.md"
+  fi
+elif grep -qF 'deterministic runtime gate failed' <<<"$PROMPT"; then
+  echo fixed > "$DIR/a/runtime-fixed.txt"
+else
+  echo hello > "$DIR/a/hello.txt"
+  cat > "$DIR/docs/reviews/MANIFEST_TICK-ROLE.md" <<EOF
+# Completion Manifest — TICK-ROLE
+Maker: conductor
+Verifier: conductor-review
+Tracker updated: CHANGELOG.md
+## Files produced
+- \\\`a/hello.txt\\\`
+## Decisions
+- kept it simple
+## Known issues
+- none
+## Verify result
+- \\\`a/hello.txt\\\`
+## Memory written
+- None — nothing durable
+TICK-ROLE done -- wrote a/hello.txt.
+EOF
+fi
+exit 0
+`);
+    chmodSync(stub, 0o755);
+
+    sh('node', [CONDUCTOR, '--root', target, '--rounds', '3', '--max-attempts', '1', '--runtime-fix-iterations', '1', '--no-push'], {
+      cwd: target,
+      env: { ...process.env, OPENCODE_BIN: stub },
+    });
+
+    const finalPlan = JSON.parse(readFileSync(planPath, 'utf8'));
+    assert.equal(finalPlan.modules[0].status, 'done');
+    const rows = readFileSync(resolve(target, 'docs/work/conductor-log.jsonl'), 'utf8')
+      .trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
+    assert.equal(rows.filter((r) => r.kind === 'round3.fix.start').length, 1);
+    assert.equal(rows.filter((r) => r.kind === 'round2.review.start').length, 2,
+      'the runtime repair must invalidate the first approval and trigger a fresh review');
+    assert.ok(rows.some((r) => r.kind === 'round3.runtime.verdict' && r.msg === 'PASS'));
   } finally {
     rmSync(base, { recursive: true, force: true });
   }

@@ -26,6 +26,10 @@ shipwright's flat `todo/in_progress/blocked/done` board:
   Under `--no-merge`, a green candidate is pushed and logged
   `ticket.ready-for-pr`; `accept()` is not called and the external ticket stays
   In Progress until a separate merge process verifies main ancestry.
+  `--max-tickets` is the number of successful PR/merge-boundary outcomes, not
+  the number attempted. Use `--max-processed N` for a hard per-invocation claim
+  ceiling. Without it, a low landing rate can make a small `--max-tickets`
+  target process a much larger ready queue.
 - `supervise.sh` — crash-restart layer (preserve target/worktree state,
   relaunch, cap, `STOP` file in the target root). Deterministic gate exits
   (configuration, drift, baseline, main-sync) stop rather than churn. The
@@ -95,6 +99,20 @@ The worktree that held it is destroyed immediately after, so this is the only
 record of what actually changed. Keeping runtime evidence outside the target
 also prevents a failed ticket from dirtying `main` or being force-committed by
 the conductor.
+
+When independent review remains blocking after the bounded fix loop, the next
+fresh attempt receives the exact final review findings rather than only the
+reviewer names. When deterministic runtime verification fails, the conductor
+allows one in-place repair by default (`--runtime-fix-iterations 1`), then
+scope-checks and independently re-reviews the modified candidate before it can
+pass. Set the flag to `0` to disable that repair cycle. Neither behavior changes
+the fail-closed scope, review, runtime, or close gates.
+
+A timed-out session is retried once in the same worktree by default
+(`--session-timeout-retries 1`), allowing a continuation to inspect and finish
+partial work without spending a feature attempt. Session prompts also require
+the ticket's configured verify command exactly; ad hoc bare compiler commands
+must not replace the project-aware typecheck and create false failures.
 
 ## Test
 

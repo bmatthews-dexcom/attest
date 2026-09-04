@@ -47,8 +47,10 @@
  * Usage:
  *   node conductor.mjs --root <target-project> [--plan plan.json]
  *     [--actor conductor] [--reviewer-actor conductor-review]
- *     [--max-attempts 2] [--max-tickets N] [--model provider/model]
- *     [--agent coding-agent] [--rounds 3|1] [--fix-iterations 3]
+ *     [--max-attempts 2] [--max-tickets N] [--max-processed N]
+ *     [--model provider/model] [--agent coding-agent] [--rounds 3|1]
+ *     [--fix-iterations 3] [--runtime-fix-iterations 1]
+ *     [--session-timeout-retries 1]
  *     [--models models.json] [--role-gate warn|block]
  *     [--no-merge] [--no-push] [--dry-run]
  *
@@ -61,7 +63,7 @@ import { resolve, dirname, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { triggeredReviewers } from '../lib/review-triggers.mjs';
 import { isGroundedFailure, extractFailureReason } from '../lib/runtime-verdict.mjs';
-import { exhaustionReason, latestAttemptGaps } from '../lib/attempt-outcome.mjs';
+import { exhaustionReason, latestAttemptGaps, reviewFailureFeedback } from '../lib/attempt-outcome.mjs';
 // Board is pluggable: plan.json (tickets.mjs) is the default; set
 // CONDUCTOR_BOARD=jira to select the JIRA board driver (jira-tickets.mjs)
 // instead — same 13 names, identical signatures (docs/work/CONDUCTOR_JIRA_INTEGRATION_PLAN.md).
@@ -127,7 +129,11 @@ const ACTOR = String(opt('actor', 'conductor'));
 const REVIEWER_ACTOR = String(opt('reviewer-actor', 'conductor-review'));
 const MAX_ATTEMPTS = Number(opt('max-attempts', 2));       // MASTER_PROMPT.md rule 9: ~2 sessions before giving up
 const MAX_TICKETS = Number(opt('max-tickets', 999));
+// `max-tickets` is the success target. This separate ceiling bounds how many
+// different tickets one invocation may claim, regardless of their outcome.
+const MAX_PROCESSED = Number(opt('max-processed', Number.POSITIVE_INFINITY));
 const SESSION_MIN = Number(opt('session-minutes', 45));
+const SESSION_TIMEOUT_RETRIES = Number(opt('session-timeout-retries', 1));
 const MODEL = opt('model', null);
 const AGENT = opt('agent', null);
 const DO_MERGE = !args.includes('--no-merge');
@@ -183,6 +189,7 @@ const REVIEWER_MODEL = ROLE_MODELS.reviewer || CODER_MODEL;
 // verdict. ROUNDS=1 keeps the old coder-only behaviour for a bare run.
 const ROUNDS = Number(opt('rounds', 3));
 const FIX_ITERATIONS = Number(opt('fix-iterations', 3)); // protocol: up to 3
+const RUNTIME_FIX_ITERATIONS = Number(opt('runtime-fix-iterations', 1));
 // Optional extra reviewers per ticket via `reviews: ["security", ...]`.
 const REVIEW_AGENTS = {
   security: 'security-auditor',
@@ -529,6 +536,7 @@ function actualSessionModel(wt) {
 
 async function runSession(prompt, wt, { agent = CODER_AGENT, model = CODER_MODEL, role = 'coder' } = {}) {
   let backoff = 5 * 60_000;
+  let timeoutRetries = 0;
   for (let attempt = 1; attempt <= 6; attempt++) {
     log('session.start', { msg: `attempt ${attempt}`, wt, role, agent, model });
     if (DRY) return { out: '[dry-run] no session executed', code: 0 };
@@ -545,8 +553,17 @@ async function runSession(prompt, wt, { agent = CODER_AGENT, model = CODER_MODEL
       env: sessionEnv(),
     });
     const out = `${res.stdout || ''}\n${res.stderr || ''}`;
+    const timedOut = res.error?.code === 'ETIMEDOUT' || Boolean(res.signal);
+    if (timedOut) {
+      timeoutRetries++;
+      log('session.timeout', { msg: `killed after ${SESSION_MIN}m (${res.signal || res.error?.code || 'timeout'})` });
+      if (timeoutRetries <= SESSION_TIMEOUT_RETRIES) {
+        log('session.retry', { msg: `retrying timed-out ${role} session ${timeoutRetries}/${SESSION_TIMEOUT_RETRIES} in the same worktree` });
+        continue;
+      }
+      return { out: `${out}\n${res.error?.message || ''}`, code: 124 };
+    }
     if (res.error) return { out: `${out}\n${res.error.message}`, code: 1 };
-    if (res.signal) { log('session.timeout', { msg: `killed after ${SESSION_MIN}m (${res.signal})` }); return { out, code: 124 }; }
     if (res.status !== 0 && LIMIT_RE.test(out)) {
       const wait = Math.min(backoff, 60 * 60_000);
       backoff *= 2;
@@ -736,6 +753,7 @@ ${feedback ? `\nA PREVIOUS ATTEMPT FAILED ITS GATES. Inspect the current tree fi
 Rules of engagement:
 - You are already in the correct working directory on an isolated branch. Do NOT run git commands and do NOT touch plan.json — the conductor commits your work and manages ticket status itself.
 - Implement the ticket fully within write_scope. Do not touch files outside it (docs/work/** and docs/reviews/** are always allowed for the manifest).
+- Run the ticket verify command exactly as configured: "${m.verify || '(none configured)'}". Do not substitute ad hoc compiler commands such as bare tsc; they bypass the project's tsconfig and can produce false JSX/module failures.
 - Write a Completion Manifest at \`${m.manifest}\` with these headings: "Files produced" (backtick-quoted paths, must exist), "Decisions", "Known issues", "Verify result" (a backtick-quoted path to real evidence — a test log or receipt), "Memory written" (durable decisions/errors/verified-facts you established, or exactly "None — nothing durable" — the section is REQUIRED and its absence fails the manifest gate), plus a \`Maker: ${ACTOR}\` line and a \`Verifier: ${REVIEWER_ACTOR}\` line (must differ from Maker), a \`Tracker updated: <file>\` line, and end the manifest with a completion phrase of the form "${m.id} done -- <one sentence>".
 - Include this claim receipt verbatim somewhere in the manifest as proof of provenance:\n${startReceipt}
 - Nothing you print is trusted — only the tree state and manifest are checked. When finished, stop; do not wait for further input.`;
@@ -850,8 +868,16 @@ ${notes}`, wt, { agent: CODER_AGENT, model: CODER_MODEL, role: 'coder' });
       if (idx >= 0) verdicts[idx] = nv;
     }
   }
-  const still = verdicts.filter((v) => !v.approved).map((v) => v.reviewer);
-  return { ok: still.length === 0, iterations: FIX_ITERATIONS, blocking: still };
+  const blocking = verdicts.filter((v) => !v.approved);
+  return {
+    ok: blocking.length === 0,
+    iterations: FIX_ITERATIONS,
+    blocking: blocking.map((v) => v.reviewer),
+    // A fresh attempt used to receive only reviewer names. Carry the exact
+    // final findings forward so it can repair rather than rediscover them.
+    feedback: reviewFailureFeedback(blocking, (doc) =>
+      existsSync(resolve(wt, doc)) ? readFileSync(resolve(wt, doc), 'utf8') : ''),
+  };
 }
 
 /** Round 3 — runtime verdict (build/lint/smoke), by the coder agent. */
@@ -970,6 +996,70 @@ function runVerifyDirect(m, wt) {
   }
 }
 
+/**
+ * Give a deterministic runtime failure one in-place repair cycle before
+ * discarding an otherwise reviewed candidate. Changed implementation is
+ * scope-checked, committed, independently re-reviewed, and runtime-checked
+ * again, so this shortens the loop without weakening any gate.
+ */
+async function repairRuntimeFailure(m, wt, runtime, startReceipt, reviewers) {
+  let current = runtime;
+  for (let i = 1; i <= RUNTIME_FIX_ITERATIONS && !current.pass; i++) {
+    const body = existsSync(resolve(wt, current.doc))
+      ? readFileSync(resolve(wt, current.doc), 'utf8').slice(0, 8000)
+      : current.reason || '(runtime report missing)';
+    // Fold the failed runtime report into the checkpoint first. Otherwise its
+    // uncommitted document makes a no-op repair look like an implementation
+    // change and triggers a pointless re-review cycle.
+    if (hasUncommittedWork(wt)) {
+      gitIn(wt, 'add', '-A');
+      gitIn(wt, 'commit', '-q', '--amend', '--no-edit');
+    }
+    log('round3.fix.start', { ticket: m.id, msg: `iteration ${i}/${RUNTIME_FIX_ITERATIONS}` });
+    const fix = await runSession(`${handoffPrompt(m, startReceipt, null)}
+
+The deterministic runtime gate failed after independent review. Repair the
+specific failure below and run the configured verify command. Do not weaken,
+skip, or delete tests. Stay inside write_scope.
+
+${body}`, wt, { agent: CODER_AGENT, model: CODER_MODEL, role: 'coder' });
+    if (fix.code !== 0) {
+      return { infrastructure: true, reason: `runtime fix session exited ${fix.code}: ${tailLines(fix.out, 6)}` };
+    }
+    if (!hasUncommittedWork(wt)) return { runtime: current, unchanged: true };
+
+    const scope = scopeGate(wt, m.write_scope);
+    if (!scope.ok) return { runtime: current, scopeFailure: scope.detail };
+    gitIn(wt, 'add', '-A');
+    gitIn(wt, 'commit', '-q', '--amend', '--no-edit');
+
+    const verdicts = await runReviewRound(m, wt, reviewers);
+    const failedSessions = verdicts.filter((v) => v.sessionFailed);
+    if (failedSessions.length) {
+      return {
+        infrastructure: true,
+        reason: `post-runtime reviewer session failed: ${failedSessions.map((v) => `${v.reviewer} exited ${v.sessionCode}`).join(', ')}`,
+      };
+    }
+    const missing = verdicts.filter((v) => !v.present).map((v) => v.reviewer);
+    if (missing.length) {
+      return { infrastructure: true, reason: `post-runtime reviewer produced no document: ${missing.join(', ')}` };
+    }
+    const reviewed = await runFixLoop(m, wt, verdicts, startReceipt);
+    if (reviewed.infrastructure) return { infrastructure: true, reason: reviewed.reason };
+    if (!reviewed.ok) return { reviewFailure: reviewed };
+
+    current = await runRuntimeRound(m, wt);
+    if (current.sessionFailed) {
+      return { infrastructure: true, reason: `runtime recheck session exited ${current.sessionCode}: ${tailLines(current.sessionOutput, 6)}` };
+    }
+    if (!current.present) {
+      return { infrastructure: true, reason: `runtime recheck produced no document (${current.doc})` };
+    }
+  }
+  return { runtime: current };
+}
+
 async function executeTicket(plan, m, { alreadyStarted = false, maxAttempts = MAX_ATTEMPTS } = {}) {
   // start() is a one-shot claimed->in_progress transition — only valid once
   // per ticket, not once per retry attempt (a retry re-runs the session in a
@@ -1075,7 +1165,10 @@ async function executeTicket(plan, m, { alreadyStarted = false, maxAttempts = MA
         return blockWithoutExhausting('coder-fix-session', [fixed.reason], wt, attempt);
       }
       if (!fixed.ok) {
-        const gaps = [`round 2: still blocking after ${fixed.iterations} fix iteration(s): ${(fixed.blocking || []).join(', ')}`];
+        const gaps = [
+          `round 2: still blocking after ${fixed.iterations} fix iteration(s): ${(fixed.blocking || []).join(', ')}`,
+          ...(fixed.feedback || []),
+        ];
         gapsPerAttempt.push(gaps);
         log('gates.fail', { ticket: m.id, msg: gaps[0] });
         preserveAttemptEvidence(m, attempt, wt);
@@ -1084,7 +1177,7 @@ async function executeTicket(plan, m, { alreadyStarted = false, maxAttempts = MA
         removeWorktree(wt);
         continue;
       }
-      const runtime = await runRuntimeRound(m, wt);
+      let runtime = await runRuntimeRound(m, wt);
       if (runtime.sessionFailed) {
         return blockWithoutExhausting(
           'runtime-session',
@@ -1100,6 +1193,35 @@ async function executeTicket(plan, m, { alreadyStarted = false, maxAttempts = MA
           wt,
           attempt,
         );
+      }
+      if (!runtime.pass && RUNTIME_FIX_ITERATIONS > 0) {
+        const repaired = await repairRuntimeFailure(m, wt, runtime, startReceipt, reviewers);
+        if (repaired.infrastructure) {
+          return blockWithoutExhausting('runtime-fix-session', [repaired.reason], wt, attempt);
+        }
+        if (repaired.scopeFailure) {
+          const ev = captureScopeEvidence(m, attempt, wt);
+          const gaps = [`scope gate failed during runtime repair: ${repaired.scopeFailure}`, ev.feedback].filter(Boolean);
+          gapsPerAttempt.push(gaps);
+          preserveAttemptEvidence(m, attempt, wt);
+          comment(plan, m.id, ACTOR, `CONDUCTOR attempt ${attempt}/${maxAttempts} failed: ${gaps[0]}`.slice(0, 900));
+          persistPlan(plan, `chore(${m.id}): conductor logs runtime-repair scope failure (attempt ${attempt})`);
+          removeWorktree(wt);
+          continue;
+        }
+        if (repaired.reviewFailure) {
+          const gaps = [
+            `round 2: runtime repair remains blocked by ${(repaired.reviewFailure.blocking || []).join(', ')}`,
+            ...(repaired.reviewFailure.feedback || []),
+          ];
+          gapsPerAttempt.push(gaps);
+          preserveAttemptEvidence(m, attempt, wt);
+          comment(plan, m.id, ACTOR, `CONDUCTOR attempt ${attempt}/${maxAttempts} failed: ${gaps[0]}`.slice(0, 900));
+          persistPlan(plan, `chore(${m.id}): conductor logs runtime-repair review failure (attempt ${attempt})`);
+          removeWorktree(wt);
+          continue;
+        }
+        runtime = repaired.runtime || runtime;
       }
       if (!runtime.pass) {
         const gaps = [
@@ -1452,7 +1574,7 @@ async function main() {
   }
 
   log('conductor.start', {
-    msg: `root=${ROOT} plan=${PLAN_PATH} actor=${ACTOR} maxAttempts=${MAX_ATTEMPTS} merge=${DO_MERGE} push=${DO_PUSH} agent=${CODER_AGENT} roles=coder:${ROLE_MODELS.coder ?? 'none'},reviewer:${ROLE_MODELS.reviewer ?? 'none'},challenger:${ROLE_MODELS.challenger ?? 'none'}`,
+    msg: `root=${ROOT} plan=${PLAN_PATH} actor=${ACTOR} maxAttempts=${MAX_ATTEMPTS} maxLanded=${MAX_TICKETS} maxProcessed=${Number.isFinite(MAX_PROCESSED) ? MAX_PROCESSED : 'unbounded'} merge=${DO_MERGE} push=${DO_PUSH} agent=${CODER_AGENT} roles=coder:${ROLE_MODELS.coder ?? 'none'},reviewer:${ROLE_MODELS.reviewer ?? 'none'},challenger:${ROLE_MODELS.challenger ?? 'none'}`,
     roles: ROLE_MODELS,
     agents: { coder: CODER_AGENT },
   });
@@ -1483,7 +1605,8 @@ async function main() {
   // (after a human looks at the gap history) is free to retry.
   const skippedThisRun = new Set();
   const landedThisRun = new Set();
-  while (landed < MAX_TICKETS) {
+  let processed = 0;
+  while (landed < MAX_TICKETS && processed < MAX_PROCESSED) {
     if (existsSync(STOPFILE)) { log('conductor.stop', { msg: 'STOP file present' }); break; }
 
     let plan = loadFreshPlan();
@@ -1508,6 +1631,7 @@ async function main() {
     if (!claimRes.ok) { log('claim.fail', { ticket: next.id, msg: claimRes.error }); break; }
     persistPlan(plan, `chore(${next.id}): conductor claims ticket`);
 
+    processed++;
     log('ticket.start', { ticket: next.id, msg: next.title });
     const res = await executeTicket(plan, next);
     if (res.ok) {
@@ -1533,7 +1657,7 @@ async function main() {
 
   const finalPlan = loadFreshPlan();
   const counts = tallyStatuses(finalPlan);
-  log('conductor.end', { msg: `landed=${landed} board=${JSON.stringify(counts)}` });
+  log('conductor.end', { msg: `landed=${landed} processed=${processed} board=${JSON.stringify(counts)}` });
 }
 
 main().catch((e) => { log('conductor.fatal', { msg: e.message }); process.exit(1); });
