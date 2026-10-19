@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: autonomy-protocol — read on demand.'
+alwaysApply: false
+---
+
+# autonomy-protocol
+
+This rule points at the attest shared protocol `agents/shared/AUTONOMY_PROTOCOL.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/AUTONOMY_PROTOCOL.md

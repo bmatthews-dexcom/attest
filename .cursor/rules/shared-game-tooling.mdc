@@ -1,0 +1,10 @@
+---
+description: 'Reference document — read on demand, not an agent. The game-tool MCP landscape + agentic engine loops for the game cluster: which engine/art/audio MCP servers exist and are maintained, the three wiring patterns and their pitfalls, exact headless CI test invocations per engine, the screenshot→vision QA loop, and the shape of building a custom game-tool MCP.'
+alwaysApply: false
+---
+
+# game-tooling
+
+This rule points at the attest shared protocol `agents/shared/GAME_TOOLING.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/GAME_TOOLING.md

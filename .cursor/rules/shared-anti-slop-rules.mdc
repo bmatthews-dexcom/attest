@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: anti-slop-rules — read on demand.'
+alwaysApply: false
+---
+
+# anti-slop-rules
+
+This rule points at the attest shared protocol `agents/shared/ANTI_SLOP_RULES.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/ANTI_SLOP_RULES.md

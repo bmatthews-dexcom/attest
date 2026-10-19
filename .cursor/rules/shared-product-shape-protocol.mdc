@@ -1,0 +1,10 @@
+---
+description: 'Canonical orchestration role names (GOAL / ORCHESTRATOR / BOTS / REVIEW PANEL / HONESTY LOOPS) + the two-stack rule, the feature-map planning artifact (tickets grouped by the stories they serve, seams as directed connections, gaps reported in both directions), and feature-grouped landing (one merge per feature, parks are durable, blocked holds the whole feature). Load with PARALLEL_WAVE_PROTOCOL.md for any board-driven Phase 4, and at decomposition time when emitting modules[].'
+alwaysApply: false
+---
+
+# product-shape-protocol
+
+This rule points at the attest shared protocol `agents/shared/PRODUCT_SHAPE_PROTOCOL.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/PRODUCT_SHAPE_PROTOCOL.md

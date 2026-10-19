@@ -1,0 +1,10 @@
+---
+description: 'Reference document — read on demand, not an agent. The enforced tool-preflight + diagnose-before-retry contract for agents that run external scanners/profilers (semgrep, checkov, trivy, py-spy, lizard, jscpd, …). The scanner IS the job, so an absent tool must degrade or SKIP loudly — never run blind, never `|| true` a scan into a false clean.'
+alwaysApply: false
+---
+
+# tool-preflight
+
+This rule points at the attest shared protocol `agents/shared/TOOL_PREFLIGHT.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/TOOL_PREFLIGHT.md

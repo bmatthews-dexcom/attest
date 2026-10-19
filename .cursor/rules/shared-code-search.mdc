@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: code-search — read on demand.'
+alwaysApply: false
+---
+
+# code-search
+
+This rule points at the attest shared protocol `agents/shared/CODE_SEARCH.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/CODE_SEARCH.md
