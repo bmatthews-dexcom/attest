@@ -1,0 +1,12 @@
+{
+  "$note": "The `attest` MCP server is scaffolded by the sibling worker at packages/attest-mcp/ and published as @bpmforge/attest-mcp. If the sibling renames the package, update the args line below and regenerate (`npm run build:cursor`).",
+  "mcpServers": {
+    "attest": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@bpmforge/attest-mcp"
+      ]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: fix-verify-loop — read on demand.'
+alwaysApply: false
+---
+
+# fix-verify-loop
+
+This rule points at the attest shared protocol `agents/shared/FIX_VERIFY_LOOP.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/FIX_VERIFY_LOOP.md

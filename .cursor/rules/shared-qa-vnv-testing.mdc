@@ -1,0 +1,10 @@
+---
+description: 'Reference document — read on demand, not an agent. The runnable QA/V&V technique library for qa-vnv-engineer: layout-defect detection, visual regression, resilient journey automation, evidence/reporting, and axe accessibility.'
+alwaysApply: false
+---
+
+# qa-vnv-testing
+
+This rule points at the attest shared protocol `agents/shared/QA_VNV_TESTING.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/QA_VNV_TESTING.md

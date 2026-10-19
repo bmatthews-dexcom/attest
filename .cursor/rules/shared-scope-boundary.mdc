@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: scope-boundary — read on demand.'
+alwaysApply: false
+---
+
+# scope-boundary
+
+This rule points at the attest shared protocol `agents/shared/SCOPE_BOUNDARY.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/SCOPE_BOUNDARY.md

@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: challenger-protocol — read on demand.'
+alwaysApply: false
+---
+
+# challenger-protocol
+
+This rule points at the attest shared protocol `agents/shared/CHALLENGER_PROTOCOL.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/CHALLENGER_PROTOCOL.md

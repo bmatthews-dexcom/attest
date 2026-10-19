@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: browser-testing — read on demand.'
+alwaysApply: false
+---
+
+# browser-testing
+
+This rule points at the attest shared protocol `agents/shared/BROWSER_TESTING.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/BROWSER_TESTING.md
