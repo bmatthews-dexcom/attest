@@ -101,32 +101,47 @@ Then end the turn. The TS loop re-prompts with the new state.
 
 ## Spawning sibling expert agents
 
-See `internal/attest-conductor.md` in the project store for the full
-walk-through on BDK's spawn surfaces. Short version:
-
-- **BDK peer MCP connections** (`defineConnection({ agent: "<slug>" })`,
-  routed via `host.mcp.callTool(slug, "ask", { message })`) — the
-  cleanest native pattern when the conductor and the experts are
-  co-deployed on one serve host (multi-mode). **Chosen** for co-deploy.
-- **HTTP fallback** (`fetch("<url>/v1/session", …)`) — used when the
-  experts are deployed separately.
-- Both hidden behind one server tool `dispatch_expert`, selected per
-  expert id by env var at serve time:
+Three concrete experts ship in `@bpmforge/attest-experts`:
+`security-auditor`, `code-reviewer`, `landscape-mapper`. Each is a
+deployable BDK agent whose published slug is `attest-expert-<id>`. The
+conductor wires them as peer MCP connections at
+`bot/mcp-connections/attest-expert-<id>.ts`, so when both are mounted
+on one `bdk serve --mode multi` host the conductor can delegate via
+`host.mcp.callTool("attest-expert-<id>", "ask", { message })` with
+zero extra configuration:
 
 ```sh
-# experts co-deployed with the conductor on one serve host
-ATTEST_EXPERT_SECURITY_REVIEWER_PEER=attest-security-reviewer \
-ATTEST_EXPERT_CODE_REVIEWER_PEER=attest-code-reviewer \
-  bdk serve --dir packages/attest-conductor --mode multi
-
-# or a remote deploy
-ATTEST_EXPERT_SECURITY_REVIEWER_URL=https://attest-security-reviewer.cursor-hosted.example \
-  bdk serve --dir packages/attest-conductor
+bdk serve \
+  --dir packages/attest-conductor \
+  --dir packages/attest-experts/agents/security-auditor \
+  --dir packages/attest-experts/agents/code-reviewer \
+  --dir packages/attest-experts/agents/landscape-mapper \
+  --mode multi
 ```
 
-With neither env var set, `dispatch_expert` falls through to **stub
-mode**: returns a canned response good enough for every eval in this
-package.
+Dispatch resolution (`dispatch_expert`):
+
+1. **Non-stub mode** (`ATTEST_MCP_COMMAND` set) — fetch `list_experts`
+   from attest-mcp once per process, cache it. The MCP catalog is the
+   source of truth for which expert ids exist and what their
+   `invocationHint` is; the local `experts-registry.ts` is only
+   consulted as a fallback.
+2. **Phase-2 stub experts** — the 81 experts in attest-experts that
+   only expose `refuse-not-ported` short-circuit here with a structured
+   `{ status: "not-ported", … }` response so the Ralph loop can
+   escalate or route to a concrete expert without paying for a peer
+   round-trip.
+3. **Concrete experts** — dispatch to the peer MCP connection by its
+   catalog-derived slug (`attest-expert-<id>`). Env var
+   `ATTEST_EXPERT_<ID>_PEER=<slug>` (upper-snake-cased id) overrides
+   when the operator wants to point at a different mounted expert
+   (e.g. a staging variant).
+4. **Remote deploy** — set `ATTEST_EXPERT_<ID>_URL=https://…` to POST
+   to a deployed expert over HTTP instead of relying on a mounted
+   peer.
+5. **Stub mode** (default, no `ATTEST_MCP_COMMAND`) — returns a canned
+   response from the local registry; good enough for every eval in
+   this package.
 
 ## Entry points
 
