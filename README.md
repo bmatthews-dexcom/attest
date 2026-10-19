@@ -115,6 +115,70 @@ Plain English routes automatically — `/guide` (or the SDLC lead) detects inten
 - **Eval suite** — `npm run evals` runs the pipeline against fixture repos with planted defects (`evals/`). `EVAL_MODEL=<provider/model>` pins a model per run and `npm run evals:compare` produces a **tiered frontier-vs-local lift / gap / cost** report (outcome-based scoring, sandboxed agent runs); `npm run evals:status` shows live sub-agent fan-out. Protocol changes and model choices are measured, not vibed.
 - **Telemetry** — every completed assistant message logs real token/cost actuals to `docs/work/telemetry.jsonl` (plugin hook; counts only, never content; `EXPERTS_TELEMETRY=0` to disable). `npm run telemetry:report` turns the data into tuned tier budgets, timeouts, and escalation thresholds.
 
+## Cursor target architecture
+
+attest also ships as a Cursor-native target, built from the same canonical
+sources. The design report (`docs/attest-cursor-integration.md`) picks an
+**orchestrator-first** shape: the Cursor-local tree is a thin editor-time
+veneer (rules, hooks, mcp.json, 12 technique skills); the expert personas
+live in `@bpmforge/attest-experts` as deployable BDK agents; a central
+`@bpmforge/attest-conductor` BDK agent runs the Ralph loop that routes
+goals, dispatches experts, runs validators, and advances phase gates.
+
+Four PRs land the architecture plus one that proves it end-to-end:
+
+| PR | Package / tree | What it ships |
+| --- | --- | --- |
+| [#1 — feat: Cursor build target](https://github.com/bmatthews-dexcom/attest/pull/1) | `.cursor/` + `scripts/build-target-cursor.mjs` | Thin editor-time veneer. 35 rules (shared protocols with `@file` pointers), 12 skills (techniques + `invoke-attest-conductor`), 6 hooks (dangerous-bash blocker, credential-write blocker, afterFileEdit lint/typecheck/secret-scan, telemetry, sessionStart STATE.md inject, stop phase-gate), 2 MCP servers (`attest` + `attest-conductor`). |
+| [#2 — feat: attest-mcp package](https://github.com/bmatthews-dexcom/attest/pull/2) | `packages/attest-mcp/` (`@bpmforge/attest-mcp`) | Stdio MCP server exposing attest's 77 validators as per-tool `validate_<id>`, plus `phase_gate_check`, `route_goal`, `list_experts`, 74 resources, 37 prompts. The one place validator / phase-gate / routing logic lives. |
+| [#3 — feat: attest-conductor BDK agent](https://github.com/bmatthews-dexcom/attest/pull/3) | `packages/attest-conductor/` | BDK agent implementing the Ralph Wiggum loop. TypeScript owns a bounded `while(!stop)` loop + idempotent state in `ctx.host.kv`; the LLM picks one tool mutation per iteration from `dispatch_expert`, `phase_gate_check`, `validate_<name>`, `advance_phase`, `conductor_record_finding`, `update_scratchpad`, `compact_state`, `mark_done`, `escalate`. |
+| [#4 — feat: attest-experts BDK pack](https://github.com/bmatthews-dexcom/attest/pull/4) | `packages/attest-experts/` (`@bpmforge/attest-experts`) | 3 concrete + 81 Phase-2 stub BDK agents, one per attest primary expert. Each concrete expert exposes `submit-report`; each stub exposes `refuse-not-ported`. Deployable one-per-slug via `bdk deploy --dir agents --all`. |
+| [#5 — feat: cross-package integration + e2e eval](https://github.com/bmatthews-dexcom/attest/pull/5) | `evals/integration/`, `scripts/integration-smoke.mjs`, `evals/fixtures/trivial-repo/` | One BDK eval + one Node smoke script that drive the real stack end-to-end against a trivial fixture repo. See "Integration smoke" below. |
+
+### Dispatch flow
+
+```
+   user → Cursor Agent (local, thin veneer)
+          │
+          │  /invoke-attest-conductor skill
+          │  dials `attest-conductor` MCP server
+          ▼
+   @bpmforge/attest-conductor  (BDK agent, Ralph loop)
+          │
+          ├── attest-mcp (`@bpmforge/attest-mcp`)
+          │     ├── route_goal(goal)         → expert id + plannedValidators[]
+          │     ├── phase_gate_check(phase)  → plannedValidators[]
+          │     ├── validate_<id>(scope)     → gap-list envelope
+          │     └── list_experts()           → catalog with invocationHint
+          │
+          └── peer BDK agents (`@bpmforge/attest-experts`)
+                ├── attest-expert-security-auditor  (concrete)
+                ├── attest-expert-code-reviewer     (concrete)
+                ├── attest-expert-landscape-mapper  (concrete)
+                └── attest-expert-<rest>             (81 Phase-2 stubs → refuse-not-ported)
+```
+
+### Integration smoke
+
+`scripts/integration-smoke.mjs` has two modes:
+
+- `--stub` (default) — in-process checks of the conductor's prompt
+  shape, the stub attest-mcp catalog, and the dispatch-expert stub
+  pathway. No external processes, no credentials. Runs on every
+  checkout.
+- `--real` — boots the real `attest-mcp` child process, probes its
+  inventory, and discovers the three attest-experts peer slugs via
+  `bdk info`. Requires `CURSOR_API_KEY` (or `CURSOR_API_KEY_FILE`
+  / `CURSOR_SERVICE_ACCOUNT_KEY` / a `bdk login` session) to drive
+  agent turns; without one, exits cleanly with code 2 and a "need
+  CURSOR_API_KEY" message, never a crash.
+
+The companion BDK eval is `packages/attest-conductor/evals/integration/attest-e2e.eval.ts`
+(`npx @cursor/bdk eval --dir packages/attest-conductor integration/attest-e2e`).
+It asserts the full dispatch loop (`run_autopilot_task` → `route_goal`
+→ `dispatch_expert` → `phase_gate_check` → `validate_<name>` →
+`mark_done`) with the real experts mounted as peers.
+
 ## Docs
 
 - [docs/SETUP.md](docs/SETUP.md) — **start here**: prerequisites, embedding models, env vars, troubleshooting
