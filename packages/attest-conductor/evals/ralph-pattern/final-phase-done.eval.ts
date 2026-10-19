@@ -63,9 +63,10 @@ export default defineEval({
         "",
         "## Decide and perform the single next step toward the goal",
         "",
-        "Pick exactly one of: dispatch_expert, validate, phase_gate_check,",
-        "advance_phase, record_finding, update_scratchpad, compact_state,",
-        "mark_done, escalate. Use actionId: \"final-5\". Then end the turn.",
+        "Pick exactly one of: dispatch_expert, phase_gate_check (then",
+        "validate_<name>), advance_phase, record_finding, update_scratchpad,",
+        "compact_state, mark_done, escalate. Use actionId: \"final-5\". Then",
+        "end the turn.",
       ].join("\n"),
     );
 

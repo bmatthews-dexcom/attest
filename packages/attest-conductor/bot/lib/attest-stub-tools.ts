@@ -30,6 +30,48 @@ function nextPhase(current: Phase): Phase {
   return PHASES[i + 1]!;
 }
 
+/**
+ * Representative stub validators. Four are enough to prove the per-validator
+ * dispatch surface in evals without ballooning the stub catalog; the real
+ * attest-mcp publishes 77. Keep the ids snake_case so the derived tool names
+ * (`validate_<id>`) match the catalog derivation in attest-mcp.
+ */
+const STUB_VALIDATORS = [
+  "architecture",
+  "handoff_discipline",
+  "completion_manifest",
+  "code_health",
+] as const;
+
+function buildPerValidatorStubs(): Record<string, AttestStubTool> {
+  const out: Record<string, AttestStubTool> = {};
+  for (const id of STUB_VALIDATORS) {
+    const toolName = `validate_${id}`;
+    out[toolName] = {
+      description: `attest-mcp stub: run the ${id.replaceAll("_", "-")} validator and return the gap-list envelope the real script produces.`,
+      inputSchema: z.object({
+        scope: z.array(z.string()).optional(),
+        projectRoot: z.string().optional(),
+      }),
+      execute(input) {
+        return {
+          id,
+          toolName,
+          ok: true,
+          severity: "gate",
+          gaps: [],
+          receipt: {
+            stubbed: true,
+            scope: input.scope ?? [],
+            projectRoot: input.projectRoot ?? null,
+          },
+        };
+      },
+    };
+  }
+  return out;
+}
+
 export const attestStubTools: Record<string, AttestStubTool> = {
   route_goal: {
     description:
@@ -64,42 +106,21 @@ export const attestStubTools: Record<string, AttestStubTool> = {
   },
   list_validators: {
     description:
-      "attest-mcp stub: list validators attest knows about, optionally scoped to a phase.",
+      "attest-mcp stub: list validators attest knows about, optionally scoped to a phase. Each entry's `toolName` is the exact MCP tool to call for that validator.",
     inputSchema: z.object({ phase: z.enum(PHASES).optional() }),
     execute() {
       return {
-        validators: [
-          { name: "validate-architecture", description: "stub" },
-          { name: "validate-handoff-discipline", description: "stub" },
-          { name: "validate-completion-manifest", description: "stub" },
-          { name: "validate-code-health", description: "stub" },
-        ],
-      };
-    },
-  },
-  validate: {
-    description:
-      "attest-mcp stub: run one named validator. Returns the gap-list envelope the real validator produces.",
-    inputSchema: z.object({
-      name: z.string().min(1),
-      scope: z.array(z.string()).optional(),
-    }),
-    execute(input) {
-      return {
-        name: String(input.name),
-        ok: true,
-        severity: "gate",
-        gaps: [],
-        receipt: {
-          stubbed: true,
-          scope: input.scope ?? [],
-        },
+        validators: STUB_VALIDATORS.map((id) => ({
+          id,
+          toolName: `validate_${id}`,
+          description: "stub",
+        })),
       };
     },
   },
   phase_gate_check: {
     description:
-      "attest-mcp stub: evaluate the phase gate for the given phase. Returns status, gaps, and a receipt path.",
+      "attest-mcp stub: evaluate the phase gate for the given phase. Returns status, gaps, a receipt path, and `plannedValidators` (shell-script basenames) that gate the target phase. The caller should map each basename to the MCP tool `validate_<id>` (dash → underscore) and call them directly.",
     inputSchema: z.object({
       phase: z.enum(PHASES),
     }),
@@ -112,7 +133,9 @@ export const attestStubTools: Record<string, AttestStubTool> = {
         gaps: [],
         nextPhase: nextPhase(phase),
         receiptPath: `docs/work/gates/${phase}.json`,
+        plannedValidators: STUB_VALIDATORS.map((id) => `validate-${id.replaceAll("_", "-")}.sh`),
       };
     },
   },
+  ...buildPerValidatorStubs(),
 };

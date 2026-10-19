@@ -51,8 +51,8 @@ export default defineEval({
     t.calledTool("run_autopilot_task");
 
     t.calledTool("dispatch_expert").soft();
-    t.calledTool("validate").soft();
     t.calledTool("phase_gate_check").soft();
+    t.calledTool("validate_architecture").soft();
     t.calledTool("mark_done").soft();
   },
 });

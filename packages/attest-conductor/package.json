@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@cursor/bdk": "^0.2.27",
-    "zod": "^3.25.0"
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

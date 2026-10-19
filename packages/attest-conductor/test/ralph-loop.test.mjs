@@ -7,6 +7,7 @@ const {
   shouldStop,
   needsCompaction,
   approxStateSize,
+  validatorScriptToToolName,
   DEFAULT_SCRATCHPAD_COMPACT_THRESHOLD,
 } = await import("../bot/lib/ralph-loop.ts");
 
@@ -25,10 +26,40 @@ test("renderRalphPrompt carries goal, taskId, state, palette, and no imperatives
   assert.ok(prompt.includes("mark_done"));
   assert.ok(prompt.includes("escalate"));
   assert.ok(prompt.includes("Decide and perform the single next step"));
+  // Fix 1: Ralph prompt steers the agent to call phase_gate_check first and
+  // then the per-validator `validate_<name>` tools returned in
+  // `plannedValidators`, not a non-existent generic `validate(name)`.
+  assert.ok(prompt.includes("phase_gate_check"));
+  assert.ok(prompt.includes("plannedValidators"));
+  assert.ok(prompt.includes("validate_<name>"));
   assert.ok(
     /do not.*write imperative branches/i.test(prompt),
     "prompt must warn against imperative branches",
   );
+});
+
+test("renderRalphPrompt annotates pre-fetched validators with their MCP tool name", () => {
+  const task = liveTask();
+  const prompt = renderRalphPrompt({
+    task,
+    phaseValidators: ["validate-architecture.sh", "validate-auth.sh"],
+  });
+  assert.ok(prompt.includes("validate-architecture.sh"));
+  assert.ok(prompt.includes("`validate_architecture`"));
+  assert.ok(prompt.includes("`validate_auth`"));
+});
+
+test("validatorScriptToToolName mirrors attest-mcp's toolNameForValidator", () => {
+  assert.equal(validatorScriptToToolName("validate-architecture.sh"), "validate_architecture");
+  assert.equal(
+    validatorScriptToToolName("validate-handoff-discipline.sh"),
+    "validate_handoff_discipline",
+  );
+  assert.equal(
+    validatorScriptToToolName("validate-no-ascii-art.sh"),
+    "validate_no_ascii_art",
+  );
+  assert.equal(validatorScriptToToolName("validate_architecture"), "validate_architecture");
 });
 
 test("renderRalphPrompt stays stable across iterations when only state changes", () => {

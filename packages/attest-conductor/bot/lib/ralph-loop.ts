@@ -32,6 +32,24 @@ import {
 export const DEFAULT_SCRATCHPAD_COMPACT_THRESHOLD = 4_000;
 
 /**
+ * Map an attest validator script basename (e.g. `validate-architecture.sh`,
+ * the shape `phase_gate_check` returns in `plannedValidators`) to the
+ * per-validator MCP tool name attest-mcp advertises (`validate_<id>` where
+ * `<id>` is dash-replaced-with-underscore, `.sh` stripped). Mirrors the
+ * derivation in `packages/attest-mcp/src/validators/catalog.ts`
+ * (`toolNameForValidator`). Keep in sync — a mismatch produces a `tool not
+ * found` error at dispatch time.
+ */
+export function validatorScriptToToolName(script: string): string {
+  const bareId = script
+    .replace(/^validate[-_]/, "")
+    .replace(/\.sh$/, "")
+    .replace(/[^a-z0-9]+/gi, "_")
+    .toLowerCase();
+  return `validate_${bareId}`;
+}
+
+/**
  * Why the TS loop should stop (or `null` to keep going).
  *
  * All thresholds are TS-owned. The agent's own `mark_done` / `escalate`
@@ -94,8 +112,10 @@ export function renderRalphPrompt(args: RalphPromptArgs): string {
     .join("\n");
   const validatorList =
     args.phaseValidators && args.phaseValidators.length > 0
-      ? args.phaseValidators.map((n) => `- ${n}`).join("\n")
-      : "(call attest-mcp `list_validators({ phase })` yourself; the loop driver didn't pre-fetch any for this iteration)";
+      ? args.phaseValidators
+          .map((n) => `- ${n}  (MCP tool: \`${validatorScriptToToolName(n)}\`)`)
+          .join("\n")
+      : "(call attest-mcp `phase_gate_check` first; the response's `plannedValidators` field names the specific `validate_<name>` tools to run next)";
 
   const sdlcRules =
     args.sdlcRulesSnippet?.trim() ||
@@ -126,8 +146,17 @@ export function renderRalphPrompt(args: RalphPromptArgs): string {
     "Pick exactly one of these tool actions, call it, then end the turn:",
     "",
     "- `dispatch_expert` — run an expert BDK agent on one unit of work.",
-    "- `validate` (attest-mcp) — run one validator on scope.",
     "- `phase_gate_check` (attest-mcp) — read the current phase's gate.",
+    "  The response's `plannedValidators` field lists the shell-script",
+    "  basenames (e.g. `validate-architecture.sh`) that gate the next",
+    "  phase; the MCP tool name is `validate_<id>` where `<id>` is the",
+    "  basename stripped of `validate-` / `.sh` and dashes replaced by",
+    "  underscores. **Call `phase_gate_check` BEFORE picking which",
+    "  validator to run.**",
+    "- `validate_<name>` (attest-mcp) — run one specific validator.",
+    "  attest-mcp publishes 77 individual `validate_<name>` tools, one",
+    "  per shell script; do NOT ask for a generic `validate(name)` —",
+    "  pick the exact tool name you got from `plannedValidators`.",
     "- `advance_phase` — move to the next SDLC phase (attest-mcp approved).",
     "- `record_finding` — note a gap, soft issue, or halt condition.",
     "- `update_scratchpad` — rewrite your short working notes for the next turn.",

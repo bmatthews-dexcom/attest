@@ -252,20 +252,32 @@ ATTEST_MCP_ARGS='["../attest-mcp/dist/stdio.js"]' \
   npx @cursor/bdk dev --dir packages/attest-conductor
 ```
 
-### Expected attest-mcp tool contract (flagged for the sibling worker)
+### Expected attest-mcp tool contract (resolved on the integration pass)
 
 | tool | input | expected output shape |
 | --- | --- | --- |
 | `route_goal` | `{ goal, context?, currentPhase? }` | `{ expert, rationale, nextPhase, unit: { id, description, writeScope }, expectedValidators: string[] }` |
-| `list_validators` | `{ phase? }` | `{ validators: Array<{ name, description }> }` |
-| `validate` | `{ name, scope? }` | `{ name, ok, severity: "gate"\|"soft", gaps, receipt }` |
-| `phase_gate_check` | `{ phase }` | `{ phase, status: "green"\|"holds"\|"done", gaps, nextPhase, receiptPath }` |
+| `list_validators` | `{ phase? }` | `{ validators: Array<{ id, toolName, description }> }` |
+| `phase_gate_check` | `{ currentPhase, nextPhase, projectRoot?, runValidators? }` | `{ ok, transition, projectRoot, blockers, plannedValidators: string[], validatorResults? }` where each `plannedValidators` entry is a shell-script basename (e.g. `validate-architecture.sh`). |
+| `validate_<id>` (77 tools) | `{ scope?, projectRoot?, timeoutMs?, enableTelemetry? }` | `{ id, ok, exitCode, severity, gaps, receipt }` |
 
-The design report lists dotted variants (`attest.route`,
-`attest.validate.<name>`, `attest.gate.run`, `attest.gate.current`). If
-the real `attest-mcp` ships dotted names, either (a) rename the inline
-stub tools + prompt refs, or (b) have attest-mcp also publish
-snake_case aliases. **PR body flags this to the sibling worker.**
+**Snake vs dotted.** The design report originally listed dotted names
+(`attest.route`, `attest.validate.<name>`, `attest.gate.run`,
+`attest.gate.current`). Both the real `attest-mcp` and this conductor
+settled on **snake_case** (`route_goal`, `phase_gate_check`,
+`validate_<id>`). Documented in
+`internal/attest-integration.md`.
+
+**One `validate` vs 77 `validate_<id>`.** The design report (and this
+conductor's earlier skeleton) modeled validators as a single
+`validate(name)` call. `attest-mcp` instead publishes one MCP tool per
+validator shell script (77 total), each with its own tool-level
+description so the LLM does not have to guess at a free-text
+`category` parameter. The Ralph prompt teaches the agent to call
+`phase_gate_check` first and map each `plannedValidators` entry to the
+MCP tool `validate_<id>` where `<id>` is the basename stripped of
+`validate-` / `.sh` and dashes replaced by underscores (see
+`validatorScriptToToolName` in `bot/lib/ralph-loop.ts`).
 
 ## GitHub channel
 
