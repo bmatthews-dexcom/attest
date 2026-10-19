@@ -1,0 +1,32 @@
+{
+  "name": "@bpmforge/attest-conductor",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "attest conductor — Cursor BDK agent that reimplements /autopilot (route → delegate → validate → gate) against attest-mcp.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bpmforge/attest.git",
+    "directory": "packages/attest-conductor"
+  },
+  "license": "Apache-2.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit",
+    "test": "tsc --noEmit && node --import tsx --test --test-reporter=spec test/*.test.mjs",
+    "validate": "bdk validate --dir .",
+    "info": "bdk info --dir . --json",
+    "dev": "bdk dev",
+    "serve": "bdk serve --dir . --mode single",
+    "eval": "bdk eval --dir .",
+    "eval:list": "bdk eval --dir . --list"
+  },
+  "dependencies": {
+    "@cursor/bdk": "^0.2.27",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "typescript": "6.0.3"
+  }
+}
