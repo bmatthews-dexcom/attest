@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: handoff-templates — read on demand.'
+alwaysApply: false
+---
+
+# handoff-templates
+
+This rule points at the attest shared protocol `agents/shared/HANDOFF_TEMPLATES.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/HANDOFF_TEMPLATES.md

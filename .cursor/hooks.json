@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "_note": "sessionStart (inject-state.sh) is LOCAL-ONLY; Cursor cloud agents do not run sessionStart (per https://cursor.com/docs/agent/hooks). All other hooks run in cloud and local.",
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/block-dangerous.sh"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": ".cursor/hooks/block-credentials.sh",
+        "matcher": "Write"
+      },
+      {
+        "command": ".cursor/hooks/block-credentials.sh",
+        "matcher": "Edit"
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": ".cursor/hooks/post-edit-check.sh"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": ".cursor/hooks/telemetry.sh"
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": ".cursor/hooks/inject-state.sh"
+      }
+    ],
+    "stop": [
+      {
+        "command": ".cursor/hooks/end-of-turn-gate.sh"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: code-book-protocol — read on demand.'
+alwaysApply: false
+---
+
+# code-book-protocol
+
+This rule points at the attest shared protocol `agents/shared/CODE_BOOK_PROTOCOL.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/CODE_BOOK_PROTOCOL.md

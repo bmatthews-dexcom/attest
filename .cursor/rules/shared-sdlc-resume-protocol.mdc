@@ -1,0 +1,10 @@
+---
+description: 'Reference document — read on demand, not an agent. The deterministic procedure for resuming an INCOMPLETE SDLC (status: partial): gate-verify claimed-complete phases, per-artifact disposition (LOCKED / REPAIR / PRODUCE), and the additive-never-regenerate rule that stops weak models from redesigning from scratch instead of continuing.'
+alwaysApply: false
+---
+
+# sdlc-resume-protocol
+
+This rule points at the attest shared protocol `agents/shared/SDLC_RESUME_PROTOCOL.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/SDLC_RESUME_PROTOCOL.md
