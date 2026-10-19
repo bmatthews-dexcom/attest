@@ -1,0 +1,39 @@
+{
+  "name": "@bpmforge/attest-experts",
+  "version": "0.1.0-alpha.0",
+  "private": false,
+  "license": "Apache-2.0",
+  "description": "attest experts shipped as BDK (Background Development Kit) agents — one deployable Cursor cloud agent per expert, dispatched by the attest conductor.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bpmforge/attest.git",
+    "directory": "packages/attest-experts"
+  },
+  "type": "module",
+  "files": [
+    "agents",
+    "lib",
+    "evals",
+    "scripts",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "scripts": {
+    "check": "tsc --noEmit",
+    "validate": "node scripts/validate-all.mjs",
+    "info": "bdk info --dir . --json",
+    "eval:list": "bdk eval --dir . --list",
+    "eval": "bdk eval --dir .",
+    "serve": "bdk serve --dir . --dev",
+    "sync-stubs": "tsx scripts/sync-stubs.ts"
+  },
+  "dependencies": {
+    "@cursor/bdk": "^0.2.27",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "tsx": "^4.19.2",
+    "typescript": "6.0.3"
+  }
+}
