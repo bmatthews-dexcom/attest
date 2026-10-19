@@ -1,0 +1,10 @@
+---
+description: 'Reference document — read on demand, not an agent. The runtime-detection + local-landscape + cloud-portability knowledge behind container-ops: which CLI/compose flavor is present, rootless gotchas, multi-arch, and what an image must satisfy to run on GCP and AWS.'
+alwaysApply: false
+---
+
+# container-runtimes
+
+This rule points at the attest shared protocol `agents/shared/CONTAINER_RUNTIMES.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/CONTAINER_RUNTIMES.md
