@@ -1,11 +1,24 @@
 {
-  "$note": "The `attest` MCP server is scaffolded by the sibling worker at packages/attest-mcp/ and published as @bpmforge/attest-mcp. If the sibling renames the package, update the args line below and regenerate (`npm run build:cursor`).",
+  "$note": "Two MCP servers: `attest` (stdio, published as @bpmforge/attest-mcp) exposes 77 validators + phase_gate_check + route_goal + list_experts; `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop. See .cursor/skills/invoke-attest-conductor/SKILL.md for the three-path dial-out (preferred: MCP tool, fallback: HTTPS, fallback: GitHub comment).",
   "mcpServers": {
     "attest": {
       "command": "npx",
       "args": [
         "-y",
         "@bpmforge/attest-mcp"
+      ]
+    },
+    "attest-conductor": {
+      "$comment": "Local-dev invocation: served out of packages/attest-conductor via @cursor/bdk serve --mode single. For deployed Cursor installs, replace this stanza with { \"url\": \"https://<your-conductor-host>/v1/mcp\", \"type\": \"http\" } pointing at the deployed BDK agent (BDK deployments expose /<slug>/v1/mcp automatically). Private package: cannot be reached via `npx -y @bpmforge/attest-conductor`.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cursor/bdk",
+        "serve",
+        "--dir",
+        "./packages/attest-conductor",
+        "--mode",
+        "single"
       ]
     }
   }
