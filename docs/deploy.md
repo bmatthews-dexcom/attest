@@ -93,7 +93,7 @@ Each deploy writes its response (slug, status, hosted URL) to
 Verify:
 
 ```bash
-npx -y @cursor/bdk@0.2.27 deployments --json | jq '.[] | {slug, status}'
+npx --yes @cursor/bdk@0.2.27 deployments --json | jq '.[] | {slug, status}'
 # every slug should show status: "running"
 ```
 
@@ -142,16 +142,16 @@ release:
 
 ```bash
 # roll conductor back to the previous release:
-npx -y @cursor/bdk@0.2.27 rollback attest-conductor --json
+npx --yes @cursor/bdk@0.2.27 rollback attest-conductor --json
 
 # roll a specific expert back:
-npx -y @cursor/bdk@0.2.27 rollback attest-expert-security-auditor --json
+npx --yes @cursor/bdk@0.2.27 rollback attest-expert-security-auditor --json
 
 # roll to a specific release id:
-npx -y @cursor/bdk@0.2.27 rollback attest-conductor --release <rel_...>
+npx --yes @cursor/bdk@0.2.27 rollback attest-conductor --release <rel_...>
 
 # or stop the deployment entirely (returns 404 to callers; keeps metadata):
-npx -y @cursor/bdk@0.2.27 stop attest-conductor
+npx --yes @cursor/bdk@0.2.27 stop attest-conductor
 ```
 
 Rollbacks are atomic per slug.
@@ -167,13 +167,13 @@ and re-run `./scripts/local-install.sh`.
 # stop every hosted slug (keeps deployment metadata for later roll-forward):
 for slug in attest-conductor attest-expert-security-auditor \
             attest-expert-code-reviewer attest-expert-landscape-mapper; do
-  npx -y @cursor/bdk@0.2.27 stop "$slug" || true
+  npx --yes @cursor/bdk@0.2.27 stop "$slug" || true
 done
 
 # delete entirely (slugs become reusable):
 for slug in attest-conductor attest-expert-security-auditor \
             attest-expert-code-reviewer attest-expert-landscape-mapper; do
-  npx -y @cursor/bdk@0.2.27 delete "$slug" || true
+  npx --yes @cursor/bdk@0.2.27 delete "$slug" || true
 done
 ```
 
@@ -184,7 +184,7 @@ done
 | `deploy FAIL: no Cursor credential found.` | `CURSOR_API_KEY` not in shell or `.env`. | Create at Cursor Dashboard → Settings → API Keys; put in `.env`. |
 | `deploy FAIL: ref … is not on any remote branch` | Local commit not pushed. | `git push -u origin <branch>` to `bmatthews-dexcom/attest`, re-run. |
 | `bdk validate failed on packages/attest-experts/agents` | One of the 84 expert agent directories is misconfigured. | Read `/tmp/attest-deploy-experts-validate.log`. |
-| `deployment status is "failed"` | BDK accepted the deploy but the agent crashed on first boot. | `npx -y @cursor/bdk@0.2.27 logs <slug> --prod` for the boot error. |
+| `deployment status is "failed"` | BDK accepted the deploy but the agent crashed on first boot. | `npx --yes @cursor/bdk@0.2.27 logs <slug> --prod` for the boot error. |
 | `live-eval: set CURSOR_API_KEY to run.` | Credential not in-scope for the shell. | `source .env` or `export CURSOR_API_KEY=...`. |
 | `attest-mcp build did not produce dist/cli.js` | TypeScript compile error in the mcp package. | Fix the error, re-run `./scripts/local-install.sh`. |
 

@@ -13,9 +13,9 @@ attest's expert personas (`security-auditor`, `code-reviewer`,
 custom-mode / subagent files. They live as BDK agents in a sibling
 package, orchestrated by a conductor:
 
-- [`@bpmforge/attest-experts`](https://github.com/bpmforge/attest-experts) — each primary attest expert
+- [`attest-experts`](https://github.com/bpmforge/attest-experts) — each primary attest expert
   packaged as a `defineAgent({ … })` BDK agent.
-- [`@bpmforge/attest-conductor`](https://github.com/bpmforge/attest-conductor) — the outer loop that
+- [`attest-conductor`](https://github.com/bpmforge/attest-conductor) — the outer loop that
   claims tickets, dispatches expert agents, scores HANDOFF returns,
   and merges completed work (the `v3.9.0` autopilot shape).
 
@@ -31,15 +31,15 @@ for safety + editor-time quality guidance.
 | `rules/*.mdc` | `rules/*.md` + `agents/shared/*.md` | Editor-time quality protocols (CHALLENGER, FIX_VERIFY, GATE_SCORING, PERSISTENCE, …) as on-demand rules with `@file` pointers to the committed sources. |
 | `skills/*/SKILL.md` | `skills/*/SKILL.md` + hand-authored | Only **technique / procedure** skills. See the keep set below. |
 | `hooks.json` + `hooks/*.sh` | `plugins/expert-hooks.ts` | 1:1 port of the attest plugin: dangerous-bash blocker, credential-write blocker, afterFileEdit lint/typecheck/secret-scan, postToolUse telemetry, sessionStart STATE.md injection (**local-only**: Cursor cloud agents do not fire `sessionStart`), stop phase-gate. |
-| `mcp.json` | generated | Points at three MCP servers: `attest` (`@bpmforge/attest-mcp`), `attest-conductor` (BDK agent), and `attest-ceo` (local workspace Phase-1 CEO MCP). |
+| `mcp.json` | generated | Points at three MCP servers: `attest` (`attest-mcp`), `attest-conductor` (BDK agent), and `attest-ceo` (local workspace Phase-1 CEO MCP). |
 | `agents/attest-ceo.md` | `agents/shared/chiefs/ceo.md` | Editor-side **CEO** chief as a Cursor custom-mode / subagent; tool allowlist excludes raw bash — mutations go through `attest-ceo-mcp` + dispatch via `attest-conductor`. |
 | `skills/attest-ceo/SKILL.md` | `agents/shared/chiefs/ceo.md` | Same shared source, framed as a skill the current Cursor Agent loads when the user types a `/ceo` command. |
 
 ### CEO MCP surface (`attest-ceo` server, Phase 1)
 
-Local workspace package `@bpmforge/attest-ceo-mcp` (`"private": true`,
+Local workspace package `attest-ceo-mcp` (`"private": true`,
 not published to npm). Build with
-`npm run build --workspace @bpmforge/attest-ceo-mcp` once; the
+`npm run build --workspace attest-ceo-mcp` once; the
 `mcp.json` entry spawns `node packages/attest-ceo-mcp/dist/cli.js`.
 Tools exposed (names tracked by `CEO_MCP_TOOL_NAMES` in the generator):
 
@@ -62,7 +62,7 @@ Plus four resources: `attest://ceo/roadmap/current`,
 
 api-ground, design-options, explore, game-asset-pipeline, gate, goal, pre-code, reflow, simplify, vault, wave, invoke-attest-conductor, attest-ceo
 
-### Dropped skills (personas — live in @bpmforge/attest-experts, 37 total)
+### Dropped skills (personas — live in attest-experts, 37 total)
 
 a11y, analytics, api-design, architect, autopilot, challenge, code, containers, cost, data-governance, dba, design-iterate, devops, documentation-gap-finder, end-user-simulator, frontend, gauntlet, git, guide, llm-integration, migration-planner, onboard-gap-fill, onboard-inventory, onboard-verify, perf, release, reliability, research, review, review-code, sdlc, security, steward, test-expert, ui-verify, user-guide, ux
 

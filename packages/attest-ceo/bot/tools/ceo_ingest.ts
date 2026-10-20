@@ -1,8 +1,8 @@
 import { defineTool } from "@cursor/bdk/tools";
 import * as z from "zod/v4";
 import { randomUUID } from "node:crypto";
-import { ingestDiscussion } from "@bpmforge/attest-ceo-mcp/discussions";
-import { draftPlan } from "@bpmforge/attest-ceo-mcp/plan";
+import { ingestDiscussion } from "attest-ceo-mcp/discussions";
+import { draftPlan } from "attest-ceo-mcp/plan";
 import {
   appendDiscussion,
   findDuplicateCommitment,

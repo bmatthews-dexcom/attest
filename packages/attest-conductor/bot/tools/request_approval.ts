@@ -35,7 +35,7 @@ export default defineTool({
     destructiveOp: z
       .string()
       .optional()
-      .describe("Specific destructive op this would run (e.g. `npm publish`, `git push`, `gh pr merge`)."),
+      .describe("Specific destructive op this would run (e.g. a registry publish, `git push`, `gh pr merge`)."),
     target: z
       .string()
       .optional()

@@ -2,7 +2,7 @@ import { defineConnection } from "@cursor/bdk/connections";
 import { attestCeoMcpStubTools } from "../lib/ceo-mcp-stub-tools.js";
 
 /**
- * MCP connection to the sibling `@bpmforge/attest-ceo-mcp` server.
+ * MCP connection to the sibling `attest-ceo-mcp` server.
  *
  * Two modes, selected by env:
  *

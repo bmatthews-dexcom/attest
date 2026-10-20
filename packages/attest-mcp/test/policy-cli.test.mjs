@@ -43,7 +43,7 @@ test("attest-mcp-policy --help prints workspace-install messaging", () => {
   assert.match(r.stderr, /npm install/);
   assert.match(r.stderr, /bmatthews-dexcom\/attest/);
   // Explicit anti-marketing of registry / global installs.
-  assert.doesNotMatch(r.stderr, /npm i -g|npx -y/);
+  assert.doesNotMatch(r.stderr, /npm\s+i\s+-g|npx\s+-y/);
 });
 
 test("attest-mcp-policy evaluate --kind=shell denies rm -rf under ENFORCE", () => {
@@ -127,5 +127,5 @@ test("attest-mcp --help advertises workspace-install only (no registry suggestio
   assert.equal(r.status, 0);
   assert.match(r.stdout, /npm install/);
   assert.match(r.stdout, /bmatthews-dexcom\/attest/);
-  assert.doesNotMatch(r.stdout, /npm i -g|npx -y/);
+  assert.doesNotMatch(r.stdout, /npm\s+i\s+-g|npx\s+-y/);
 });

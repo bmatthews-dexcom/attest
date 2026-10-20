@@ -34,7 +34,7 @@ test("forbid-tier capability short-circuits to deny without ask", async () => {
     {
       taskId: "task-forbid",
       capability: "publish:npm",
-      prompt: "publish @bpmforge/x",
+      prompt: "publish @private-forbidden-scope/x",
     },
   );
   assert.equal(res.approved, false);

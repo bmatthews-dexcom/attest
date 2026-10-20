@@ -3,7 +3,7 @@
  * cli.ts — stdio entry point for the attest-director MCP server.
  *
  * Resolved via a local workspace sibling or `./node_modules/.bin/attest-director-mcp`.
- * **Never** `npx -y`: Bradford's distribution constraint forbids any npm
+ * **Never** auto-install `npx --yes`: Bradford's distribution constraint forbids any npm
  * registry fetch for the Director surface.
  *
  * Flags:

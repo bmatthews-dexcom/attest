@@ -1,6 +1,6 @@
 /**
  * schema.ts — zod schemas for the CEO ledger + plan + autonomy + chief
- * task record. The TypeScript types in `@bpmforge/attest-ceo-mcp/types`
+ * task record. The TypeScript types in `attest-ceo-mcp/types`
  * are the shared contract; this file is the agent-side runtime guard.
  *
  * Agent-side only — the MCP server does its own validation.

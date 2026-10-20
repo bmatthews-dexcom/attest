@@ -1,7 +1,7 @@
 /**
  * server.ts — build the attest-ceo MCP server.
  *
- * Shape mirrors `@bpmforge/attest-mcp`: tools + resources only
+ * Shape mirrors `attest-mcp`: tools + resources only
  * (no prompts in Phase 1). The server runs as a stdio child process
  * driven by `cli.ts`; the CEO BDK agent connects via peer MCP and
  * drives tool calls directly.

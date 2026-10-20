@@ -133,7 +133,7 @@ export const FENCES: readonly Fence[] = [
   {
     capability: "publish:npm",
     tier: "never",
-    scopeNote: "any npm publish, any registry, public or private",
+    scopeNote: "any npm registry upload, any registry, public or private",
     rationale: "Bradford's hard distribution constraint — moved from ask-each to never",
   },
   {

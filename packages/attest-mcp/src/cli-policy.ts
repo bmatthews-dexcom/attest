@@ -44,7 +44,7 @@
  *
  *   cd <path-to-attest> && npm install
  *
- * There is no `npm i -g` and no `npx -y` support by design.
+ * There is no `npm i -g` and no auto-install `npx --yes` support by design.
  */
 
 import { evaluateHookJson, type PolicyKind } from "./policy/hooks.js";
@@ -145,7 +145,7 @@ function writeStderr(text: string): void {
 const POLICY_CLI_HELP = [
   "attest-mcp-policy — Shape-C policy evaluator for Cursor hook scripts.",
   "",
-  "This bin is part of the local-only @bpmforge/attest-mcp workspace.",
+  "This bin is part of the local-only attest-mcp workspace.",
   "If it is not on PATH, install the workspace from the user's personal",
   "GitHub clone of bmatthews-dexcom/attest:",
   "",

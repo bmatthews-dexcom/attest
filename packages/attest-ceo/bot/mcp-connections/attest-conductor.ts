@@ -2,7 +2,7 @@ import { defineConnection } from "@cursor/bdk/connections";
 import * as z from "zod/v4";
 
 /**
- * MCP connection to the sibling `@bpmforge/attest-conductor` BDK agent.
+ * MCP connection to the sibling `attest-conductor` BDK agent.
  *
  * The chief's `run_autopilot_task` tool is what the CEO's `dispatch_plan`
  * blueprint resolves into — the CEO calls it once per plan step.

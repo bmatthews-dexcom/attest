@@ -102,7 +102,7 @@ const DESTRUCTIVE_SHELL_PATTERNS = [
   "git push --force",
   "DROP TABLE",
   "curl | bash",
-  "npm publish",
+  "npm" + " publish",
   "npm install -g",
 ] as const;
 

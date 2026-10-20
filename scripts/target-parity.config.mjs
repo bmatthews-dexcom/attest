@@ -31,7 +31,7 @@ export const skills = {
   // Skills that are emitted on Cursor but NOT on OpenCode / Claude.
   // Hand-authored additions that only make sense on Cursor.
   cursorOnly: new Set([
-    // Teaches the local Cursor Agent to call out to @bpmforge/attest-conductor
+    // Teaches the local Cursor Agent to call out to attest-conductor
     // (BDK) because the orchestrator-first architecture keeps the personas
     // off the local editor surface. See .cursor/skills/invoke-attest-conductor/.
     'invoke-attest-conductor',
@@ -39,7 +39,7 @@ export const skills = {
 
   // Skills emitted on OpenCode (and Claude) but intentionally dropped on
   // Cursor. These are the persona wrappers + orchestration entry points
-  // that live as BDK agents in @bpmforge/attest-experts in the Cursor
+  // that live as BDK agents in attest-experts in the Cursor
   // target. Must stay 1:1 with build-target-cursor.mjs → PERSONA_SKILL_DROPS.
   //
   // The parity gate cross-checks this list against the authoritative
@@ -212,7 +212,7 @@ export const mcp = {
   // examples/opencode.json and the Cursor .cursor/mcp.json must register
   // every server listed here. Drift (one side missing) fails the gate.
   requiredBoth: new Set([
-    // The attest MCP server (@bpmforge/attest-mcp) — the authoritative
+    // The attest MCP server (attest-mcp) — the authoritative
     // bridge for validators + phase_gate + route_goal + list_experts. The
     // integration-PR tip registers it under the key `attest` on both
     // targets. (OpenCode's current examples/opencode.json has not been

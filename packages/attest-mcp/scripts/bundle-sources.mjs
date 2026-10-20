@@ -2,7 +2,7 @@
 /**
  * bundle-sources.mjs — copy the attest source material the MCP server
  * needs at runtime into packages/attest-mcp/bundled/ so a user who runs
- *   npx -y attest-mcp
+ *   npx --yes attest-mcp
  * gets a self-contained server (no attest checkout required).
  *
  * Precedence at runtime (see src/sources.ts):

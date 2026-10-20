@@ -1,7 +1,7 @@
-# `@bpmforge/attest-ceo-mcp`
+# `attest-ceo-mcp`
 
 Companion MCP server for the attest **CEO** BDK agent (sibling package
-`@bpmforge/attest-ceo`). Workspace-only — this package is **not published
+`attest-ceo`). Workspace-only — this package is **not published
 to npm**; source lives on Bradford's personal GitHub
 (`bmatthews-dexcom/attest`).
 
@@ -44,7 +44,7 @@ the `roadmap_sync` / `*_set_*` / `*_upsert` tools.
 
 ```sh
 # Build (TypeScript → dist/)
-npm --workspace @bpmforge/attest-ceo-mcp run build
+npm --workspace attest-ceo-mcp run build
 
 # Smoke inventory (no credential needed)
 node packages/attest-ceo-mcp/dist/cli.js --inventory

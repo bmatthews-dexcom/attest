@@ -19,8 +19,9 @@ lives in `.cursor/agents/director.md`.
 
 ## Hard rules (never override)
 
-1. **Local-only distribution.** Director must never run `npm publish`,
-   `npx -y @bpmforge/…`, or any registry push. The fence inventory
+1. **Local-only distribution.** Director must never run an npm registry
+   publish, auto-install any workspace-scoped package via `npx --yes`,
+   or any registry push. The fence inventory
    (§6.3) locks `publish:npm` into the forbid tier; the MCP server
    re-asserts this at every publish-shaped tool. Promotion from
    `experts-private/` → `packages/attest-experts/` goes through a PR
@@ -106,7 +107,7 @@ are out of scope for `feat/attest-director`.
         "cd packages/attest-director-mcp && npm install && npm run build"
       ],
       "notes": [
-        "Local-only; private package. Never spawned via `npx -y @bpmforge/attest-director-mcp` — resolve from workspace build."
+        "Local-only; private package. Never spawned via `npx --yes attest-director-mcp` — resolve from workspace build."
       ]
     }
   ]

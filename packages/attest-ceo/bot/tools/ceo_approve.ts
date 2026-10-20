@@ -1,12 +1,12 @@
 import { defineTool, type ToolContext } from "@cursor/bdk/tools";
 import * as z from "zod/v4";
 import { randomUUID } from "node:crypto";
-import { approvePlan } from "@bpmforge/attest-ceo-mcp/plan";
+import { approvePlan } from "attest-ceo-mcp/plan";
 import {
   buildDispatchBlueprint,
   type DispatchBlueprint,
   type DispatchCall,
-} from "@bpmforge/attest-ceo-mcp/dispatch";
+} from "attest-ceo-mcp/dispatch";
 import {
   findPlan,
   mutateLedger,

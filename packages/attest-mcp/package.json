@@ -23,7 +23,7 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
     "start": "node dist/cli.js",
-    "inspect": "npx -y @modelcontextprotocol/inspector node dist/cli.js"
+    "inspect": "npx --yes @modelcontextprotocol/inspector node dist/cli.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",

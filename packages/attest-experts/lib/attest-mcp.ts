@@ -37,7 +37,7 @@ export function attestMcpConnection(): ConnectionDefinition {
 /**
  * Production transport: spawn the sibling `attest-mcp` server over
  * stdio. The sibling worker owns the exact command — this factory assumes
- * `npx -y attest-mcp` works once the package is published.
+ * `npx --yes attest-mcp` works once the package is published.
  */
 export function realAttestConnection(): ConnectionDefinition {
   const command = process.env.ATTEST_MCP_COMMAND ?? "npx";

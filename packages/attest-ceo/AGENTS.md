@@ -62,7 +62,7 @@ Run the CLI under Node, never Bun.
   attest-ceo-mcp heuristics. Host code owns kv, idempotency, dispatch,
    60|  and reconciliation plumbing.
 - Add npm deps on a first cut. Stick to `@cursor/bdk` + `zod` +
-  `@bpmforge/attest-ceo-mcp` (workspace sibling).
+  `attest-ceo-mcp` (workspace sibling).
 - Publish to npm. This package is `"private": true` by policy — source
   stays on `bmatthews-dexcom/attest`; the Director's downstream expert
   deploys use `npx @cursor/bdk deploy` with `CURSOR_API_KEY`, not npm.

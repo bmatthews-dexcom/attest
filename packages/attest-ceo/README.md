@@ -1,7 +1,7 @@
-# `@bpmforge/attest-ceo`
+# `attest-ceo`
 
 The **CEO** of attest on Cursor — a BDK agent that sits above
-`@bpmforge/attest-conductor` (the chief) and owns the roadmap,
+`attest-conductor` (the chief) and owns the roadmap,
 discussion ingestion, intent extraction, plan drafting, approval
 round-trip, and dispatch to the chief. Phase 1 of the design doc at
 `/cursor/stores/.../docs/attest-ceo-architecture.md`.
@@ -84,9 +84,9 @@ credential-free running (tests, evals, `scripts/integration-smoke.mjs
 
 | connection | real server | stub mode |
 | --- | --- | --- |
-| `attest-ceo-mcp` | `@bpmforge/attest-ceo-mcp` (sibling in this workspace) | ingest / extract / draft / approve / dispatch / director surfaces run in-process via the shared package source. |
-| `attest-conductor` | `@bpmforge/attest-conductor` BDK agent | `run_autopilot_task` returns a canned `task_stub_<n>` dispatch handle. |
-| `attest` | `@bpmforge/attest-mcp` | `read_task_status` returns `mockTaskStatus` from the shared package; `read_task_completion` returns `{ present: false }` for all taskIds (Shape C placeholder). |
+| `attest-ceo-mcp` | `attest-ceo-mcp` (sibling in this workspace) | ingest / extract / draft / approve / dispatch / director surfaces run in-process via the shared package source. |
+| `attest-conductor` | `attest-conductor` BDK agent | `run_autopilot_task` returns a canned `task_stub_<n>` dispatch handle. |
+| `attest` | `attest-mcp` | `read_task_status` returns `mockTaskStatus` from the shared package; `read_task_completion` returns `{ present: false }` for all taskIds (Shape C placeholder). |
 
    90|Switch to the real servers by setting the matching env vars:
 
@@ -108,7 +108,7 @@ ATTEST_MCP_ARGS='["packages/attest-mcp/dist/stdio.js"]' \
 ```
 
 > TODO(ceo): switch to the real `attest://tasks/<id>/completion.json`
-   110|> resource read when `@bpmforge/attest-mcp` Shape C merges. Marked
+   110|> resource read when `attest-mcp` Shape C merges. Marked
 > inline in `bot/mcp-connections/attest.ts` and
 > `bot/tools/run_ceo_turn.ts`.
 
@@ -116,7 +116,7 @@ ATTEST_MCP_ARGS='["packages/attest-mcp/dist/stdio.js"]' \
 
 ```
 packages/attest-ceo/
-├── package.json              name: @bpmforge/attest-ceo, "private": true
+├── package.json              name: attest-ceo, "private": true
 ├── tsconfig.json             strict + noEmit (tsx runs bot/ directly)
    120|├── README.md                 (this file)
 ├── AGENTS.md                 BDK scaffold notes for coding agents
@@ -200,7 +200,7 @@ package is published to the npm registry.
 - Dashboards, multi-user CEO, auto-dispatch as default.
 - Director handoff that actually mints an expert agent + deploys it via
    200|  `npx @cursor/bdk deploy` with `CURSOR_API_KEY` (never npm).
-- Shape C on `@bpmforge/attest-mcp`: real `attest://tasks/<id>/status.json`
+- Shape C on `attest-mcp`: real `attest://tasks/<id>/status.json`
   and `attest://tasks/<id>/completion.json` resource reads for the CEO's
   reconciliation path.
 

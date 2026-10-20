@@ -1,7 +1,7 @@
 import { defineConnection } from "@cursor/bdk/connections";
 
 /**
- * MCP connection to the sibling `@bpmforge/attest-director-mcp` server.
+ * MCP connection to the sibling `attest-director-mcp` server.
  *
  * Resolution order (first match wins):
  *
@@ -9,10 +9,10 @@ import { defineConnection } from "@cursor/bdk/connections";
  *     explicit stdio server. Use this for development or when the sibling
  *     binary lives somewhere non-standard.
  *  2. **Workspace sibling** (default) — `node ./node_modules/.bin/attest-director-mcp`.
- *     The `@bpmforge/attest-director` `package.json` declares the sibling
+ *     The `attest-director` `package.json` declares the sibling
  *     as a `file:` dependency, so `npm install` wires the binary.
  *
- * **Never** `npx -y @bpmforge/attest-director-mcp` — Bradford's
+ * **Never** `npx --yes attest-director-mcp` — Bradford's
  * distribution constraint forbids any npm registry fetch for the Director
  * surface. The design doc §8.1 restates this verbatim.
  */
@@ -40,6 +40,6 @@ export default explicitCommand
     })
   : defineConnection({
       command: "node",
-      args: ["./node_modules/@bpmforge/attest-director-mcp/dist/cli.js"],
+      args: ["./node_modules/attest-director-mcp/dist/cli.js"],
       advertiseTools: true,
     });

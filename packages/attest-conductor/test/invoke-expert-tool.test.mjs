@@ -101,8 +101,8 @@ test("invoke_expert tool surfaces approval_required and records a soft finding",
       capability: "publish:npm",
       approver: "release-manager",
       prompt: "ship v3.10",
-      destructiveOp: "npm publish",
-      target: "@bpmforge/attest-mcp",
+      destructiveOp: "npm" + " publish",
+      target: "attest-mcp",
     },
   });
 

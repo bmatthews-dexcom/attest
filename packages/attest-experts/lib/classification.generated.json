@@ -706,7 +706,7 @@
       },
       {
         "kind": "shell:destructive",
-        "scope": "npm publish, git push, gh pr merge during phase 5 only"
+        "scope": "registry publish, git push, gh pr merge during phase 5 only"
       },
       {
         "kind": "git:write",
@@ -714,7 +714,7 @@
       },
       {
         "kind": "publish:npm",
-        "scope": "npm publish during release cut"
+        "scope": "registry upload during release cut"
       }
     ],
     "rationale": "Chief-architecture doc Section 4 names release-manager as the sole holder of shell:destructive at phase 5 — version bump touches package.json even if it delegates publish steps.",

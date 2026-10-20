@@ -170,7 +170,7 @@ node dist/cli.js --inventory
 Once published, the standard install will be:
 
 ```bash
-npx -y attest-mcp --inventory
+npx --yes attest-mcp --inventory
 ```
 
 ## Finding attest sources at runtime
@@ -184,7 +184,7 @@ Resolution order:
 2. **Bundled copy** — `scripts/bundle-sources.mjs` runs at `npm run build` /
    `npm pack` time and copies `scripts/validators/`, `rules/`, `agents/shared/`,
    `agents/*.md`, and `commands/*.md` into `packages/attest-mcp/bundled/`.
-   This is the default `npx -y attest-mcp` path — no attest checkout
+   This is the default `npx --yes attest-mcp` path — no attest checkout
    required.
 
 If a validator you want is missing from the bundled copy, set `ATTEST_ROOT`.

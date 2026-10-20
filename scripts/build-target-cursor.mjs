@@ -883,7 +883,7 @@ function generateCeoSkill() {
     `  Sibling output: .cursor/agents/attest-ceo.md (same source, agents\n` +
     `  frontmatter + tool-allowlist tweak).\n` +
     `  Three chiefs: attest-ceo (this file), sdlc-lead (editor SDLC),\n` +
-    `  @bpmforge/attest-conductor (hosted autopilot).\n` +
+    `  attest-conductor (hosted autopilot).\n` +
     `  See .cursor/README.md and packages/attest-ceo/README.md.\n` +
     `-->\n\n` +
     `# attest-ceo (editor-side) — skill form\n\n` +
@@ -1485,7 +1485,7 @@ export const CONDUCTOR_TOOL_NAME = 'run_autopilot_task';
 // autonomy mode is `draft-and-approve` — opt-in `auto-dispatch` only.
 export const CEO_SHARED_SOURCE = 'agents/shared/chiefs/ceo.md';
 
-// Tool names published by @bpmforge/attest-ceo-mcp. Keeping these as
+// Tool names published by attest-ceo-mcp. Keeping these as
 // constants here mirrors the Shape-C POLICY_TOOL_NAMES pattern: a
 // rename on the sibling attest-ceo-mcp side shows up as drift in this
 // generator's output rather than a silent miss in the generated skill

@@ -35,7 +35,7 @@ cd ~/Code/attest
 - Agents, skills, shared protocols, hooks, and scripts → `~/.config/opencode/`
 - `bpm-code-search-mcp` → `~/Code/bpm-code-search-mcp/` + registers as `code-search` MCP
 - `bpm-memory-mcp` → `~/Code/bpm-memory-mcp/` + registers as `memory` MCP
-- `playwright-mcp` → registered via `npx -y @playwright/mcp@latest`
+- `playwright-mcp` → registered via `npx --yes @playwright/mcp@latest`
 - `playwright-search` → `~/.local/share/playwright-search/` + registers with Claude Code
 
 ---
@@ -190,7 +190,7 @@ cat ~/.config/opencode/opencode.json | python3 -m json.tool
 # Expected output includes:
 #   code-search  node ~/Code/bpm-code-search-mcp/dist/index.js  - ✓ Connected
 #   memory       node ~/Code/bpm-memory-mcp/mcp/memory-server/dist/index.js  - ✓ Connected
-#   playwright   npx -y @playwright/mcp@latest  - ✓ Connected
+#   playwright   npx --yes @playwright/mcp@latest  - ✓ Connected
 #   playwright-search  node ~/.local/share/playwright-search/dist/mcp.js  - ✓ Connected
 ```
 

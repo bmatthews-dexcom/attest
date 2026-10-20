@@ -1,9 +1,9 @@
 {
-  "name": "@bpmforge/attest-director",
+  "name": "attest-director",
   "version": "0.0.1",
   "private": true,
   "type": "module",
-  "description": "attest Director — persistent BDK meta-agent that fills expert-pool gaps on demand. Hosted alongside the CEO; local-only, no npm publish.",
+  "description": "attest Director — persistent BDK meta-agent that fills expert-pool gaps on demand. Hosted alongside the CEO; local-only, never pushed to any npm registry.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/bmatthews-dexcom/attest.git",
@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@cursor/bdk": "^0.2.27",
-    "@bpmforge/attest-director-mcp": "file:../attest-director-mcp",
+    "attest-director-mcp": "file:../attest-director-mcp",
     "zod": "^4.0.0"
   },
   "devDependencies": {

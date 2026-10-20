@@ -1,9 +1,9 @@
 import { defineConnection } from "@cursor/bdk/connections";
 import * as z from "zod/v4";
-import { mockTaskStatus } from "@bpmforge/attest-ceo-mcp/dispatch";
+import { mockTaskStatus } from "attest-ceo-mcp/dispatch";
 
 /**
- * MCP connection to the sibling `@bpmforge/attest-mcp` server.
+ * MCP connection to the sibling `attest-mcp` server.
  *
  * CEO uses attest-mcp to read task status + task completion for
  * reconciliation on each turn. Shape C of attest-mcp adds two new

@@ -1,5 +1,5 @@
 {
-  "name": "@bpmforge/attest-ceo",
+  "name": "attest-ceo",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -22,7 +22,7 @@
     "eval:list": "bdk eval --dir . --list"
   },
   "dependencies": {
-    "@bpmforge/attest-ceo-mcp": "*",
+    "attest-ceo-mcp": "*",
     "@cursor/bdk": "^0.2.27",
     "zod": "^4.0.0"
   },

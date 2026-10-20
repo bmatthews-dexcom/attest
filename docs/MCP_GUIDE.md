@@ -32,7 +32,7 @@ How to install, configure, and use each MCP server in the expert system. For the
 **Install (handled by `install.sh`):**
 ```bash
 # Claude Code — registers once per user
-claude mcp add playwright -- npx -y @playwright/mcp@latest
+claude mcp add playwright -- npx --yes @playwright/mcp@latest
 
 # OpenCode — in opencode.json (auto-written by install.sh)
 "playwright-mcp": {
@@ -45,7 +45,7 @@ claude mcp add playwright -- npx -y @playwright/mcp@latest
 **Manual install without install.sh:**
 ```bash
 # Claude Code
-claude mcp add playwright -- npx -y @playwright/mcp@latest
+claude mcp add playwright -- npx --yes @playwright/mcp@latest
 
 # OpenCode — edit ~/.config/opencode/opencode.json and add the block above
 ```
@@ -167,7 +167,7 @@ Use as the **last resort** in the research chain: playwright-search → pullmd �
 **Install:** Runs via npx — no local clone needed.
 ```bash
 # Claude Code
-claude mcp add context7 -- npx -y @upstash/context7-mcp@latest
+claude mcp add context7 -- npx --yes @upstash/context7-mcp@latest
 
 # OpenCode — in opencode.json
 "context7": {

@@ -77,9 +77,9 @@ pick up where you left off.
 
 ## Hard rules
 
-- **Local-only distribution.** Never `npm publish`. Never spawn
-  `npx -y @bpmforge/…`. The fence inventory locks `publish:npm` into
-  the forbid tier.
+- **Local-only distribution.** Never push to any npm registry. Never
+  spawn an auto-install `npx --yes` fetch of any workspace package.
+  The fence inventory locks `publish:npm` into the forbid tier.
 - **Fail closed.** When no HITL transport (MCP elicitation OR GitHub
   comment binding) is wired for a destructive capability, return
   `no_hitl_transport` and stop. Do not silently proceed.

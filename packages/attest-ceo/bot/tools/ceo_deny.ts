@@ -1,7 +1,7 @@
 import { defineTool } from "@cursor/bdk/tools";
 import * as z from "zod/v4";
 import { randomUUID } from "node:crypto";
-import { denyPlan } from "@bpmforge/attest-ceo-mcp/plan";
+import { denyPlan } from "attest-ceo-mcp/plan";
 import {
   findPlan,
   mutateLedger,

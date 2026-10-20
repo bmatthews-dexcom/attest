@@ -82,7 +82,7 @@ front doors:
 | Chief | Lives in | Starts a turn via | Owns |
 |---|---|---|---|
 | **attest-ceo** (this file) | BDK agent + Cursor custom-mode | Cursor chat (`/ceo …`) + Phase-2 webhooks | Roadmap, commitments, intent extraction, plan drafting + approval, dispatch to the conductor |
-| **Hosted conductor** (`@bpmforge/attest-conductor`) | BDK agent in its own pod | GitHub webhooks (`/autopilot <goal>`) + scheduled runs + CEO dispatch | Long-running, unattended autopilot work |
+| **Hosted conductor** (`attest-conductor`) | BDK agent in its own pod | GitHub webhooks (`/autopilot <goal>`) + scheduled runs + CEO dispatch | Long-running, unattended autopilot work |
 | **sdlc-lead** | Cursor Agent in the user's editor | User keystroke in Cursor chat (`/sdlc …`) | Short, interactive `/sdlc` phase work |
 
 The CEO **never** bypasses the conductor to touch repos. Dispatch
@@ -186,9 +186,9 @@ call lands on an already-up-to-date record and short-circuits.
 
 | server | package | stubbed? |
 |---|---|---|
-| `attest-ceo-mcp` | `@bpmforge/attest-ceo-mcp` (sibling, local-only — not published) | Yes, inline stub shipped. The real server is spawned via `ATTEST_CEO_MCP_COMMAND`. |
-| `attest-conductor` | `@bpmforge/attest-conductor` (sibling BDK agent) | Yes, inline `run_autopilot_task` stub. Real server via `ATTEST_CONDUCTOR_MCP_COMMAND`. |
-| `attest` | `@bpmforge/attest-mcp` (sibling MCP server) | Yes, inline `read_task_status` / `read_task_completion` stubs (Shape-C placeholders — the real resources ship when attest-mcp Shape C merges). |
+| `attest-ceo-mcp` | `attest-ceo-mcp` (sibling, local-only — not published) | Yes, inline stub shipped. The real server is spawned via `ATTEST_CEO_MCP_COMMAND`. |
+| `attest-conductor` | `attest-conductor` (sibling BDK agent) | Yes, inline `run_autopilot_task` stub. Real server via `ATTEST_CONDUCTOR_MCP_COMMAND`. |
+| `attest` | `attest-mcp` (sibling MCP server) | Yes, inline `read_task_status` / `read_task_completion` stubs (Shape-C placeholders — the real resources ship when attest-mcp Shape C merges). |
 
 The stubs mean the CEO's loop runs credential-free in tests, evals,
 and the `scripts/integration-smoke.mjs --stub` path.

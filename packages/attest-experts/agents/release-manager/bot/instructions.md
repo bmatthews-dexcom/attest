@@ -11,9 +11,9 @@ Chief-architecture doc Section 4 names release-manager as the sole holder of she
 **Required capabilities beyond baseline:**
 
 - `write:fs` — docs/work/release/** (checklist) + version-bump files (package.json, etc.)
-- `shell:destructive` — npm publish, git push, gh pr merge during phase 5 only
+- `shell:destructive` — registry publish, git push, gh pr merge during phase 5 only
 - `git:write` — tag + push during release cut
-- `publish:npm` — npm publish during release cut
+- `publish:npm` — registry upload during release cut
 
 ## TODO (Shape C Phase 2) — full persona port + eval
 

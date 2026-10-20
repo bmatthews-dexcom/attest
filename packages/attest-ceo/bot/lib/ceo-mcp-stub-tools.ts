@@ -1,6 +1,6 @@
 /**
  * ceo-mcp-stub-tools.ts — in-process stand-in for the
- * `@bpmforge/attest-ceo-mcp` MCP server.
+ * `attest-ceo-mcp` MCP server.
  *
  * Mirrors the real server's tool surface so the CEO agent, its tests,
  * and its evals can run with zero external processes. In production the
@@ -16,20 +16,20 @@ import * as z from "zod/v4";
 import {
   buildDispatchBlueprint,
   type DispatchBlueprint,
-} from "@bpmforge/attest-ceo-mcp/dispatch";
-import { ingestDiscussion, type IngestResult } from "@bpmforge/attest-ceo-mcp/discussions";
-import { extractIntents, type ExtractResult } from "@bpmforge/attest-ceo-mcp/intent";
+} from "attest-ceo-mcp/dispatch";
+import { ingestDiscussion, type IngestResult } from "attest-ceo-mcp/discussions";
+import { extractIntents, type ExtractResult } from "attest-ceo-mcp/intent";
 import {
   approvePlan,
   denyPlan,
   draftPlan,
   refinePlan,
-} from "@bpmforge/attest-ceo-mcp/plan";
+} from "attest-ceo-mcp/plan";
 import {
   stubCreateExpert,
   type DirectorCreateExpertInput,
   type DirectorCreateExpertResult,
-} from "@bpmforge/attest-ceo-mcp/director";
+} from "attest-ceo-mcp/director";
 import type {
   AutonomyMode,
   Commitment,

@@ -1,8 +1,8 @@
-# @bpmforge/attest-director-mcp
+# attest-director-mcp
 
 MCP server exposing the attest Director's tool surface — the surface the Director BDK agent and the CEO call for role-brief intake, research/draft/eval, Cedar-style policy evaluation, HITL approvals, and local-only promotion.
 
-**Local only. Never published to npm.** Resolve this package via the workspace sibling (`@bpmforge/attest-director`'s `file:../attest-director-mcp` dependency) or the direct binary (`./node_modules/.bin/attest-director-mcp`). Never `npx -y @bpmforge/attest-director-mcp` — Bradford's distribution constraint forbids any npm registry fetch for the Director surface. The design doc §8.1 restates this verbatim.
+**Local only. Never published to npm.** Resolve this package via the workspace sibling (`attest-director`'s `file:../attest-director-mcp` dependency) or the direct binary (`./node_modules/.bin/attest-director-mcp`). Never `npx --yes attest-director-mcp` — Bradford's distribution constraint forbids any npm registry fetch for the Director surface. The design doc §8.1 restates this verbatim.
 
 ## Tool surface
 
@@ -32,7 +32,7 @@ The hosted Director replaces this at wire time with Cursor-hosted `ctx.host.kv`;
 
 ```sh
 # Development
-npm --workspace @bpmforge/attest-director-mcp run build
+npm --workspace attest-director-mcp run build
 node packages/attest-director-mcp/dist/cli.js --inventory
 
 # From the attest-director agent (automatic once installed as workspace sibling)

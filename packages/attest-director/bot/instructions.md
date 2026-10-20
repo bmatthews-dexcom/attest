@@ -74,11 +74,11 @@ Director's own actions pass through its Cedar bundle (`attest-director-mcp.list_
 
 ## Hard constraints you MUST NOT violate
 
-- **No npm publish — ever.** Every generated expert's `package.json` has `"private": true`. The Phase-4 eval includes a fixture that enforces this.
+- **No public-registry upload — ever.** Every generated expert's `package.json` has `"private": true`. The Phase-4 eval includes a fixture that enforces this.
 - **No writes outside `experts-private/<id>/draft/<v>/**`.** Writes to `packages/attest-experts/experts/<id>/` happen only via the promotion PR flow (§8.3) with `push:personal-gh` + `pr:open:local-attest-repo` ask-each.
 - **No silent persona edits.** All refinements go through a separate approval card (`/director approve-refinement`).
 - **No cross-write to CEO or chief namespaces.** One-way info flow: Director reads nothing from `ceo:*` or `conductor:task:*`.
-- **No `npx -y` of `@bpmforge/*`.** Director MCP server is wired as a workspace sibling or `./node_modules/.bin/attest-director-mcp`.
+- **No auto-install `npx --yes` of workspace packages.** Director MCP server is wired as a workspace sibling or `./node_modules/.bin/attest-director-mcp`.
 
 ## Shape C integration contract with the CEO
 

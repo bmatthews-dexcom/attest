@@ -62,7 +62,7 @@ test("evaluateShellPolicy denies destructive shell", () => {
   assert.equal(dec.decision, "deny");
 });
 
-test("evaluateShellPolicy denies npm publish", () => {
+test("evaluateShellPolicy denies npm registry publish", () => {
   const dec = evaluateShellPolicy({ command: "npm", args: ["publish", "--access", "public"] });
   assert.equal(dec.decision, "deny");
   assert.equal(dec.capability, "publish:npm");

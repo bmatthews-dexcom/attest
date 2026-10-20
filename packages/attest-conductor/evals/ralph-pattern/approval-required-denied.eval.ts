@@ -31,7 +31,7 @@ export default defineEval({
     await t.send(
       [
         `You are the attest autopilot conductor for task ${taskId}.`,
-        "Goal: publish @bpmforge/attest-mcp v3.10",
+        "Goal: publish attest-mcp v3.10",
         "Autonomy mode: auto — HITL for destructive; fail-closed when no transport.",
         "",
         "Current state (compact JSON):",

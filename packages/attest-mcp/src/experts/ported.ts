@@ -1,6 +1,6 @@
 /**
  * experts/ported.ts — single source of truth for which attest primary
- * experts have been **ported** to the sibling `@bpmforge/attest-experts`
+ * experts have been **ported** to the sibling `attest-experts`
  * BDK pack as concrete agents (not Phase-2 stubs that only expose
  * `refuse-not-ported`).
  *

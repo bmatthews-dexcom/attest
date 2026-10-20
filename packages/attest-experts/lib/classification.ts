@@ -4,7 +4,7 @@
  * For every expert in attest's `agents/` directory we declare:
  *
  *   - the **classification** that decides whether the expert runs in-process
- *     as an MCP tool handler in `@bpmforge/attest-mcp` or stays sandboxed
+ *     as an MCP tool handler in `attest-mcp` or stays sandboxed
  *     as a per-VM BDK agent in this package;
  *   - the **capability vector** (fences the chief architecture reasons
  *     about: `read:fs`, `write:fs`, `shell:safe`, `shell:destructive`,
@@ -31,9 +31,9 @@
  * `Dockerfile`, `CHANGELOG.md`, source dirs named per-HANDOFF, etc.).
  *
  * Keep this file aligned with `packages/attest-experts/agents/` (sandbox set)
- * and with the sibling `@bpmforge/attest-mcp` in-process handler registry.
+ * and with the sibling `attest-mcp` in-process handler registry.
  * Regenerate the JSON mirror and prune the agents/ tree with
- * `npm --workspace @bpmforge/attest-experts run sync-classification`.
+ * `npm --workspace attest-experts run sync-classification`.
  */
 
 import type { ExpertCluster } from "./expert-registry.js";
@@ -219,9 +219,9 @@ export const CLASSIFICATION: Readonly<
         kind: "write:fs",
         scope: "docs/work/release/** (checklist) + version-bump files (package.json, etc.)",
       },
-      { kind: "shell:destructive", scope: "npm publish, git push, gh pr merge during phase 5 only" },
+      { kind: "shell:destructive", scope: "registry publish, git push, gh pr merge during phase 5 only" },
       { kind: "git:write", scope: "tag + push during release cut" },
-      { kind: "publish:npm", scope: "npm publish during release cut" },
+      { kind: "publish:npm", scope: "registry upload during release cut" },
     ],
     rationale:
       "Chief-architecture doc Section 4 names release-manager as the sole holder of shell:destructive at phase 5 — version bump touches package.json even if it delegates publish steps.",

@@ -275,9 +275,9 @@ mechanics that have no clean Cursor analog. In broad strokes:
 | Surface | Shape in Cursor |
 |---|---|
 | \`.cursor/rules/*.mdc\` | On-demand rules with \`@file\` pointers at \`agents/shared/*.md\` (CHALLENGER, FIX_VERIFY, GATE_SCORING, PERSISTENCE, SCOPE_BOUNDARY, …). The agent reads them only when the \`description\` matches the current task. |
-| \`.cursor/skills/\` | **Technique / procedure** skills only (\`/explore\`, \`/pre-code\`, \`/simplify\`, \`/gate\`, \`/goal\`, \`/wave\`, \`/reflow\`, \`/api-ground\`, \`/vault\`, …) plus the hand-authored \`/invoke-attest-conductor\` that teaches the local Cursor Agent to dial out to the \`@bpmforge/attest-conductor\` BDK agent. The persona wrappers (\`/security\`, \`/code\`, \`/sdlc\`, …) are intentionally **not** generated here — see "What was dropped" below. |
+| \`.cursor/skills/\` | **Technique / procedure** skills only (\`/explore\`, \`/pre-code\`, \`/simplify\`, \`/gate\`, \`/goal\`, \`/wave\`, \`/reflow\`, \`/api-ground\`, \`/vault\`, …) plus the hand-authored \`/invoke-attest-conductor\` that teaches the local Cursor Agent to dial out to the \`attest-conductor\` BDK agent. The persona wrappers (\`/security\`, \`/code\`, \`/sdlc\`, …) are intentionally **not** generated here — see "What was dropped" below. |
 | \`.cursor/hooks.json\` + \`.cursor/hooks/*.sh\` | 1:1 port of \`plugins/expert-hooks.ts\`: dangerous-bash blocker (\`beforeShellExecution\`), credential-write blocker (\`preToolUse\`), afterFileEdit lint/typecheck/secret-scan, telemetry (\`postToolUse\`), stop phase-gate (\`stop\`). Plus \`sessionStart\` STATE.md injection (**local only** — Cursor cloud agents do not fire \`sessionStart\`). |
-| \`.cursor/mcp.json\` | Points at \`@bpmforge/attest-mcp\` (the stdio MCP server that exposes the validators + phase gate + routing) and \`@bpmforge/attest-conductor\` (the BDK agent that owns the Ralph loop). |
+| \`.cursor/mcp.json\` | Points at \`attest-mcp\` (the stdio MCP server that exposes the validators + phase gate + routing) and \`attest-conductor\` (the BDK agent that owns the Ralph loop). |
 | \`.cursor/README.md\` | Short architecture note — read it first; it links the design report. |
 
 ## What was intentionally dropped
@@ -289,7 +289,7 @@ mechanics that have no clean Cursor analog. In broad strokes:
 | \`scripts/detect-model-context.sh\` + \`docs/work/.model-context\` tier split | Tier detection probes LM Studio for a loaded model and context window; irrelevant on Cursor. |
 | \`tools/task.ts\` (subprocess dispatcher spawning \`opencode run --agent\`) | Cursor's Task tool is the native dispatcher; the subprocess wrapper is unneeded. |
 | \`tools/write.ts\` / \`append.ts\` / \`update.ts\` (atomic-write patches) | Workarounds for an LM-Studio-plus-OpenCode write bug Cursor does not have. The standard Edit / Write tools are used directly. |
-| Persona-wrapper skills (\`/security\`, \`/code\`, \`/sdlc\`, \`/review\`, \`/autopilot\`, …) | Orchestrator-first architecture: personas live as deployable BDK agents in \`@bpmforge/attest-experts\`, invoked by \`@bpmforge/attest-conductor\`. The local Cursor Agent calls out via \`/invoke-attest-conductor\` rather than hosting the personas itself. |
+| Persona-wrapper skills (\`/security\`, \`/code\`, \`/sdlc\`, \`/review\`, \`/autopilot\`, …) | Orchestrator-first architecture: personas live as deployable BDK agents in \`attest-experts\`, invoked by \`attest-conductor\`. The local Cursor Agent calls out via \`/invoke-attest-conductor\` rather than hosting the personas itself. |
 | OpenCode-tier-specific protocols (\`agents/shared/LOCAL_LLM_PRIMER.md\`, \`MODEL_ADAPTER.md\`, \`CONTEXT_BUDGET.md\`, \`EXECUTOR_SELECTION.md\`) | Only exist to shore up small / 32 k local models and the 4-executor matrix; neither applies on Cursor's single-agent-with-subagents surface. |
 
 Full keep / drop rationale lives in \`scripts/build-target-cursor.mjs\`
@@ -303,7 +303,7 @@ and the design report at
    \`.cursor/hooks.json\`, and \`.cursor/mcp.json\` automatically.
 
 2. **CURSOR_API_KEY** — required to drive the conductor BDK agent
-   (\`@bpmforge/attest-conductor\`) on your machine or in a hosted
+   (\`attest-conductor\`) on your machine or in a hosted
    deployment. Set either:
       - the environment variable \`CURSOR_API_KEY=<key>\`, OR
       - a login session via \`npx @cursor/bdk login\`, OR

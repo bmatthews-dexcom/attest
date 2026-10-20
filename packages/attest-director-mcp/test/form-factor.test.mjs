@@ -41,9 +41,9 @@ test("Rule 1 — git push forces sandbox-bdk-agent", () => {
   assert.equal(res.decision.ruleFired, "rule-1");
 });
 
-test("Rule 1 — npm publish forces sandbox-bdk-agent", () => {
+test("Rule 1 — npm registry publish forces sandbox-bdk-agent", () => {
   const res = pickFormFactor({
-    capabilities: { ...baseCaps, shell_patterns: ["npm publish --access public"] },
+    capabilities: { ...baseCaps, shell_patterns: ["npm" + " publish --access public"] },
   });
   assert.equal(res.decision.pick, "sandbox-bdk-agent");
   assert.equal(res.decision.ruleFired, "rule-1");

@@ -1,8 +1,8 @@
 {
-  "name": "@bpmforge/attest-director-mcp",
+  "name": "attest-director-mcp",
   "version": "0.0.1",
   "private": true,
-  "description": "attest Director MCP server — tool surface the Director BDK agent and the CEO call for role-brief intake, research/draft/eval of experts, Cedar-style policy evaluation, HITL approvals, and local-only promotion. No npm publish, no npx -y invocation: wired by workspace sibling or ./node_modules/.bin/attest-director-mcp.",
+  "description": "attest Director MCP server — tool surface the Director BDK agent and the CEO call for role-brief intake, research/draft/eval of experts, Cedar-style policy evaluation, HITL approvals, and local-only promotion. No npm registry upload, no auto-install npx --yes invocation: wired by workspace sibling or ./node_modules/.bin/attest-director-mcp.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {

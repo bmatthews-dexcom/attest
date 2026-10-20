@@ -257,7 +257,7 @@ function registerRouteGoalTool(server: McpServer): void {
         "Given a plain-English goal, return the recommended expert agent, " +
         "its command, a short rationale, and (when the agent is a known " +
         "primary expert) an invocation_hint for spawning the matching " +
-        "@bpmforge/attest-experts BDK agent. Mirrors agents/guide.md's " +
+        "attest-experts BDK agent. Mirrors agents/guide.md's " +
         "routing table. For ambiguous goals the response defers to /guide " +
         "rather than guessing.",
       inputSchema: routeGoalInputSchema,
@@ -569,10 +569,10 @@ function registerListExpertsTool(server: McpServer): void {
       title: "attest primary experts",
       description:
         "List every attest primary expert agent with its cluster, " +
-        "invocation hint (for the sibling @bpmforge/attest-experts BDK " +
+        "invocation hint (for the sibling attest-experts BDK " +
         "agents), recommended SDLC phases, required-tool list, and " +
         "`ported` flag (true when the agent ships as a concrete BDK agent " +
-        "in @bpmforge/attest-experts; false when the sibling pack still " +
+        "in attest-experts; false when the sibling pack still " +
         "exposes only a `refuse-not-ported` stub for this id). The same " +
         "payload is browsable via the attest://experts/catalog resource; " +
         "per-expert manifests (with the full persona) live at " +
@@ -594,7 +594,7 @@ function registerListExpertsTool(server: McpServer): void {
         }
         return okContent({
           ok: true,
-          package: "@bpmforge/attest-experts",
+          package: "attest-experts",
           idRule:
             "expert id = attest primary agent filename minus '.md' (e.g. security-auditor.md -> 'security-auditor')",
           count: experts.length,
@@ -778,7 +778,7 @@ export function buildServer(options: BuildServerOptions = {}): McpServer {
       title: "attest primary experts catalog",
       description:
         "Every attest primary expert agent with its cluster, invocation hint " +
-        "(for the sibling @bpmforge/attest-experts BDK agents), recommended " +
+        "(for the sibling attest-experts BDK agents), recommended " +
         "SDLC phases, and required-tool list. Same payload the `list_experts` " +
         "tool returns.",
       mimeType: "application/json",
@@ -818,7 +818,7 @@ export function buildServer(options: BuildServerOptions = {}): McpServer {
       title: "attest expert manifest",
       description:
         "Per-expert manifest with the full persona prompt, routing rationale, " +
-        "and tool allowlist. Consumed by @bpmforge/attest-experts BDK agents " +
+        "and tool allowlist. Consumed by attest-experts BDK agents " +
         "to stay in sync with the attest source of truth.",
       mimeType: "application/json",
     },
