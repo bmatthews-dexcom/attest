@@ -25,7 +25,8 @@
     "eval:list": "bdk eval --dir . --list",
     "eval": "bdk eval --dir .",
     "serve": "bdk serve --dir . --dev",
-    "sync-stubs": "tsx scripts/sync-stubs.ts"
+    "sync-classification": "tsx scripts/sync-classification.ts",
+    "test": "node --test scripts/test-classification.mjs"
   },
   "dependencies": {
     "@cursor/bdk": "^0.2.27",
