@@ -20,8 +20,20 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = resolve(HERE, "..");
 const BDK = resolve(PKG, "..", "..", "node_modules", ".bin", "bdk");
 
-const CONCRETE = ["security-auditor", "code-reviewer", "landscape-mapper"];
-const SAMPLE_STUBS = ["semgrep-runner", "dead-code-detector", "component-mapper"];
+const CONCRETE = [
+  "security-auditor",
+  "code-reviewer",
+  "landscape-mapper",
+  // Phase 2 code-review cluster port (feat/attest-experts-code-review-cluster)
+  "complexity-analyzer",
+  "duplication-detector",
+  "error-handling-auditor",
+  "type-safety-checker",
+  "dead-code-detector",
+];
+// `dead-code-detector` was previously a sample stub; after the Phase 2 port it
+// is concrete, so swap in another code-review stub that still refuses.
+const SAMPLE_STUBS = ["semgrep-runner", "pattern-consistency-checker", "component-mapper"];
 const STUB_SERVER = resolve(PKG, "lib", "stub-mcp-server.mjs");
 
 const fixtureReport = (id) => ({

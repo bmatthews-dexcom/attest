@@ -63,6 +63,53 @@ export const CONCRETE_EXPERTS: ReadonlyArray<ExpertMetadata> = [
     summary:
       "Onboarding specialist — reads an unfamiliar codebase (README, package manifests, source tree, git hotspots) and produces LANDSCAPE.md orientation report.",
   },
+  // --- Phase 2 code-review cluster port (feat/attest-experts-code-review-cluster) ---
+  // The five always-run specialists dispatched by `code-reviewer` across
+  // Pass 1 (complexity / duplication / error-handling) and Pass 2
+  // (type-safety / dead-code). Rationale: all five are the most-used
+  // code-review-cluster experts per `agents/code-reviewer.md` (every review
+  // runs them). The remaining 3 (pattern-consistency-checker,
+  // anti-slop-auditor, code-health-synthesizer) stay as Phase 2 stubs.
+  {
+    id: "complexity-analyzer",
+    source: "agents/code-review/complexity-analyzer.md",
+    cluster: "code-review",
+    status: "concrete",
+    summary:
+      "Code complexity specialist — cyclomatic complexity, cognitive complexity, function length, nesting depth. Runs lizard/radon/complexity tools plus manual analysis per METHODOLOGY Pass 1.",
+  },
+  {
+    id: "duplication-detector",
+    source: "agents/code-review/duplication-detector.md",
+    cluster: "code-review",
+    status: "concrete",
+    summary:
+      "Duplication and DRY specialist — copy-paste detection, near-duplicates, R-19 (repeated logic blocks). Uses jscpd / fdupes / PMD-CPD per METHODOLOGY Pass 2; the #1 driver of AI-assisted tech debt (GitClear 2025).",
+  },
+  {
+    id: "error-handling-auditor",
+    source: "agents/code-review/error-handling-auditor.md",
+    cluster: "code-review",
+    status: "concrete",
+    summary:
+      "Error handling and silent failure specialist — empty catch blocks, exception-driven control flow, swallowed errors, serial awaits vs Promise.all. Enforces R-01 through R-04 per METHODOLOGY Pass 3.",
+  },
+  {
+    id: "type-safety-checker",
+    source: "agents/code-review/type-safety-checker.md",
+    cluster: "code-review",
+    status: "concrete",
+    summary:
+      "Type safety and invariant specialist — any-escapes, non-null assertions without guards, type assertions, strict-mode compliance (TS / Python / Rust). Runs tsc / mypy / grep tripwires per METHODOLOGY Pass 4.",
+  },
+  {
+    id: "dead-code-detector",
+    source: "agents/code-review/dead-code-detector.md",
+    cluster: "code-review",
+    status: "concrete",
+    summary:
+      "Dead and unutilized code specialist — unimplemented stubs, functions defined but never called, unused exports, orphan files, unreachable branches, disconnected pipelines. Tools: knip / ts-prune / vulture / staticcheck plus reference-count grep.",
+  },
 ];
 
 export const CONCRETE_IDS = new Set(CONCRETE_EXPERTS.map((e) => e.id));

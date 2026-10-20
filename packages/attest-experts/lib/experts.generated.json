@@ -101,7 +101,7 @@
     "id": "complexity-analyzer",
     "source": "agents/code-review/complexity-analyzer.md",
     "cluster": "code-review",
-    "status": "stub",
+    "status": "concrete",
     "summary": "Code complexity specialist — cyclomatic complexity, cognitive complexity, function length, nesting depth. Runs lizard/radon/complexity tools plus manual analysis. Identifies functions that are too complex to safely ma…"
   },
   {
@@ -164,7 +164,7 @@
     "id": "dead-code-detector",
     "source": "agents/code-review/dead-code-detector.md",
     "cluster": "code-review",
-    "status": "stub",
+    "status": "concrete",
     "summary": "Dead and unutilized code specialist — unimplemented stubs, functions defined but never called, unused exports, orphan files, unreachable branches, disconnected pipelines (code wired to nothing). Tools: knip/ts-prune (…"
   },
   {
@@ -199,7 +199,7 @@
     "id": "duplication-detector",
     "source": "agents/code-review/duplication-detector.md",
     "cluster": "code-review",
-    "status": "stub",
+    "status": "concrete",
     "summary": "Duplication and DRY specialist — copy-paste detection, near-duplicates, R-19 (repeated logic blocks). Uses jscpd/fdupes/PMD-CPD. Flags code that was duplicated rather than refactored — the #1 driver of AI-assisted tec…"
   },
   {
@@ -220,7 +220,7 @@
     "id": "error-handling-auditor",
     "source": "agents/code-review/error-handling-auditor.md",
     "cluster": "code-review",
-    "status": "stub",
+    "status": "concrete",
     "summary": "Error handling and silent failure specialist — empty catch blocks, exception-driven control flow, swallowed errors, missing error boundaries, serial awaits vs Promise.all. Enforces R-01 through R-04. Veracode 2025: er…"
   },
   {
@@ -563,7 +563,7 @@
     "id": "type-safety-checker",
     "source": "agents/code-review/type-safety-checker.md",
     "cluster": "code-review",
-    "status": "stub",
+    "status": "concrete",
     "summary": "Type safety and invariant specialist — any-escapes, null coercion, type assertions without guards, runtime type violations. Checks TypeScript strict mode compliance, Python type annotation consistency, and whether typ…"
   },
   {
