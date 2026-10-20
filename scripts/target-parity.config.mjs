@@ -35,6 +35,20 @@ export const skills = {
     // (BDK) because the orchestrator-first architecture keeps the personas
     // off the local editor surface. See .cursor/skills/invoke-attest-conductor/.
     'invoke-attest-conductor',
+    // Shape-C sdlc-lead chief skill — the orchestrator-first SDLC chief
+    // persona rendered as an editor-side front door. Lives only on the
+    // Cursor target; the OpenCode target routes SDLC work through
+    // conventional persona skills instead.
+    'sdlc-lead',
+    // Phase-1 attest-ceo chief skill (PR #16) — product-level CEO
+    // persona rendered as an editor-side front door. Cursor-only; the
+    // CEO's authoritative chief persona runs as a BDK agent on the
+    // deployed side.
+    'attest-ceo',
+    // Phase-1 attest-director chief skill (PR #17) — operations
+    // director persona rendered as an editor-side front door. Cursor-only
+    // for the same reason as attest-ceo.
+    'director',
   ]),
 
   // Skills emitted on OpenCode (and Claude) but intentionally dropped on
@@ -236,6 +250,16 @@ export const mcp = {
     // config in-tree — kept here until the OpenCode-side registration
     // lands, at which point it moves to requiredBoth above.
     'attest',
+    // Phase-1 attest-ceo MCP server (PR #16) — exposes the CEO chief's
+    // dispatch + record-finding + status-digest tools to the editor-side
+    // CEO persona. Cursor-only; the CEO's authoritative behavior runs as
+    // a BDK agent (`packages/attest-ceo`) on the deployed side.
+    'attest-ceo',
+    // Shape-C policy-dev MCP server — editor-only developer surface for
+    // iterating on the attest-mcp policy engine (list_fences,
+    // request_approval, pre_dispatch_check). Not shipped in the OpenCode
+    // target because policy iteration is a hosted-platform concern.
+    'attest-policy-dev',
   ]),
 
   // MCP servers that are intentionally only on the OpenCode side. Cursor

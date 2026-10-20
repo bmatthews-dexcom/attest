@@ -958,13 +958,19 @@ function generateCeoAgent() {
 }
 
 // Passthrough reader for hand-authored `.cursor/<rel>` files that have no
-// generator yet. Used only for files whose canonical source IS the
-// composed `.cursor/<rel>` on `release/v0.1.0`. If the file is missing on
-// disk the generator throws, so a stray `--write` can't silently drop it.
+// generator yet. The canonical source IS the composed `.cursor/<rel>` tree
+// on `release/v0.1.0`, so we always read from `${ROOT}/.cursor/<rel>`
+// (NOT from OUT — OUT may point at an empty temp dir when
+// `scripts/check-target-parity.mjs` regenerates both targets for its
+// smoke test). If the canonical source file is missing we throw, so a
+// stray `--write` can't silently drop it; `--check` against the
+// committed tree still catches drift because the content read here is
+// bit-identical to what the committed tree already holds.
+const SOURCE_MANUAL_ROOT = join(ROOT, '.cursor');
 function passthroughManual(relPaths) {
   const out = new Map();
   for (const rel of relPaths) {
-    const abs = join(OUT, rel);
+    const abs = join(SOURCE_MANUAL_ROOT, rel);
     if (!existsSync(abs)) {
       throw new Error(
         `passthroughManual: expected hand-authored ${rel} at ${abs} but ` +
