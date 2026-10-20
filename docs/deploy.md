@@ -81,9 +81,9 @@ cat artifacts/deploy/*.json
 ```
 
 `./scripts/deploy.sh --publish` runs serially: every concrete expert
-(`attest-expert-security-auditor`, `attest-expert-code-reviewer`,
-`attest-expert-landscape-mapper`) first, then `attest-conductor` last.
-The conductor goes last on purpose — its `dispatch_expert` tool needs
+(`security-auditor`, `code-reviewer`, `landscape-mapper`) first, then
+`attest-conductor` last.
+The conductor goes last on purpose — its `invoke_expert` tool needs
 the expert peer slugs to exist in Cursor's control plane before its
 first dispatch.
 
@@ -145,7 +145,7 @@ release:
 npx --yes @cursor/bdk@0.2.27 rollback attest-conductor --json
 
 # roll a specific expert back:
-npx --yes @cursor/bdk@0.2.27 rollback attest-expert-security-auditor --json
+npx --yes @cursor/bdk@0.2.27 rollback security-auditor --json
 
 # roll to a specific release id:
 npx --yes @cursor/bdk@0.2.27 rollback attest-conductor --release <rel_...>
@@ -165,14 +165,12 @@ and re-run `./scripts/local-install.sh`.
 
 ```bash
 # stop every hosted slug (keeps deployment metadata for later roll-forward):
-for slug in attest-conductor attest-expert-security-auditor \
-            attest-expert-code-reviewer attest-expert-landscape-mapper; do
+for slug in attest-conductor security-auditor code-reviewer landscape-mapper; do
   npx --yes @cursor/bdk@0.2.27 stop "$slug" || true
 done
 
 # delete entirely (slugs become reusable):
-for slug in attest-conductor attest-expert-security-auditor \
-            attest-expert-code-reviewer attest-expert-landscape-mapper; do
+for slug in attest-conductor security-auditor code-reviewer landscape-mapper; do
   npx --yes @cursor/bdk@0.2.27 delete "$slug" || true
 done
 ```

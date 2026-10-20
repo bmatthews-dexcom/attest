@@ -14,8 +14,8 @@ import { defineEval } from "@cursor/bdk/evals";
  *     ↓
  *   route_goal  (attest-mcp)   →  returns expert = "security-auditor"
  *     ↓
- *   dispatch_expert (conductor) → peer attest-expert-security-auditor
- *     ↓                            (consumes the structured report)
+ *   invoke_expert (conductor) → peer security-auditor
+ *     ↓                           (consumes the structured report)
  *   phase_gate_check (attest-mcp) → returns plannedValidators[]
  *     ↓
  *   validate_<name> (attest-mcp) → runs one of the planned validators
@@ -47,9 +47,9 @@ export default defineEval({
         "Constraints:",
         "- iterationCap 4, maxTurns 4 — enough to let dispatch + validate + gate + done fire;",
         "- treat `evals/fixtures/trivial-repo` as the project root;",
-        "- expect route_goal to pick security-auditor; dispatch via",
-        "  attest-expert-security-auditor peer; after the report call",
-        "  phase_gate_check and run the plannedValidators[] it returns.",
+        "- expect route_goal to pick security-auditor; dispatch via the",
+        "  security-auditor peer; after the report call phase_gate_check",
+        "  and run the plannedValidators[] it returns.",
       ].join("\n"),
       {
         workspaceFiles: {
@@ -70,7 +70,9 @@ export default defineEval({
     // invariant is that `run_autopilot_task` is called and the task
     // terminates (surfaced by `t.succeeded()`).
     t.calledTool("route_goal").soft();
-    t.calledTool("dispatch_expert").soft();
+    // Shape C renamed `dispatch_expert` → `invoke_expert` (routes through
+    // the attest-mcp policy engine instead of switching MCP transports).
+    t.calledTool("invoke_expert").soft();
     t.calledTool("phase_gate_check").soft();
     // Any of the per-validator tools counts — the real surface publishes
     // 77, and `plannedValidators[]` picks a handful per phase. Soft so a

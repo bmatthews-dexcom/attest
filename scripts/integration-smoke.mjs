@@ -245,9 +245,9 @@ async function runRealMode() {
   const conductorOk = conductorInfo.ok && safeJson(conductorInfo.stdout);
   const peerSlugs = conductorOk ? collectPeerSlugs(JSON.parse(conductorInfo.stdout)) : [];
   for (const expected of [
-    "attest-expert-security-auditor",
-    "attest-expert-code-reviewer",
-    "attest-expert-landscape-mapper",
+    "security-auditor",
+    "code-reviewer",
+    "landscape-mapper",
   ]) {
     record(
       `conductor: peer MCP connection "${expected}" is discoverable`,
@@ -304,7 +304,11 @@ function collectPeerSlugs(info) {
         slugs.push(transport.slice("agent:".length));
       } else if (transport && typeof transport === "object" && typeof transport.agent === "string") {
         slugs.push(transport.agent);
-      } else if (typeof c?.name === "string" && c.name.startsWith("attest-expert-")) {
+      } else if (typeof c?.name === "string") {
+        // Fallback for info schemas that don't surface the transport
+        // object directly: the connection's local name defaults to the
+        // peer slug (BDK invariant). Harmless when the primary path above
+        // already captured the slug.
         slugs.push(c.name);
       }
     }

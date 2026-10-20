@@ -103,12 +103,13 @@ Then end the turn. The TS loop re-prompts with the new state.
 
 Three concrete experts ship in `attest-experts`:
 `security-auditor`, `code-reviewer`, `landscape-mapper`. Each is a
-deployable BDK agent whose published slug is `attest-expert-<id>`. The
-conductor wires them as peer MCP connections at
-`bot/mcp-connections/attest-expert-<id>.ts`, so when both are mounted
-on one `bdk serve --mode multi` host the conductor can delegate via
-`host.mcp.callTool("attest-expert-<id>", "ask", { message })` with
-zero extra configuration:
+deployable BDK agent whose published slug matches its agent directory
+basename (`security-auditor`, etc.). The conductor wires them as peer
+MCP connections at `bot/mcp-connections/<id>.ts`, so when both are
+mounted on one `bdk serve --mode multi` host (or deployed under the
+same Cursor team) the conductor can delegate via
+`host.mcp.callTool("<id>", "ask", { message })` with zero extra
+configuration:
 
 ```sh
 bdk serve \
@@ -132,8 +133,9 @@ Dispatch resolution (`dispatch_expert`):
    escalate or route to a concrete expert without paying for a peer
    round-trip.
 3. **Concrete experts** — dispatch to the peer MCP connection by its
-   catalog-derived slug (`attest-expert-<id>`). Env var
-   `ATTEST_EXPERT_<ID>_PEER=<slug>` (upper-snake-cased id) overrides
+   catalog-derived slug (`<id>` — the agent directory basename, which
+   is also the deployed slug and the `defineAgent({ name })` field).
+   Env var `ATTEST_<ID>_PEER=<slug>` (upper-snake-cased id) overrides
    when the operator wants to point at a different mounted expert
    (e.g. a staging variant).
 4. **Remote deploy** — set `ATTEST_EXPERT_<ID>_URL=https://…` to POST

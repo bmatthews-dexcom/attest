@@ -228,7 +228,7 @@ Each expert deploys as its own Cursor cloud agent slug via the BDK CLI (see
 # One expert
 npx bdk deploy \
   --dir packages/attest-experts/agents/security-auditor \
-  --slug attest-expert-security-auditor \
+  --slug security-auditor \
   --repo <this-repo-url> --ref feat/attest-experts
 
 # Every expert, concrete + stub

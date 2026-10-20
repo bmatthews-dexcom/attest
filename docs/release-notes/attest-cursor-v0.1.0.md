@@ -101,7 +101,7 @@ the `./scripts/deploy.sh` hosted path.
    is wired up and the integration eval
    (`integration/attest-e2e`) is defined, but the first full green pass
    needs `CURSOR_API_KEY` plus a deployed (or locally served)
-   `attest-conductor` + at least the `attest-expert-security-auditor`
+   `attest-conductor` + at least the `security-auditor` expert
    peer. Everything up to that point (parse, validate, dry-run) is
    green in CI.
 2. **Only three concrete experts in Phase 1.** `security-auditor`,

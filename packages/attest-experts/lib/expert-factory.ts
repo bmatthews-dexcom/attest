@@ -53,7 +53,13 @@ export function defineExpert(options: ExpertAgentOptions): AgentConfigDefinition
     : meta.summary;
 
   return defineAgent({
-    name: `attest-expert-${meta.id}`,
+    // `name` aligns with the deployed slug, which `bdk deploy --slug <name>`
+    // resolves against the agent directory basename. `defineAgent({ name })`
+    // is a display-name override (per BDK types); setting it here keeps the
+    // display name and the slug in lockstep so peer connections
+    // (`defineConnection({ agent: "<id>" })`) and the deployed slug use
+    // one identifier end-to-end.
+    name: meta.id,
     description,
     model: model ?? DEFAULT_MODEL,
     fallbacks: fallbacks ?? DEFAULT_FALLBACKS,
@@ -67,7 +73,7 @@ export function defineExpert(options: ExpertAgentOptions): AgentConfigDefinition
 
 export function defineStubExpert(meta: ExpertMetadata): AgentConfigDefinition {
   return defineAgent({
-    name: `attest-expert-${meta.id}`,
+    name: meta.id,
     description: `[stub — not yet ported] ${meta.summary}`,
     model: DEFAULT_MODEL,
     hosting: {
