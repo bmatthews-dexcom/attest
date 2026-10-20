@@ -7,7 +7,6 @@ const {
   __resetExpertCatalogCacheForTesting,
 } = dispatchModule;
 const { newTask, taskKey } = await import("../bot/lib/conductor-state.ts");
-const concreteModule = await import("../bot/lib/concrete-experts.ts");
 
 const ORIGINAL_ATTEST_MCP_COMMAND = process.env.ATTEST_MCP_COMMAND;
 
@@ -102,13 +101,14 @@ test("non-stub mode: unknown expertId not in MCP catalog fails loudly", async ()
   );
 });
 
-test("non-stub mode: Phase-2 stub expert short-circuits with not-ported", async () => {
+test("non-stub mode: catalog entry with ported:false short-circuits with not-ported", async () => {
   process.env.ATTEST_MCP_COMMAND = "npx";
   const task = newTask({ goal: "scan for anti-slop" });
   const ctx = makeCtx({
     catalog: [
       {
         id: "anti-slop-auditor",
+        ported: false,
         invocationHint: {
           package: "@bpmforge/attest-experts",
           agent: "anti-slop-auditor",
@@ -131,10 +131,15 @@ test("non-stub mode: Phase-2 stub expert short-circuits with not-ported", async 
   assert.equal(result.status, "not-ported");
   assert.equal(result.mode, "not-ported");
   assert.ok(result.summary.includes("Phase-2 stub"));
+  assert.ok(
+    result.summary.includes("ported=false"),
+    `summary should name the catalog field, got: ${result.summary}`,
+  );
   assert.equal(result.artifacts.package, "@bpmforge/attest-experts");
+  assert.equal(result.artifacts.portedField, false);
 });
 
-test("non-stub mode: concrete expert dispatches to the catalog-derived peer slug", async () => {
+test("non-stub mode: catalog entry with ported:true dispatches to the catalog-derived peer slug", async () => {
   process.env.ATTEST_MCP_COMMAND = "npx";
   const task = newTask({ goal: "audit the login flow" });
   const spied = [];
@@ -142,6 +147,7 @@ test("non-stub mode: concrete expert dispatches to the catalog-derived peer slug
     catalog: [
       {
         id: "security-auditor",
+        ported: true,
         invocationHint: {
           package: "@bpmforge/attest-experts",
           agent: "attest-expert-security-auditor",
@@ -169,12 +175,107 @@ test("non-stub mode: concrete expert dispatches to the catalog-derived peer slug
   assert.equal(askCalls[0].server, "attest-expert-security-auditor");
 });
 
-test("CONCRETE_EXPERT_IDS enumerates attest-experts' Phase-1 three concrete experts", () => {
-  const { CONCRETE_EXPERT_IDS, isConcreteExpert, peerSlugForExpert } = concreteModule;
-  assert.equal(CONCRETE_EXPERT_IDS.size, 3);
-  for (const id of ["security-auditor", "code-reviewer", "landscape-mapper"]) {
-    assert.ok(isConcreteExpert(id), `${id} should be concrete`);
-    assert.equal(peerSlugForExpert(id), `attest-expert-${id}`);
-  }
-  assert.equal(isConcreteExpert("anti-slop-auditor"), false);
+test("non-stub mode: not-ported path is driven by the catalog field, not an id allow-list", async () => {
+  // Prove the hardcode is gone: an id in the previous `CONCRETE_EXPERT_IDS`
+  // set (code-reviewer) is treated as not-ported when the catalog says so.
+  process.env.ATTEST_MCP_COMMAND = "npx";
+  const task = newTask({ goal: "review the diff" });
+  const ctx = makeCtx({
+    catalog: [
+      {
+        id: "code-reviewer",
+        ported: false,
+        invocationHint: {
+          package: "@bpmforge/attest-experts",
+          agent: "attest-expert-code-reviewer",
+        },
+      },
+    ],
+  });
+  await ctx.host.kv.put(taskKey(task.taskId), task);
+
+  const result = await dispatchTool.execute(
+    {
+      taskId: task.taskId,
+      expertId: "code-reviewer",
+      prompt: "Review PR #42",
+      actionId: "t0-code-reviewer-stub",
+    },
+    ctx,
+  );
+  assert.equal(result.status, "not-ported");
+  assert.equal(result.artifacts.portedField, false);
+});
+
+test("non-stub mode: ported path is driven by the catalog field, not an id allow-list", async () => {
+  // Mirror of the above: a non-Phase-1 id that reports ported:true is
+  // dispatched as a peer, which the pre-field hardcode would have refused.
+  process.env.ATTEST_MCP_COMMAND = "npx";
+  const task = newTask({ goal: "architect a new module" });
+  const spied = [];
+  const ctx = makeCtx({
+    catalog: [
+      {
+        id: "architecture-designer",
+        ported: true,
+        invocationHint: {
+          package: "@bpmforge/attest-experts",
+          agent: "attest-expert-architecture-designer",
+        },
+      },
+    ],
+    callToolSpy: (c) => spied.push(c),
+  });
+  await ctx.host.kv.put(taskKey(task.taskId), task);
+
+  const result = await dispatchTool.execute(
+    {
+      taskId: task.taskId,
+      expertId: "architecture-designer",
+      prompt: "Sketch module boundaries for Phase 3",
+      actionId: "t0-arch-peer",
+    },
+    ctx,
+  );
+  assert.equal(result.status, "ok");
+  assert.equal(result.mode, "peer");
+  assert.equal(result.artifacts.peerSlug, "attest-expert-architecture-designer");
+  const askCalls = spied.filter((c) => c.tool === "ask");
+  assert.equal(askCalls.length, 1);
+});
+
+test("non-stub mode: catalog entry missing the ported field falls back to the pre-field peer path", async () => {
+  // Pre-ported-field attest-mcp servers do not advertise `ported`; the
+  // conductor must assume peer-dispatch is viable rather than refuse
+  // every expert. This test guards the backwards-compat default.
+  process.env.ATTEST_MCP_COMMAND = "npx";
+  const task = newTask({ goal: "audit anything" });
+  const spied = [];
+  const ctx = makeCtx({
+    catalog: [
+      {
+        id: "security-auditor",
+        invocationHint: {
+          package: "@bpmforge/attest-experts",
+          agent: "attest-expert-security-auditor",
+        },
+      },
+    ],
+    callToolSpy: (c) => spied.push(c),
+  });
+  await ctx.host.kv.put(taskKey(task.taskId), task);
+
+  const result = await dispatchTool.execute(
+    {
+      taskId: task.taskId,
+      expertId: "security-auditor",
+      prompt: "Review the module",
+      actionId: "t0-no-ported-field",
+    },
+    ctx,
+  );
+  assert.equal(result.status, "ok");
+  assert.equal(result.mode, "peer");
+  const askCalls = spied.filter((c) => c.tool === "ask");
+  assert.equal(askCalls.length, 1);
 });
