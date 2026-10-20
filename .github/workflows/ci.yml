@@ -56,3 +56,73 @@ jobs:
       # non-zero exit means someone edited .cursor/* by hand or forgot to
       # run `npm run build:cursor` after changing a source agent/skill.
       - run: npm run build:cursor:check
+
+  # OpenCode ↔ Cursor target parity gate. Runs on PRs that modify any
+  # source attest asset (agents/, skills/, rules/, plugins/, scripts/
+  # build-target-*.mjs, scripts/target-parity.config.mjs, scripts/
+  # check-target-parity.mjs, examples/opencode.json) and on every push to
+  # main. The job is an added lane — it does not share `needs:` with the
+  # `test` job above so it can red-light independently and keep its own
+  # signal legible.
+  #
+  # What it does:
+  #   1. `npm run build:claude:check -- --out <tmp>` against a freshly-
+  #      regenerated Claude tree in /tmp (sidesteps the "sibling repo not
+  #      yet regenerated on a feature-branch PR" problem that keeps the
+  #      real build:claude:check on push-to-main above).
+  #   2. `npm run build:cursor:check` against the committed .cursor/ tree.
+  #   3. `node scripts/check-target-parity.mjs` — regenerates both targets
+  #      fresh and asserts every per-target difference is listed in
+  #      scripts/target-parity.config.mjs.
+  cursor-opencode-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Decide whether this PR touches any source attest asset
+        id: changed
+        run: |
+          set -eu
+          # Push / schedule / manual: always run.
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # PR: inspect the diff against the base. The parity script is
+          # cheap (~1s), so the paths filter is a courtesy, not a cost
+          # control — it keeps docs-only PRs from showing a spurious
+          # third job in the Checks list.
+          base='${{ github.event.pull_request.base.sha }}'
+          head='${{ github.event.pull_request.head.sha }}'
+          git fetch --no-tags --depth=50 origin "$base" "$head" 2>/dev/null || true
+          changed=$(git diff --name-only "$base" "$head" 2>/dev/null || echo "")
+          echo "$changed" | sed -n '1,80p' | sed 's/^/  /'
+          match='^(agents/|skills/|rules/|plugins/|scripts/build-target-|scripts/check-target-parity|scripts/target-parity.config|examples/opencode.json|.cursor/)'
+          if printf '%s\n' "$changed" | grep -Eq "$match"; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.changed.outputs.run == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - name: npm ci
+        if: steps.changed.outputs.run == 'true'
+        run: npm ci
+      - name: build:cursor:check (in-tree Cursor target drift gate)
+        if: steps.changed.outputs.run == 'true'
+        run: npm run build:cursor:check
+      - name: build:claude:check (against fresh regeneration)
+        if: steps.changed.outputs.run == 'true'
+        run: |
+          set -eu
+          tmp=$(mktemp -d)
+          # Regenerate first (so --check has something to compare against).
+          node scripts/build-target-claude.mjs --write --out "$tmp" >/dev/null
+          node scripts/build-target-claude.mjs --check --out "$tmp"
+      - name: check-target-parity (OpenCode↔Cursor cross-target gate)
+        if: steps.changed.outputs.run == 'true'
+        run: node scripts/check-target-parity.mjs
