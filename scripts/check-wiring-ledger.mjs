@@ -134,7 +134,22 @@ export function runWiringLedger(root) {
   // Known, documented exceptions: files that are deliberately unreachable
   // from the agent corpus by design (see header comment). Not a general
   // escape hatch -- each entry needs a real, written justification.
-  const KNOWN_EXCEPTIONS = new Set(['LOCAL_LLM_PRIMER']);
+  //
+  //   LOCAL_LLM_PRIMER — human-pasted at session start before any agent
+  //     file could reference it; docs/LOCAL_LLM_GUIDE.md owns the setup
+  //     instructions, deliberately outside the agent corpus.
+  //
+  //   ceo — chief shared source at agents/shared/chiefs/ceo.md.
+  //     Loaded by the Cursor build target (scripts/build-target-cursor.mjs
+  //     via generateCeoSkill / generateCeoAgent → .cursor/skills/attest-ceo/
+  //     + .cursor/agents/attest-ceo.md) and by the sibling BDK package
+  //     packages/attest-ceo/, not by OpenCode-era agents/**/*.md routing.
+  //     The build generators and the BDK package's own README/instructions
+  //     are the authoritative loader chain; the agent corpus never
+  //     "/ceo"-dispatches through a top-level agents/*.md pointer. Shape C
+  //     will add `sdlc-lead` here for the same reason (shared chief source
+  //     consumed by the build target, not routed by agents/*.md).
+  const KNOWN_EXCEPTIONS = new Set(['LOCAL_LLM_PRIMER', 'ceo']);
 
   const validatorResults = validatorNames.map((name) => {
     const pattern = new RegExp(name.replace(/[.]/g, '\\.'));

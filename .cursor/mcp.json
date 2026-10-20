@@ -1,32 +1,19 @@
 {
-<<<<<<< HEAD
-  "$note": "Three MCP servers under Shape C — ALL invoked via LOCAL workspace paths (no auto-install `npx`, no registry fetch). `attest` and `attest-policy-dev` run the local build output at `./packages/attest-mcp/dist/cli.js` (produced by `npm --workspace packages/attest-mcp run build`); `attest-conductor` is served by the Cursor-published `@cursor/bdk` dev dependency (install locally; do not fetch at runtime). See .cursor/README.md \"Shape-C policy mode flip\" for how to flip to ENFORCE and \"Local install\" for how to prepare the workspace.",
+  "$note": "Three MCP servers: `attest` (stdio, published as @bpmforge/attest-mcp) exposes 77 validators + phase_gate_check + route_goal + list_experts; `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop; `attest-ceo` is the Phase-1 CEO MCP server (ingest / extract / draft / approve / dispatch / director). See .cursor/skills/invoke-attest-conductor/SKILL.md for the conductor dial-out and .cursor/skills/attest-ceo/SKILL.md for the CEO.",
   "mcpServers": {
     "attest": {
-      "$comment": "Primary attest-mcp server. Under Shape C this is both the validator surface (unchanged) and the policy host (new in Shape C: evaluate_shell_policy, evaluate_write_policy, evaluate_mcp_policy, list_fences, request_approval, invoke_expert, pre_dispatch_check). LOCAL-ONLY invocation: runs the workspace build output directly; a missing dist/ is a loud error (run `npm --workspace packages/attest-mcp run build`). Default policy mode is the server's own default (ENFORCE once the policy bundle lands); override per-user by setting ATTEST_POLICY_MODE in the user's shell env.",
-      "command": "node",
-      "args": [
-        "./packages/attest-mcp/dist/cli.js"
-      ]
-    },
-    "attest-conductor": {
-      "$comment": "Local-dev invocation: served out of packages/attest-conductor via the Cursor-published `cursor-bdk` bin (`@cursor/bdk` must be a workspace devDependency — install locally, do NOT fetch at runtime). For deployed Cursor installs, swap this stanza for { \"url\": \"https://<your-conductor-host>/v1/mcp\", \"type\": \"http\" } pointing at the deployed BDK agent (BDK deployments expose /<slug>/v1/mcp automatically via `npx @cursor/bdk deploy`). This package is NEVER published to npm; it lives only in this workspace.",
-      "command": "cursor-bdk",
-=======
-  "$note": "Two MCP servers, both backed by local workspace packages (nothing is published to npm). `attest` is the stdio MCP server from packages/attest-mcp (77 validators + phase_gate_check + route_goal + list_experts), run as `node packages/attest-mcp/dist/cli.js` — run `npm run build:mcp` once after `npm install` to produce the dist. `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop, served out of packages/attest-conductor via @cursor/bdk serve. See .cursor/skills/invoke-attest-conductor/SKILL.md for the three-path dial-out (preferred: MCP tool, fallback: HTTPS, fallback: GitHub comment).",
-  "mcpServers": {
-    "attest": {
-      "$comment": "Workspace sibling — not uploaded to any registry. Build it once with `npm --prefix packages/attest-mcp run build` (or `./scripts/local-install.sh`). ${workspaceFolder} is Cursor-expanded to the project root.",
-      "command": "node",
-      "args": [
-        "${workspaceFolder}/packages/attest-mcp/dist/cli.js"
-      ]
-    },
-    "attest-conductor": {
-      "$comment": "Local invocation: served out of packages/attest-conductor via @cursor/bdk serve --mode single. For a Cursor-hosted deploy (after `./scripts/deploy.sh`), swap this stanza for { \"url\": \"https://<slug>/<team>/v1/mcp\", \"type\": \"http\" } using the slug the deploy returned.",
       "command": "npx",
->>>>>>> origin/feat/attest-release-and-deploy-prep
       "args": [
+        "-y",
+        "@bpmforge/attest-mcp"
+      ]
+    },
+    "attest-conductor": {
+      "$comment": "Local-dev invocation: served out of packages/attest-conductor via @cursor/bdk serve --mode single. For deployed Cursor installs, replace this stanza with { \"url\": \"https://<your-conductor-host>/v1/mcp\", \"type\": \"http\" } pointing at the deployed BDK agent (BDK deployments expose /<slug>/v1/mcp automatically). Private package: cannot be reached via `npx -y @bpmforge/attest-conductor`.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@cursor/bdk",
         "serve",
         "--dir",
         "./packages/attest-conductor",
@@ -34,15 +21,12 @@
         "single"
       ]
     },
-    "attest-policy-dev": {
-      "$comment": "Shape-C local-dev policy engine. Same local build as `attest`, pinned to ATTEST_POLICY_MODE=LOG_ONLY so the editor-side chief (sdlc-lead) can test policies without blocking the user. Decisions get written through to `docs/work/policy-decisions.jsonl` by the policy hooks. Flip to ENFORCE (either here or in the `attest` entry) when the policy bundle is trusted; see .cursor/README.md.",
+    "attest-ceo": {
+      "$comment": "Phase-1 attest CEO MCP server (ingest / extract / draft / approve / dispatch / director). Local-only private workspace package — not published to npm. Local-dev invocation: node packages/attest-ceo-mcp/dist/cli.js. Build with `npm run build --workspace @bpmforge/attest-ceo-mcp` first. For hosted installs the CEO is reached via the attest-ceo BDK agent (packages/attest-ceo); point `attest-conductor` dispatch at its /v1/mcp endpoint.",
       "command": "node",
       "args": [
-        "./packages/attest-mcp/dist/cli.js"
-      ],
-      "env": {
-        "ATTEST_POLICY_MODE": "LOG_ONLY"
-      }
+        "./packages/attest-ceo-mcp/dist/cli.js"
+      ]
     }
   }
 }

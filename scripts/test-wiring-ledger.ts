@@ -53,10 +53,11 @@ export async function testWiringLedger(
     if (
       live.clean &&
       live.orphanShared.length === 0 &&
-      live.knownExceptions.includes("LOCAL_LLM_PRIMER")
+      live.knownExceptions.includes("LOCAL_LLM_PRIMER") &&
+      live.knownExceptions.includes("ceo")
     )
       ok(
-        `wiring-ledger — live repo: ${live.sharedChecked} shared protocols (incl. agents/shared/blocks + includes), 0 orphans, 1 documented exception (LOCAL_LLM_PRIMER — human-pasted by design, never agent-loaded)`,
+        `wiring-ledger — live repo: ${live.sharedChecked} shared protocols (incl. agents/shared/blocks + includes + chiefs), 0 orphans, ${live.knownExceptions.length} documented exceptions (${live.knownExceptions.join(", ")} — LOCAL_LLM_PRIMER human-pasted by design; ceo chief source loaded by scripts/build-target-cursor.mjs + packages/attest-ceo, not by OpenCode-era agent routing)`,
       );
     else
       fail(

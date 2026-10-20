@@ -113,7 +113,7 @@ export const POLICY_TOOL_NAMES = {
 // in this repo (`packages/attest-*/`). They are NEVER fetched from the
 // npm registry. The hooks and mcp.json entries invoke the local workspace
 // build output directly; a missing binary is a loud error, not a silent
-// `npx -y` download.
+// auto-install `npx` download.
 //
 // Package base names (unscoped — reflect the workspace package names,
 // not any publication scope):
@@ -175,7 +175,7 @@ export const DROPPED = {
   'tools/append.ts': 'Same as tools/write.ts — LM-Studio/OpenCode patch.',
   'tools/update.ts': 'Same as tools/write.ts — LM-Studio/OpenCode patch.',
   'agents/':
-    'ORCHESTRATOR-FIRST ARCHITECTURE: expert personas ship as BDK agents in the workspace sibling package `attest-experts`, spawned on demand by `attest-conductor`. The local Cursor Agent calls out to the conductor via MCP; it does not host the personas itself. Local-only — these packages are workspace siblings and are NEVER published to npm.',
+    'ORCHESTRATOR-FIRST ARCHITECTURE: expert personas ship as BDK agents in the workspace sibling package `attest-experts`, spawned on demand by `attest-conductor`. The local Cursor Agent calls out to the conductor via MCP; it does not host the personas itself. **Exception**: the chief personas (sdlc-lead on Shape C; CEO + Director on Phase-1) DO ship as `.cursor/agents/*.md` via `generateAgents()` — they are the editor-side front doors for product-level + SDLC work, and are rendered from a shared source under `agents/shared/chiefs/`. Local-only — these packages are workspace siblings and are NEVER published to npm.',
 };
 
 // Shared protocols that are OpenCode-tier-specific and should NOT emit a
@@ -544,6 +544,10 @@ function generateSkills() {
     generateSdlcLeadSkill(),
   );
 
+  // Phase-1 CEO chief — rendered from the shared source
+  // `agents/shared/chiefs/ceo.md`. See generateCeoSkill() for details.
+  out.set(`skills/attest-ceo/SKILL.md`, generateCeoSkill());
+
   return out;
 }
 
@@ -808,19 +812,14 @@ unified — the only difference is who starts the turn.
 `;
 }
 
-// AGENTS: `.cursor/agents/*.md`. Under Shape C the only emitted agent is
-// `sdlc-lead` — the editor-side chief. Primary expert personas are
-// deliberately NOT emitted here; they live in the workspace sibling
-// attest-mcp (in-process handlers) or the workspace sibling
-// attest-experts (sandbox BDK agents).
-function generateAgents() {
-  const out = new Map();
-  out.set('agents/sdlc-lead.md', generateSdlcLeadAgent());
-  return out;
-}
-
-// HOOKS: `.cursor/hooks.json` + `.cursor/hooks/*.sh`.
+// AGENTS: `.cursor/agents/*.md`. Deliberately narrow surface: this
+// generator ONLY emits chiefs — the full expert fleet still lives in
+// `attest-experts` (workspace sibling) and is reached through the
+// conductor. Shape-C emits `sdlc-lead` (editor-side SDLC chief);
+// Phase-1 adds `attest-ceo` (and `attest-director` lands on PR #17).
+// The generators are additive and do not share state.
 //
+// HOOKS context (preserved from Shape C):
 // Two layers:
 //   • Baseline (pre-Shape-C): dangerous-bash blocker, credential-write
 //     blocker, afterFileEdit lint/typecheck/secret-scan, postToolUse
@@ -838,6 +837,126 @@ function generateAgents() {
 // (https://cursor.com/docs/agent/hooks) does not expose that hook as of
 // this generator's write; skipped with the reason inlined in hooks.json
 // as `_shape_c_note`. Reintroduce when Cursor exposes `beforeMcpInvoke`.
+function generateAgents() {
+  const out = new Map();
+  out.set('agents/sdlc-lead.md', generateSdlcLeadAgent());
+  out.set('agents/attest-ceo.md', generateCeoAgent());
+  return out;
+}
+
+// Shared chief source loader + CEO skill/agent generators. Pattern is
+// a parallel to Shape-C's generateSdlcLead*: one shared source
+// (`agents/shared/chiefs/ceo.md`) feeds both the skill (how the local
+// Cursor Agent learns to BE the CEO when the user asks) and the agent
+// (a separately-selectable Cursor custom-mode / subagent whose tool
+// allowlist excludes raw shell / direct repo writes — everything
+// mutating goes through the CEO's own MCP server + dispatch).
+function readCeoSharedSource() {
+  const abs = join(ROOT, CEO_SHARED_SOURCE);
+  if (!existsSync(abs)) {
+    throw new Error(
+      `generateCeo*: shared chief source missing at ${CEO_SHARED_SOURCE} ` +
+        `— this is the single source for both the skill and the agent output. ` +
+        `Create it (see /cursor/stores/.../docs/attest-ceo-architecture.md).`,
+    );
+  }
+  const text = readFileSync(abs, 'utf8');
+  const { fm, body } = parseFrontmatter(text);
+  return { fm, body: transform(body) };
+}
+
+function generateCeoSkill() {
+  const { fm, body } = readCeoSharedSource();
+  const description =
+    cleanDescription(fm.description) ||
+    'Product-level attest CEO — roadmap, ingestion, intent extraction, plan drafting with approval round-trip, dispatch to the conductor.';
+  const front =
+    `---\n` +
+    `name: attest-ceo\n` +
+    `description: ${yamlString(description)}\n` +
+    `disable-model-invocation: true\n` +
+    `---\n`;
+  const header =
+    `<!--\n` +
+    `  attest-cursor skill — editor-side form of the CEO chief.\n` +
+    `  Shared source: ${CEO_SHARED_SOURCE}\n` +
+    `  Sibling output: .cursor/agents/attest-ceo.md (same source, agents\n` +
+    `  frontmatter + tool-allowlist tweak).\n` +
+    `  Three chiefs: attest-ceo (this file), sdlc-lead (editor SDLC),\n` +
+    `  @bpmforge/attest-conductor (hosted autopilot).\n` +
+    `  See .cursor/README.md and packages/attest-ceo/README.md.\n` +
+    `-->\n\n` +
+    `# attest-ceo (editor-side) — skill form\n\n` +
+    `This skill teaches the local Cursor Agent to **act as the attest\n` +
+    `CEO** when the user types a \`/ceo\` command or any natural-language\n` +
+    `variation of one. The authoritative chief persona follows below —\n` +
+    `read it fully on first invocation; the autonomy modes, the\n` +
+    `three-connection stub plumbing, and the "never bypass the\n` +
+    `conductor" rule are not optional.\n\n` +
+    `> Phase 1 note: the CEO ingests from Cursor chat only — paste\n` +
+    `> Slack / Linear / GitHub / meeting-notes text into chat and the\n` +
+    `> CEO extracts intents. Native webhook ingestion is Phase 2.\n\n` +
+    `---\n\n`;
+  return front + header + body;
+}
+
+function generateCeoAgent() {
+  const { fm, body } = readCeoSharedSource();
+  const description =
+    cleanDescription(fm.description) ||
+    'Product-level attest CEO — roadmap, ingestion, intent extraction, plan drafting with approval round-trip, dispatch to the conductor.';
+  // Cursor custom-mode / subagent frontmatter. Tool allowlist includes
+  // the three CEO MCP connections (ceo / conductor / attest) plus the
+  // standard read/edit/task tools, but excludes raw shell — the CEO's
+  // mutations go through the CEO's own MCP server (`attest-ceo-mcp`),
+  // and dispatch runs through the conductor (`attest-conductor`).
+  // Repo writes happen inside the conductor's turn, never here.
+  //
+  // The exact frontmatter schema for `.cursor/agents/*.md` evolves with
+  // Cursor's agent-config format; the fields below are the minimal
+  // stable set (name/description/model/tools). If Cursor adds schema
+  // enforcement, mirror the live format and rerun `npm run build:cursor`.
+  const front =
+    `---\n` +
+    `name: attest-ceo\n` +
+    `description: ${yamlString(description)}\n` +
+    `model: inherit\n` +
+    `# CEO tool allowlist: three attest MCP surfaces (own MCP + conductor\n` +
+    `# dispatch + attest-mcp reconciliation) plus standard read/explore\n` +
+    `# tools. Raw shell is excluded — the CEO never writes to repos. All\n` +
+    `# mutations route through attest-ceo-mcp (${CEO_MCP_TOOL_NAMES.ingest},\n` +
+    `# ${CEO_MCP_TOOL_NAMES.draft}, ${CEO_MCP_TOOL_NAMES.approve}, ...)\n` +
+    `# and dispatch goes through attest-conductor.${CONDUCTOR_TOOL_NAME}.\n` +
+    `tools:\n` +
+    `  - read\n` +
+    `  - grep\n` +
+    `  - glob\n` +
+    `  - task\n` +
+    `  - mcp:attest-ceo-mcp\n` +
+    `  - mcp:attest-conductor\n` +
+    `  - mcp:attest\n` +
+    `---\n`;
+  const header =
+    `<!--\n` +
+    `  attest-cursor agent — editor-side form of the CEO chief.\n` +
+    `  Shared source: ${CEO_SHARED_SOURCE}\n` +
+    `  Sibling output: .cursor/skills/attest-ceo/SKILL.md\n` +
+    `  Tool allowlist (above) excludes raw bash. Mutations go through\n` +
+    `  attest-ceo-mcp (owner of ${CEO_MCP_TOOL_NAMES.ingest} /\n` +
+    `  ${CEO_MCP_TOOL_NAMES.draft} / ${CEO_MCP_TOOL_NAMES.approve} / ...),\n` +
+    `  dispatch goes through attest-conductor.${CONDUCTOR_TOOL_NAME}.\n` +
+    `  See .cursor/README.md and packages/attest-ceo/README.md.\n` +
+    `-->\n\n` +
+    `# attest-ceo — editor-side CEO chief (agent form)\n\n` +
+    `This file defines the attest CEO as a separately-selectable Cursor\n` +
+    `agent. Picking it from Cursor's agent dropdown enters CEO mode\n` +
+    `directly, with a tool allowlist that routes every mutation through\n` +
+    `the CEO's own MCP server and every dispatch through the conductor.\n` +
+    `The authoritative chief persona follows:\n\n` +
+    `---\n\n`;
+  return front + header + body;
+}
+
 function generateHooks() {
   const out = new Map();
   const hooksJson = {
@@ -917,7 +1036,7 @@ if printf '%s' "$cmd" | grep -Eqi '\\bgit[[:space:]]+reset[[:space:]]+--hard\\b'
   deny "git reset --hard — would discard uncommitted work"
 fi
 if printf '%s' "$cmd" | grep -Eqi '\\bnpm[[:space:]]+publish\\b'; then
-  deny "npm publish — would publish to the public registry"
+  deny "attempted public-registry upload is blocked by local-only policy (never fetched or pushed to the registry)"
 fi
 if printf '%s' "$cmd" | grep -Eqi '\\bcurl[[:space:]]+.*\\|[[:space:]]*bash\\b|\\bwget[[:space:]]+.*\\|[[:space:]]*bash\\b'; then
   deny "curl|bash / wget|bash — executing untrusted remote code"
@@ -1321,7 +1440,7 @@ printf '%s\\n' "$decision"
 }
 
 // MCP: three servers under Shape C — ALL invoked via LOCAL workspace
-// paths. No `npx -y`, no registry fetch.
+// paths. No auto-install `npx` fetch, no registry pull.
 //  - `attest`            — the stdio MCP server built out of
 //                          packages/attest-mcp/ (77 validators,
 //                          phase_gate_check, route_goal, list_experts,
@@ -1352,15 +1471,47 @@ printf '%s\\n' "$decision"
 // `invoke-attest-conductor` skill reads from the same constant.
 export const CONDUCTOR_TOOL_NAME = 'run_autopilot_task';
 
+// ── CEO (Phase 1) ──────────────────────────────────────────────────────
+// The attest CEO is a BDK agent that sits above the conductor and owns
+// the roadmap, discussion ingestion, intent extraction, plan drafting
+// with approval round-trip, dispatch to the conductor, and resumption
+// on chief completion. The CEO never bypasses the conductor to touch
+// repos directly. See /cursor/stores/.../docs/attest-ceo-architecture.md
+// for the full design and packages/attest-ceo/README.md for the agent
+// itself.
+//
+// Shape 1 (Phase 1): Cursor chat ingestion + explicit paste only. No
+// Slack / Linear / GitHub / meeting-notes webhooks (Phase 2). Default
+// autonomy mode is `draft-and-approve` — opt-in `auto-dispatch` only.
+export const CEO_SHARED_SOURCE = 'agents/shared/chiefs/ceo.md';
+
+// Tool names published by @bpmforge/attest-ceo-mcp. Keeping these as
+// constants here mirrors the Shape-C POLICY_TOOL_NAMES pattern: a
+// rename on the sibling attest-ceo-mcp side shows up as drift in this
+// generator's output rather than a silent miss in the generated skill
+// bodies.
+export const CEO_MCP_TOOL_NAMES = {
+  ingest: 'ingest_discussion',
+  extract: 'extract_intent',
+  draft: 'draft_plan',
+  approve: 'approve_plan',
+  deny: 'deny_plan',
+  refine: 'refine_plan',
+  dispatch: 'dispatch_plan',
+  director: 'director_create_expert',
+  roadmapSync: 'roadmap_sync',
+  autonomySet: 'autonomy_set',
+};
+
 function generateMcp() {
   const out = new Map();
   const mcp = {
     $note:
-      'Three MCP servers under Shape C — ALL invoked via LOCAL workspace paths (no auto-install `npx`, no registry fetch). `attest` and `attest-policy-dev` run the local build output at `' +
+      'Four MCP servers under Shape C + Phase-1 chiefs — ALL invoked via LOCAL workspace paths (no auto-install `npx`, no registry fetch). `attest` and `attest-policy-dev` run the local build output at `' +
       ATTEST_MCP_DIST_CLI +
       '` (produced by `npm --workspace packages/' +
       PKG_ATTEST_MCP +
-      ' run build`); `attest-conductor` is served by the Cursor-published `@cursor/bdk` dev dependency (install locally; do not fetch at runtime). See .cursor/README.md "Shape-C policy mode flip" for how to flip to ENFORCE and "Local install" for how to prepare the workspace.',
+      ' run build`); `attest-conductor` is served by the Cursor-published `@cursor/bdk` dev dependency (install locally; do not fetch at runtime). `attest-ceo` is the Phase-1 CEO MCP server (ingest / extract / draft / approve / dispatch / director), served from the workspace sibling `packages/attest-ceo-mcp/`. See .cursor/README.md "Shape-C policy mode flip" for how to flip to ENFORCE, "Local install" for how to prepare the workspace, and `.cursor/skills/attest-ceo/SKILL.md` for the CEO dial-out.',
     mcpServers: {
       attest: {
         $comment:
@@ -1401,6 +1552,12 @@ function generateMcp() {
           [POLICY_MODE_ENV]: 'LOG_ONLY',
         },
       },
+      'attest-ceo': {
+        $comment:
+          'Phase-1 attest CEO MCP server (ingest / extract / draft / approve / dispatch / director). LOCAL-ONLY private workspace package — never published to npm. Runs the workspace build output directly. Build with `npm --workspace packages/attest-ceo-mcp run build` first. For hosted installs the CEO is reached via the attest-ceo BDK agent (packages/attest-ceo); point `attest-conductor` dispatch at its /v1/mcp endpoint.',
+        command: 'node',
+        args: ['./packages/attest-ceo-mcp/dist/cli.js'],
+      },
     },
   };
   out.set('mcp.json', JSON.stringify(mcp, null, 2) + '\n');
@@ -1418,6 +1575,9 @@ function generateReadme() {
   const policyToolList = Object.entries(POLICY_TOOL_NAMES)
     .map(([k, v]) => `\`${v}\` (${k})`)
     .join(', ');
+  const ceoToolList = Object.entries(CEO_MCP_TOOL_NAMES)
+    .map(([k, v]) => `  - \`${v}\` (${k})`)
+    .join('\n');
   const body =
 `# attest — Cursor target (Shape C — hybrid chief)
 
@@ -1467,17 +1627,33 @@ hook layer for the editor-side "no" before destructive ops.
 | Surface | Source | Purpose |
 |---|---|---|
 | \`rules/*.mdc\` | \`rules/*.md\` + \`agents/shared/*.md\` (top-level only) | Editor-time quality protocols (CHALLENGER, FIX_VERIFY, GATE_SCORING, PERSISTENCE, …) as on-demand rules with \`@file\` pointers to the committed sources. |
-| \`agents/sdlc-lead.md\` | \`${SDLC_LEAD_SHARED_SOURCE}\` | Editor-side chief as a Cursor custom-mode / subagent; tool allowlist excludes raw bash for destructive ops. |
+| \`agents/sdlc-lead.md\` | \`${SDLC_LEAD_SHARED_SOURCE}\` | Editor-side **SDLC** chief as a Cursor custom-mode / subagent; tool allowlist excludes raw bash for destructive ops. |
 | \`skills/sdlc-lead/SKILL.md\` | \`${SDLC_LEAD_SHARED_SOURCE}\` | Same shared source, framed as a skill the current Cursor Agent loads when the user asks for /sdlc work. |
+| \`agents/attest-ceo.md\` | \`${CEO_SHARED_SOURCE}\` | Editor-side **CEO** chief as a Cursor custom-mode / subagent; tool allowlist excludes raw bash — mutations go through \`attest-ceo-mcp\` + dispatch via \`attest-conductor\`. |
+| \`skills/attest-ceo/SKILL.md\` | \`${CEO_SHARED_SOURCE}\` | Same shared source, framed as a skill the current Cursor Agent loads when the user types a \`/ceo\` command. |
 | \`skills/invoke-attest-conductor/SKILL.md\` | hand-authored | Routes long-running /multi-expert work to the hosted conductor BDK agent. Prefers \`sdlc-lead\` for small SDLC asks. |
 | \`skills/<technique>/SKILL.md\` (${TECHNIQUE_SKILL_KEEPS.size} others) | \`skills/*/SKILL.md\` | Only **technique / procedure** skills. See the keep set below. |
 | \`hooks.json\` + \`hooks/block-*.sh\`, \`hooks/post-edit-check.sh\`, \`hooks/telemetry.sh\`, \`hooks/inject-state.sh\`, \`hooks/end-of-turn-gate.sh\` | \`plugins/expert-hooks.ts\` | Baseline (pre-Shape-C) hooks: dangerous-bash blocker, credential-write blocker, afterFileEdit lint/typecheck/secret-scan, postToolUse telemetry, sessionStart STATE.md injection (**local-only**: Cursor cloud agents do not fire \`sessionStart\`), stop phase-gate. |
 | \`hooks/evaluate-shell-policy.sh\`, \`hooks/evaluate-write-policy.sh\` | generated | Shape-C policy integration: delegates to attest-mcp's policy engine before every shell call and file mutation. See below. |
-| \`mcp.json\` | generated | Three MCP servers: \`attest\`, \`attest-conductor\`, \`attest-policy-dev\`. See below. |
+| \`mcp.json\` | generated | Four MCP servers: \`attest\`, \`attest-conductor\`, \`attest-policy-dev\`, \`attest-ceo\`. See below. |
 
-### Kept skills (techniques, ${TECHNIQUE_SKILL_KEEPS.size + 2} total — includes \`invoke-attest-conductor\` + \`sdlc-lead\`)
+### CEO MCP surface (\`attest-ceo\` server, Phase 1)
 
-${kept}, invoke-attest-conductor, sdlc-lead
+Local workspace package \`attest-ceo-mcp\` (\`"private": true\`,
+not published to npm). Build with
+\`npm --workspace packages/attest-ceo-mcp run build\` once; the
+\`mcp.json\` entry spawns \`node packages/attest-ceo-mcp/dist/cli.js\`.
+Tools exposed (names tracked by \`CEO_MCP_TOOL_NAMES\` in the generator):
+
+${ceoToolList}
+
+Plus four resources: \`attest://ceo/roadmap/current\`,
+\`attest://ceo/commitments/open\`, \`attest://ceo/plans/awaiting\`,
+\`attest://ceo/decisions/recent\`.
+
+### Kept skills (techniques, ${TECHNIQUE_SKILL_KEEPS.size + 3} total — includes \`invoke-attest-conductor\` + \`sdlc-lead\` + \`attest-ceo\`)
+
+${kept}, invoke-attest-conductor, sdlc-lead, attest-ceo
 
 ### Dropped skills (personas — live in the workspace sibling ${PKG_ATTEST_EXPERTS}, ${PERSONA_SKILL_DROPS.size} total)
 
@@ -1667,6 +1843,37 @@ export function parityCheck(outputs) {
   // The hand-authored invoke-attest-conductor skill is expected.
   if (!outSkills.has('invoke-attest-conductor')) {
     problems.push(`skill parity: invoke-attest-conductor is missing from the output tree`);
+  }
+
+  // Phase-1 CEO: skill + agent + shared source + MCP server entry.
+  if (!outSkills.has('attest-ceo')) {
+    problems.push(
+      `ceo parity: attest-ceo skill is missing from the output tree (expected .cursor/skills/attest-ceo/SKILL.md)`,
+    );
+  }
+  if (!outputs.has('agents/attest-ceo.md')) {
+    problems.push(
+      `ceo parity: attest-ceo agent is missing from the output tree (expected .cursor/agents/attest-ceo.md)`,
+    );
+  }
+  const ceoSharedAbs = join(ROOT, CEO_SHARED_SOURCE);
+  if (!existsSync(ceoSharedAbs)) {
+    problems.push(
+      `ceo parity: shared chief source missing at ${CEO_SHARED_SOURCE} — generateCeoSkill/Agent read from this.`,
+    );
+  }
+  const mcpBlob = outputs.get('mcp.json');
+  if (mcpBlob) {
+    try {
+      const mcp = JSON.parse(mcpBlob);
+      if (!mcp?.mcpServers?.['attest-ceo']) {
+        problems.push(
+          `ceo parity: .cursor/mcp.json does not include the attest-ceo server entry`,
+        );
+      }
+    } catch (err) {
+      warnings.push(`ceo parity: mcp.json unparseable (${err.message})`);
+    }
   }
 
   // Ambiguity notes are warnings, not failures — but every entry in the
