@@ -1,14 +1,10 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/code-review/complexity-analyzer.md
-import { defineStubExpert } from "../../../lib/expert-factory.js";
-import type { ExpertMetadata } from "../../../lib/expert-registry.js";
+import { defineExpert } from "../../../lib/expert-factory.js";
+import { CONCRETE_EXPERTS } from "../../../lib/expert-registry.js";
 
-const META: ExpertMetadata = {
-  "id": "complexity-analyzer",
-  "source": "agents/code-review/complexity-analyzer.md",
-  "cluster": "code-review",
-  "status": "stub",
-  "summary": "Code complexity specialist — cyclomatic complexity, cognitive complexity, function length, nesting depth. Runs lizard/radon/complexity tools plus manual analysis. Identifies functions that are too complex to safely ma…"
-};
+const META = CONCRETE_EXPERTS.find((e) => e.id === "complexity-analyzer")!;
 
-export default defineStubExpert(META);
+export default defineExpert({
+  meta: META,
+  descriptionAddendum:
+    "Specialist dispatched by code-reviewer — reads one module / changeset and reports functions whose cyclomatic / cognitive complexity, length, or nesting makes them unsafe to change. Report-only.",
+});
