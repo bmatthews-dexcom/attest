@@ -6,9 +6,10 @@ docs live in `README.md`.
 ## Loop
 
 ```bash
-npm --prefix packages/attest-experts run check       # tsc --noEmit
-npm --prefix packages/attest-experts run validate    # bdk validate + direct bdk call tests + stub MCP smoke
-npm --prefix packages/attest-experts run sync-stubs  # regenerate stubs from attest/agents/
+npm --prefix packages/attest-experts run check                # tsc --noEmit
+npm --prefix packages/attest-experts run test                 # classification coverage + rubric invariants
+npm --prefix packages/attest-experts run validate             # bdk validate + direct bdk call tests + stub MCP smoke
+npm --prefix packages/attest-experts run sync-classification  # regenerate classification + stubs + agents/ dir
 ATTEST_MCP_STUB=1 npx bdk eval --dir packages/attest-experts/agents/<id>  # end-to-end (needs CURSOR_API_KEY)
 ```
 
@@ -32,15 +33,21 @@ Run under Node, never Bun.
 - Shared tools go through factories (`submitReportTool`, `notPortedTool`),
   not duplicated per expert.
 - Every stub has exactly 3 files: `agent.ts`, `instructions.md`,
-  `tools/refuse-not-ported.ts`. `sync-stubs.ts` is the only writer.
+  `tools/refuse-not-ported.ts`. `sync-classification.ts` is the only writer.
+- `agents/` must contain **exactly** the Shape C sandbox-required set
+  plus the three Phase-1 concretes. The `test-classification.mjs` suite
+  enforces this on every CI run.
 
 ## When adding or removing an expert
 
-1. Edit `lib/expert-registry.ts :: CONCRETE_EXPERTS` for concrete experts.
-2. Run `npm run sync-stubs` (regenerates `lib/experts.generated.json` and
-   adds / removes stubs under `agents/`).
-3. For a new concrete expert, follow the 7-step recipe in `README.md`.
-4. Run `npm run check && npm run validate` before pushing.
+1. For an attest-source change, edit `lib/classification.ts` first — add,
+   remove, or re-classify the entry. Run `npm run sync-classification`
+   (regenerates `lib/classification.generated.json`,
+   `lib/experts.generated.json`, scaffolds / removes stubs under `agents/`).
+2. For promoting a sandbox-required stub to concrete, edit
+   `lib/expert-registry.ts :: CONCRETE_EXPERTS` and follow the recipe in
+   `README.md`.
+3. Run `npm run check && npm run test && npm run validate` before pushing.
 
 ## Coordination
 
