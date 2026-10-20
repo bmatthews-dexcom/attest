@@ -1,19 +1,25 @@
 #!/usr/bin/env node
 // build-target-cursor.mjs — Cursor build target (Shape C — hybrid chief).
 //
-// attest's expert personas live as BDK agents in the sibling package
-// `@bpmforge/attest-experts` (or as in-process handlers in attest-mcp,
-// post-Shape-C). The chief is split in two:
+// LOCAL-ONLY — attest-mcp, attest-experts, and attest-conductor live as
+// workspace siblings in packages/attest-*/ and are NEVER fetched from
+// the npm registry. The generated .cursor/* tree invokes them through
+// local workspace paths; a missing local build is a loud error, not a
+// silent download via `npx`'s auto-install flag.
 //
-//   • hosted conductor (`@bpmforge/attest-conductor`) — /autopilot and
+// attest's expert personas live as BDK agents in the workspace sibling
+// `attest-experts` (or as in-process handlers in `attest-mcp` post
+// Shape C). The chief is split in two:
+//
+//   • hosted conductor (`attest-conductor`) — /autopilot and
 //     GitHub-driven work;
 //   • editor sdlc-lead (`.cursor/skills/sdlc-lead/SKILL.md` +
 //     `.cursor/agents/sdlc-lead.md`) — interactive /sdlc from Cursor
 //     chat, generated from the shared source
 //     `agents/shared/chiefs/sdlc-lead.md`.
 //
-// Both chiefs share one policy engine (in `@bpmforge/attest-mcp` post
-// Shape C) and one `attest-experts` fleet. Reference:
+// Both chiefs share one policy engine (in `attest-mcp` post Shape C)
+// and one `attest-experts` fleet. Reference:
 //   docs/attest-chief-architecture.md
 //     — §Recommendation (two front doors)
 //     — §Migration path "cursor-build-target"
@@ -101,17 +107,41 @@ export const POLICY_TOOL_NAMES = {
   preDispatch: 'pre_dispatch_check',// promotion gate for sandbox dispatch
 };
 
-// CLI shape the policy hooks shell out to. The sibling attest-mcp worker
-// is adding a `attest-mcp-policy` executable with:
-//   attest-mcp-policy evaluate --kind=<shell|write|mcp>
-// It reads a Cursor-hook-shaped JSON on stdin and writes a Cursor-hook
-// decision JSON on stdout; non-zero exit means "engine error".
-// Fallback invocation if the dedicated binary is not on PATH:
-//   npx -y @bpmforge/attest-mcp policy --kind=<kind>
-// See `.cursor/hooks/evaluate-*-policy.sh` for the full fail-closed /
-// LOG_ONLY branches.
-export const POLICY_CLI_BIN = 'attest-mcp-policy';
-export const POLICY_CLI_FALLBACK = ['npx', '-y', '@bpmforge/attest-mcp', 'policy'];
+// LOCAL-ONLY INVOCATION — HARD CONSTRAINT
+//
+// attest-mcp / attest-experts / attest-conductor are workspace siblings
+// in this repo (`packages/attest-*/`). They are NEVER fetched from the
+// npm registry. The hooks and mcp.json entries invoke the local workspace
+// build output directly; a missing binary is a loud error, not a silent
+// `npx -y` download.
+//
+// Package base names (unscoped — reflect the workspace package names,
+// not any publication scope):
+export const PKG_ATTEST_MCP = 'attest-mcp';
+export const PKG_ATTEST_EXPERTS = 'attest-experts';
+export const PKG_ATTEST_CONDUCTOR = 'attest-conductor';
+
+// Local workspace build-output paths (relative to the repo root, where
+// Cursor's MCP mcp.json and hook commands run from).
+export const ATTEST_MCP_DIST_CLI = `./packages/${PKG_ATTEST_MCP}/dist/cli.js`;
+export const ATTEST_CONDUCTOR_DIR = `./packages/${PKG_ATTEST_CONDUCTOR}`;
+
+// CLI invocation chain the Shape-C policy hooks walk, in order:
+//   1. `attest-mcp-policy evaluate --kind=<shell|write|mcp>`
+//      — dedicated policy bin shipped by attest-mcp's `bin` field;
+//        resolves via `./node_modules/.bin/` after `npm install`.
+//   2. `attest-mcp policy --kind=<shell|write|mcp>`
+//      — the main attest-mcp CLI's `policy` subcommand (compat path
+//        the sibling attest-mcp worker is adding).
+//   3. HARD FAIL — no fallback. The hooks never shell out to `npx`
+//      with the auto-install flag, never pass `--package=…`, never
+//      reach the registry under any flag.
+//
+// If neither bin resolves, the hook returns a crisp error naming the
+// local install script the user should run.
+export const POLICY_CLI_PRIMARY = 'attest-mcp-policy';
+export const POLICY_CLI_SECONDARY = PKG_ATTEST_MCP; // "attest-mcp policy"
+export const LOCAL_INSTALL_HINT = 'npm install at repo root (packages/* are workspace siblings; attest-mcp is NOT published to npm)';
 
 // Env var that selects the Shape-C policy mode. ENFORCE = fail-closed on
 // engine error or `deny`. LOG_ONLY = log the decision and allow through
@@ -145,7 +175,7 @@ export const DROPPED = {
   'tools/append.ts': 'Same as tools/write.ts — LM-Studio/OpenCode patch.',
   'tools/update.ts': 'Same as tools/write.ts — LM-Studio/OpenCode patch.',
   'agents/':
-    'ORCHESTRATOR-FIRST ARCHITECTURE: expert personas ship as BDK agents in the sibling package `@bpmforge/attest-experts`, spawned on demand by `@bpmforge/attest-conductor`. The local Cursor Agent calls out to the conductor via MCP; it does not host the personas itself.',
+    'ORCHESTRATOR-FIRST ARCHITECTURE: expert personas ship as BDK agents in the workspace sibling package `attest-experts`, spawned on demand by `attest-conductor`. The local Cursor Agent calls out to the conductor via MCP; it does not host the personas itself. Local-only — these packages are workspace siblings and are NEVER published to npm.',
 };
 
 // Shared protocols that are OpenCode-tier-specific and should NOT emit a
@@ -165,9 +195,9 @@ export const SHARED_RULE_SKIPS = new Set([
 
 // Skills that are *persona wrappers* ("Load and follow the instructions
 // in the <agent> agent") — orchestrator-first architecture means these
-// now ship as BDK agents in @bpmforge/attest-experts and are invoked via
-// the conductor, not as local Cursor slash-commands. Keeping them here
-// would show the user a /security that cannot route anywhere.
+// now ship as BDK agents in the workspace sibling attest-experts and are
+// invoked via the conductor, not as local Cursor slash-commands. Keeping
+// them here would show the user a /security that cannot route anywhere.
 //
 // Classification rule used to populate this set: the skill body contains
 // the phrase "Load and follow the instructions in" (persona wrapper), OR
@@ -206,8 +236,9 @@ export const PERSONA_SKILL_DROPS = new Set([
   'test-expert',
   'ux',
   // Orchestration entry points — autopilot IS the conductor; review
-  // coordinates three personas. Both live in BDK; the Cursor-side
-  // replacement is `invoke-attest-conductor`.
+  // coordinates three personas. Both live in BDK (the workspace sibling
+  // `attest-conductor`); the Cursor-side replacement is
+  // `invoke-attest-conductor`.
   'autopilot',
   'review',
   // sdlc-lead sub-steps — the coordinator (`agents/sdlc-lead.md`) that
@@ -262,7 +293,7 @@ export const SKILL_AMBIGUITY_NOTES = {
   'wave':
     "Kept: attest-internal 'Level-2 wave integration gate' — but the gate itself is a technique (compose reviewer set, run concurrently, synthesize report), not a persona.",
   'autopilot':
-    "Dropped: this IS the conductor outer loop. Replaced by `invoke-attest-conductor` which teaches the local agent to call @bpmforge/attest-conductor.",
+    "Dropped: this IS the conductor outer loop. Replaced by `invoke-attest-conductor` which teaches the local agent to call the workspace sibling `attest-conductor`.",
   'vault':
     "Kept: depends on an external agent-brain-vault store the user may not have, but it's a self-describing technique (query/ingest/lint) rather than a persona.",
   'guide':
@@ -463,9 +494,11 @@ function generateSkills() {
     `  attest-cursor skill — orchestrator-first architecture.\n` +
     `  Expert personas (a11y, analytics, security, sdlc-lead, …) are\n` +
     `  deliberately NOT emitted as .cursor/skills/* on this target —\n` +
-    `  they live as BDK agents in @bpmforge/attest-experts and are\n` +
-    `  invoked by @bpmforge/attest-conductor. To route the local Cursor\n` +
-    `  agent to the conductor, use /invoke-attest-conductor.\n` +
+    `  they live as BDK agents in the workspace sibling attest-experts\n` +
+    `  and are invoked by the workspace sibling attest-conductor. To\n` +
+    `  route the local Cursor agent to the conductor, use\n` +
+    `  /invoke-attest-conductor. Local-only — these packages are\n` +
+    `  workspace siblings and are NEVER published to npm.\n` +
     `  See .cursor/README.md for the full architecture + persona list.\n` +
     `-->\n`;
 
@@ -552,7 +585,8 @@ function generateSdlcLeadSkill() {
     `  Shared source: ${SDLC_LEAD_SHARED_SOURCE}\n` +
     `  Sibling output: .cursor/agents/sdlc-lead.md (same source, agents\n` +
     `  frontmatter + tool-allowlist tweak).\n` +
-    `  Second chief: @bpmforge/attest-conductor (hosted BDK, /autopilot).\n` +
+    `  Second chief: workspace sibling ${PKG_ATTEST_CONDUCTOR} (hosted BDK,\n` +
+    `  /autopilot). Local-only — NOT published to npm.\n` +
     `  See .cursor/README.md and docs/attest-chief-architecture.md.\n` +
     `-->\n\n` +
     `# sdlc-lead (editor-side chief) — skill form\n\n` +
@@ -628,7 +662,7 @@ function generateSdlcLeadAgent() {
 function generateInvokeConductorSkill() {
   return `---
 name: invoke-attest-conductor
-description: 'Route a long-running / unattended attest task (autopilot, multi-phase SDLC build, scheduled runs) to the HOSTED conductor BDK agent. For small SDLC questions ("what phase?", "run the gate", "advance one step") prefer the sdlc-lead skill — do not wake the hosted conductor unless you actually need autopilot. The hosted conductor and sdlc-lead share one policy engine; this skill is specifically the "I need the long-running Ralph loop" door.'
+description: 'Route a long-running / unattended attest task (autopilot, multi-phase SDLC build, scheduled runs) to the HOSTED conductor BDK agent (workspace sibling attest-conductor). For small SDLC questions ("what phase?", "run the gate", "advance one step") prefer the sdlc-lead skill — do not wake the hosted conductor unless you actually need autopilot. The hosted conductor and sdlc-lead share one policy engine; this skill is specifically the "I need the long-running Ralph loop" door.'
 disable-model-invocation: true
 ---
 
@@ -637,10 +671,12 @@ disable-model-invocation: true
   Two chiefs:
     • sdlc-lead (.cursor/skills/sdlc-lead/SKILL.md + agents/sdlc-lead.md)
       — editor-side chief for interactive /sdlc work.
-    • conductor (@bpmforge/attest-conductor)
+    • conductor (workspace sibling attest-conductor, served via BDK)
       — hosted BDK chief for /autopilot and GitHub-driven work.
   Pick sdlc-lead for small / interactive asks; this skill for long-running
-  unattended work. See .cursor/README.md for the full two-chief design.
+  unattended work. Local-only — attest-conductor is a workspace sibling
+  and is NEVER fetched from npm. See .cursor/README.md for the full
+  two-chief design.
 -->
 
 # invoke-attest-conductor
@@ -652,9 +688,11 @@ has **two chiefs** it can wake up:
    (\`.cursor/skills/sdlc-lead/SKILL.md\` and
    \`.cursor/agents/sdlc-lead.md\`). The user is at the keyboard, the
    turn is short-lived, the ask fits in one Cursor conversation.
-2. **The hosted conductor** — \`@bpmforge/attest-conductor\`, a BDK
-   agent in its own pod running the Ralph loop. The user has closed
-   their laptop, the ask is multi-phase, or the trigger is GitHub.
+2. **The hosted conductor** — the workspace sibling \`attest-conductor\`
+   (served locally via the \`attest-conductor\` MCP entry; the Cursor-
+   hosted deploy path is \`npx @cursor/bdk deploy\` from
+   \`packages/attest-conductor\`). The user has closed their laptop,
+   the ask is multi-phase, or the trigger is GitHub.
 
 **This skill is specifically the hosted-conductor door.** For
 interactive SDLC asks, prefer sdlc-lead — do not wake the hosted
@@ -772,8 +810,9 @@ unified — the only difference is who starts the turn.
 
 // AGENTS: `.cursor/agents/*.md`. Under Shape C the only emitted agent is
 // `sdlc-lead` — the editor-side chief. Primary expert personas are
-// deliberately NOT emitted here; they live in attest-mcp (in-process
-// handlers) or @bpmforge/attest-experts (sandbox BDK agents).
+// deliberately NOT emitted here; they live in the workspace sibling
+// attest-mcp (in-process handlers) or the workspace sibling
+// attest-experts (sandbox BDK agents).
 function generateAgents() {
   const out = new Map();
   out.set('agents/sdlc-lead.md', generateSdlcLeadAgent());
@@ -810,7 +849,9 @@ function generateHooks() {
       POLICY_MODE_ENV +
       '` (ENFORCE | LOG_ONLY | OFF — default LOG_ONLY, flip to ENFORCE once policies land). `beforeMcpInvoke` is NOT wired: Cursor does not currently expose that hook (per https://cursor.com/docs/agent/hooks); the server-side `tools/call` check in attest-mcp remains the authoritative chokepoint. Reintroduce when Cursor adds the hook.',
     _shape_c_contract:
-      'Policy tool names (keep in sync with @bpmforge/attest-mcp): ' +
+      'Policy tool names (keep in sync with the workspace sibling ' +
+      PKG_ATTEST_MCP +
+      '): ' +
       JSON.stringify(POLICY_TOOL_NAMES),
     hooks: {
       beforeShellExecution: [
@@ -1129,26 +1170,30 @@ fi
 `,
 };
 
-// Shape-C policy hooks — delegate to attest-mcp's policy engine.
+// Shape-C policy hooks — delegate to attest-mcp's policy engine via
+// LOCAL-WORKSPACE binaries only. Never shells out to the registry via
+// `npx`'s auto-install flag or any other mechanism.
 //
-// Shape (unchanged across all three hooks):
+// Shape (identical across both hooks):
 //   1. Read Cursor hook JSON from stdin.
 //   2. Branch on $ATTEST_POLICY_MODE: OFF → allow; ENFORCE/LOG_ONLY →
 //      call policy engine.
-//   3. Pipe stdin to `attest-mcp-policy evaluate --kind=<kind>` (or the
-//      `npx -y @bpmforge/attest-mcp policy --kind=<kind>` fallback —
-//      sibling attest-mcp worker owns the binary; the fallback is the
-//      compatibility shim so the hooks ship green before that lands).
+//   3. Walk the local-only invocation chain:
+//        a. `attest-mcp-policy evaluate --kind=<kind>` (dedicated bin)
+//        b. `attest-mcp policy --kind=<kind>` (main CLI subcommand)
+//        c. HARD FAIL — crisp error, no registry fallback.
 //   4. On engine success: pass the decision JSON through verbatim.
 //   5. On engine error:
-//        LOG_ONLY → allow + user_message explaining engine unreachable
-//        ENFORCE  → deny + user_message with reproduction steps
+//        LOG_ONLY → allow + user_message naming the install step
+//        ENFORCE  → deny + user_message naming the install step
 //
-// The hooks are additive to the hard-coded blockers; a deny from either
-// stops the operation. See docs/attest-chief-architecture.md §Fences
-// inventory for the fence/gate/sandbox vocabulary and §Recommendation
-// for why Shape-C splits enforcement across server-side (attest-mcp) +
-// client-side (these hooks).
+// HARD CONSTRAINT: the hooks never shell out to `npx` with the auto-
+// install flag, never pass `--package=…`, never fetch from the npm
+// registry under any flag. attest-mcp is a workspace sibling
+// (packages/attest-mcp) and resolves locally via
+// `./node_modules/.bin/attest-mcp*` after `npm install` at the repo
+// root. See docs/attest-chief-architecture.md §Fences inventory for
+// why client-side + server-side enforcement both matter in Shape C.
 const SHAPE_C_HOOK_SCRIPTS = {
   'evaluate-shell-policy.sh': buildPolicyHookScript({
     kind: 'shell',
@@ -1157,7 +1202,7 @@ const SHAPE_C_HOOK_SCRIPTS = {
     description:
       'Shape-C policy evaluator for shell commands. Delegates to attest-mcp.' +
       POLICY_TOOL_NAMES.shell +
-      '. Additive to block-dangerous.sh — a deny from either stops the shell call.',
+      ' via local workspace bin. Additive to block-dangerous.sh — a deny from either stops the shell call.',
   }),
   'evaluate-write-policy.sh': buildPolicyHookScript({
     kind: 'write',
@@ -1166,7 +1211,7 @@ const SHAPE_C_HOOK_SCRIPTS = {
     description:
       'Shape-C policy evaluator for file-mutating tool calls. Delegates to attest-mcp.' +
       POLICY_TOOL_NAMES.write +
-      '. Additive to block-credentials.sh — a deny from either stops the write.',
+      ' via local workspace bin. Additive to block-credentials.sh — a deny from either stops the write.',
   }),
 };
 
@@ -1177,10 +1222,19 @@ function buildPolicyHookScript({ kind, hookName, permissionShape, description })
     `#   LOG_ONLY — log + allow on engine error (dev / policy authoring).\n` +
     `#   OFF      — skip the policy call entirely (local escape hatch).`;
   const engineBinDoc =
-    `# Engine binary: ${POLICY_CLI_BIN} (owned by sibling @bpmforge/attest-mcp).\n` +
-    `# Fallback: ${POLICY_CLI_FALLBACK.join(' ')} --kind=${kind}\n` +
-    `# Contract:  reads Cursor hook JSON on stdin, writes a Cursor hook\n` +
-    `#            decision JSON on stdout; non-zero exit = engine error.`;
+    `# Local-only invocation chain (NEVER touches npm registry):\n` +
+    `#   1. ${POLICY_CLI_PRIMARY} evaluate --kind=${kind}\n` +
+    `#      — dedicated bin from attest-mcp's \`bin\` field; resolves via\n` +
+    `#        ./node_modules/.bin/ after \`npm install\` at repo root.\n` +
+    `#   2. ${POLICY_CLI_SECONDARY} policy --kind=${kind}\n` +
+    `#      — main attest-mcp CLI's \`policy\` subcommand (compat path).\n` +
+    `#   3. HARD FAIL — the hook never shells out to \`npx\` with the\n` +
+    `#      auto-install flag, never passes \`--package=…\`, never\n` +
+    `#      fetches from the npm registry under any flag. attest-mcp is\n` +
+    `#      a workspace sibling (packages/${PKG_ATTEST_MCP}/), NOT a\n` +
+    `#      published package.\n` +
+    `# Contract: reads Cursor hook JSON on stdin, writes a Cursor hook\n` +
+    `#           decision JSON on stdout; non-zero exit = engine error.`;
   // Shell hooks carry a `continue:true` field; preToolUse (Write/Edit)
   // hooks do not — mirror the existing block-dangerous.sh (shell) and
   // block-credentials.sh (write) shapes exactly so the policy hooks are
@@ -1193,6 +1247,9 @@ function buildPolicyHookScript({ kind, hookName, permissionShape, description })
     `deny() {\n  reason="$1"\n  cat <<EOF\n` +
     `{${continueField}"permission":"deny","user_message":"BLOCKED by attest Shape-C policy ($reason)","agent_message":"attest-mcp.${POLICY_TOOL_NAMES[kind]} denied this ${kind} operation: $reason"}\n` +
     `EOF\n  exit 0\n}`;
+  const installHint = LOCAL_INSTALL_HINT;
+  const engineUnreachableMsg =
+    `attest-mcp policy engine not reachable locally. Neither \\\`${POLICY_CLI_PRIMARY}\\\` nor \\\`${POLICY_CLI_SECONDARY} policy\\\` resolves. attest-mcp is a workspace sibling and MUST be installed locally — do not expect it from the npm registry. Fix: ${installHint} (and \\\`npm --workspace packages/${PKG_ATTEST_MCP} run build\\\` to produce the dist/ output the bin points at).`;
   return `#!/usr/bin/env bash
 # ${hookName} — Shape-C policy hook (kind=${kind}).
 #
@@ -1222,15 +1279,22 @@ esac
 
 ${denyFn}
 
+# Local-only invocation chain. Each resolver only checks local PATH /
+# node_modules/.bin; neither reaches the npm registry. The hooks fail
+# loudly rather than silently fetching from npm, per the local-only
+# hard constraint.
 run_engine() {
-  if command -v ${POLICY_CLI_BIN} >/dev/null 2>&1; then
-    printf '%s' "$input" | ${POLICY_CLI_BIN} evaluate --kind=${kind} 2>/dev/null
+  if command -v ${POLICY_CLI_PRIMARY} >/dev/null 2>&1; then
+    printf '%s' "$input" | ${POLICY_CLI_PRIMARY} evaluate --kind=${kind} 2>/dev/null
     return $?
   fi
-  if command -v npx >/dev/null 2>&1; then
-    printf '%s' "$input" | ${POLICY_CLI_FALLBACK.join(' ')} --kind=${kind} 2>/dev/null
+  if command -v ${POLICY_CLI_SECONDARY} >/dev/null 2>&1; then
+    printf '%s' "$input" | ${POLICY_CLI_SECONDARY} policy --kind=${kind} 2>/dev/null
     return $?
   fi
+  # HARD FAIL — the hook never shells out to \`npx\` with the auto-
+  # install flag, never passes \`--package=…\`, never fetches from the
+  # npm registry under any flag.
   return 127
 }
 
@@ -1245,27 +1309,36 @@ if [ "$rc" -ne 0 ] || [ -z "$decision" ]; then
     printf '{"ts":"%s","hook":"evaluate-%s-policy","mode":"LOG_ONLY","engine_rc":%s,"note":"engine unreachable; allowing"}\\n' \\
       "$ts" "${kind}" "$rc" >> docs/work/policy-decisions.jsonl 2>/dev/null || true
     cat <<EOF
-${allowWithMsgJson(`[attest Shape-C policy] attest-mcp policy engine unreachable (rc=$rc); LOG_ONLY mode — allowing through. Install @bpmforge/attest-mcp or flip ${POLICY_MODE_ENV}=OFF to silence.`)}
+${allowWithMsgJson(`[attest Shape-C policy] ${engineUnreachableMsg} LOG_ONLY mode — allowing through.`)}
 EOF
     exit 0
   fi
-  deny "attest-mcp policy engine unreachable (rc=$rc) and mode=$mode is fail-closed. Install @bpmforge/attest-mcp (or set ${POLICY_MODE_ENV}=LOG_ONLY while authoring policies)."
+  deny "${engineUnreachableMsg}"
 fi
 
 printf '%s\\n' "$decision"
 `;
 }
 
-// MCP: three servers under Shape C.
-//  - `attest`            — the stdio MCP server from @bpmforge/attest-mcp
-//                          (77 validators, phase_gate_check, route_goal,
-//                          list_experts, Shape-C policy host — evaluate_*
-//                          policy tools, list_fences, request_approval,
-//                          invoke_expert, pre_dispatch_check).
+// MCP: three servers under Shape C — ALL invoked via LOCAL workspace
+// paths. No `npx -y`, no registry fetch.
+//  - `attest`            — the stdio MCP server built out of
+//                          packages/attest-mcp/ (77 validators,
+//                          phase_gate_check, route_goal, list_experts,
+//                          Shape-C policy host — evaluate_* policy tools,
+//                          list_fences, request_approval, invoke_expert,
+//                          pre_dispatch_check). Invoked as
+//                          `node ./packages/attest-mcp/dist/cli.js`.
 //  - `attest-conductor`  — the BDK agent at packages/attest-conductor,
-//                          served locally via `bdk serve`. Deployed users
-//                          can swap this stanza for an HTTP MCP transport
-//                          pointing at the deployed conductor URL.
+//                          served locally via a `cursor-bdk` bin. The
+//                          `@cursor/bdk` dep is a Cursor-published tool
+//                          and MUST be installed as a workspace
+//                          devDependency ahead of time (not fetched
+//                          by this entry). For deployed Cursor installs,
+//                          swap this stanza for an HTTP MCP transport
+//                          pointing at the Cursor-hosted conductor URL
+//                          (BDK deploys expose /<slug>/v1/mcp per
+//                          `npx @cursor/bdk deploy`).
 //  - `attest-policy-dev` — a second attest-mcp instance pinned to
 //                          `ATTEST_POLICY_MODE=LOG_ONLY`, so the editor-
 //                          side chief can author policies against a live
@@ -1283,39 +1356,47 @@ function generateMcp() {
   const out = new Map();
   const mcp = {
     $note:
-      'Three MCP servers under Shape C: `attest` (stdio, published as @bpmforge/attest-mcp) hosts the Shape-C policy engine + in-process expert handlers + 77 validators + phase_gate_check + route_goal + list_experts; `attest-conductor` is the hosted BDK chief for /autopilot and GitHub-driven work; `attest-policy-dev` is a second attest-mcp instance pinned to ATTEST_POLICY_MODE=LOG_ONLY so the editor-side chief can author policies without blocking the user. See .cursor/README.md "Shape-C policy mode flip" for how to flip to ENFORCE.',
+      'Three MCP servers under Shape C — ALL invoked via LOCAL workspace paths (no auto-install `npx`, no registry fetch). `attest` and `attest-policy-dev` run the local build output at `' +
+      ATTEST_MCP_DIST_CLI +
+      '` (produced by `npm --workspace packages/' +
+      PKG_ATTEST_MCP +
+      ' run build`); `attest-conductor` is served by the Cursor-published `@cursor/bdk` dev dependency (install locally; do not fetch at runtime). See .cursor/README.md "Shape-C policy mode flip" for how to flip to ENFORCE and "Local install" for how to prepare the workspace.',
     mcpServers: {
       attest: {
         $comment:
-          'Primary attest-mcp server. Under Shape C this is both the validator surface (unchanged) and the policy host (new in Shape C: ' +
+          'Primary ' +
+          PKG_ATTEST_MCP +
+          ' server. Under Shape C this is both the validator surface (unchanged) and the policy host (new in Shape C: ' +
           Object.values(POLICY_TOOL_NAMES).join(', ') +
-          '). Default mode is the attest-mcp server\'s own default (ENFORCE once the policy bundle lands); override per-user by setting ' +
+          '). LOCAL-ONLY invocation: runs the workspace build output directly; a missing dist/ is a loud error (run `npm --workspace packages/' +
+          PKG_ATTEST_MCP +
+          ' run build`). Default policy mode is the server\'s own default (ENFORCE once the policy bundle lands); override per-user by setting ' +
           POLICY_MODE_ENV +
           ' in the user\'s shell env.',
-        command: 'npx',
-        args: ['-y', '@bpmforge/attest-mcp'],
+        command: 'node',
+        args: [ATTEST_MCP_DIST_CLI],
       },
       'attest-conductor': {
         $comment:
-          'Local-dev invocation: served out of packages/attest-conductor via @cursor/bdk serve --mode single. For deployed Cursor installs, replace this stanza with { "url": "https://<your-conductor-host>/v1/mcp", "type": "http" } pointing at the deployed BDK agent (BDK deployments expose /<slug>/v1/mcp automatically). Private package: cannot be reached via `npx -y @bpmforge/attest-conductor`.',
-        command: 'npx',
+          'Local-dev invocation: served out of packages/' +
+          PKG_ATTEST_CONDUCTOR +
+          ' via the Cursor-published `cursor-bdk` bin (`@cursor/bdk` must be a workspace devDependency — install locally, do NOT fetch at runtime). For deployed Cursor installs, swap this stanza for { "url": "https://<your-conductor-host>/v1/mcp", "type": "http" } pointing at the deployed BDK agent (BDK deployments expose /<slug>/v1/mcp automatically via `npx @cursor/bdk deploy`). This package is NEVER published to npm; it lives only in this workspace.',
+        command: 'cursor-bdk',
         args: [
-          '-y',
-          '@cursor/bdk',
           'serve',
           '--dir',
-          './packages/attest-conductor',
+          ATTEST_CONDUCTOR_DIR,
           '--mode',
           'single',
         ],
       },
       'attest-policy-dev': {
         $comment:
-          'Shape-C local-dev policy engine. Same binary as `attest`, pinned to ' +
+          'Shape-C local-dev policy engine. Same local build as `attest`, pinned to ' +
           POLICY_MODE_ENV +
           '=LOG_ONLY so the editor-side chief (sdlc-lead) can test policies without blocking the user. Decisions get written through to `docs/work/policy-decisions.jsonl` by the policy hooks. Flip to ENFORCE (either here or in the `attest` entry) when the policy bundle is trusted; see .cursor/README.md.',
-        command: 'npx',
-        args: ['-y', '@bpmforge/attest-mcp'],
+        command: 'node',
+        args: [ATTEST_MCP_DIST_CLI],
         env: {
           [POLICY_MODE_ENV]: 'LOG_ONLY',
         },
@@ -1346,18 +1427,29 @@ Do not edit any file under \`.cursor/\` by hand — CI runs
 sources in \`agents/\`, \`agents/shared/chiefs/\`, \`skills/\`,
 \`rules/\`, and \`plugins/\`, then run \`npm run build:cursor\`.
 
-## Architecture — two chiefs, one policy engine
+## Architecture — two chiefs, one policy engine (LOCAL-ONLY)
 
 attest's expert personas do **not** ship here as Cursor custom-mode /
-subagent files. They live either as in-process handlers inside
-\`@bpmforge/attest-mcp\` (readers / analyzers / validators) or as
-sandbox-isolated BDK agents in \`@bpmforge/attest-experts\` (writers /
-publishers / pushers). The chief is split in two:
+subagent files. They live either as in-process handlers inside the
+workspace sibling \`${PKG_ATTEST_MCP}\` (readers / analyzers /
+validators) or as sandbox-isolated BDK agents in the workspace sibling
+\`${PKG_ATTEST_EXPERTS}\` (writers / publishers / pushers). The chief
+is split in two:
 
 | Chief | Lives in | Starts a turn when | Owns |
 |---|---|---|---|
-| **Hosted conductor** (\`@bpmforge/attest-conductor\`) | BDK pod | GitHub webhook (\`/autopilot <goal>\`) or scheduled run | Long-running, unattended autopilot |
+| **Hosted conductor** (workspace sibling \`${PKG_ATTEST_CONDUCTOR}\`) | BDK pod (local or Cursor-hosted) | GitHub webhook (\`/autopilot <goal>\`) or scheduled run | Long-running, unattended autopilot |
 | **sdlc-lead** (\`.cursor/skills/sdlc-lead/SKILL.md\` + \`.cursor/agents/sdlc-lead.md\`) | Cursor Agent in the user's editor | User keystroke in Cursor chat (\`/sdlc …\`, phase question, routing ask) | Interactive /sdlc work |
+
+> **Local-only — hard constraint.** \`${PKG_ATTEST_MCP}\`,
+> \`${PKG_ATTEST_EXPERTS}\`, and \`${PKG_ATTEST_CONDUCTOR}\` are
+> workspace siblings in \`packages/\`. They are **never** fetched from
+> the npm registry — not via \`npx\`'s auto-install flag, not under any
+> flag. The generated \`.cursor/\` tree invokes them through local
+> workspace paths; a missing local build is a loud error, not a silent
+> download. The Cursor-hosted deploy path for the conductor is
+> \`npx @cursor/bdk deploy\` from \`packages/${PKG_ATTEST_CONDUCTOR}\`;
+> \`@cursor/bdk\` is Cursor's own tool and the only outside dependency.
 
 Both share one \`attest-mcp\` policy engine, one \`attest-experts\`
 fleet, and one phase-gate state machine. See
@@ -1387,7 +1479,7 @@ hook layer for the editor-side "no" before destructive ops.
 
 ${kept}, invoke-attest-conductor, sdlc-lead
 
-### Dropped skills (personas — live in @bpmforge/attest-experts, ${PERSONA_SKILL_DROPS.size} total)
+### Dropped skills (personas — live in the workspace sibling ${PKG_ATTEST_EXPERTS}, ${PERSONA_SKILL_DROPS.size} total)
 
 ${dropped}
 
@@ -1405,10 +1497,23 @@ Two hooks delegate to the attest-mcp policy engine on every call:
 | \`hooks/evaluate-shell-policy.sh\` | \`beforeShellExecution\` | \`attest.${POLICY_TOOL_NAMES.shell}\` |
 | \`hooks/evaluate-write-policy.sh\` | \`preToolUse\` matcher \`Write\`/\`Edit\` | \`attest.${POLICY_TOOL_NAMES.write}\` |
 
-Each hook pipes the Cursor hook JSON into \`${POLICY_CLI_BIN} evaluate --kind=<shell|write>\`
-(fallback: \`${POLICY_CLI_FALLBACK.join(' ')} --kind=<shell|write>\`),
-expects a Cursor hook decision JSON on stdout, and respects the
-\`${POLICY_MODE_ENV}\` env var:
+Each hook walks a **local-only** invocation chain, in order:
+
+1. \`${POLICY_CLI_PRIMARY} evaluate --kind=<shell|write>\` — the
+   dedicated bin shipped by \`${PKG_ATTEST_MCP}\`'s \`bin\` field;
+   resolves via \`./node_modules/.bin/\` after \`npm install\` at
+   the repo root.
+2. \`${POLICY_CLI_SECONDARY} policy --kind=<shell|write>\` — the main
+   \`${PKG_ATTEST_MCP}\` CLI's \`policy\` subcommand (compat path).
+3. **Hard fail.** The hook never shells out to \`npx\` with the
+   auto-install flag, never passes \`--package=…\`, never fetches
+   from the npm registry under any flag. If neither bin resolves, the
+   hook returns a crisp error naming the install step
+   (\`${LOCAL_INSTALL_HINT}\`).
+
+The hook pipes the Cursor hook JSON into whichever bin resolves,
+expects a Cursor hook decision JSON on stdout, and respects
+\`${POLICY_MODE_ENV}\`:
 
 - \`ENFORCE\` — fail-closed on engine error or \`deny\`.
 - \`LOG_ONLY\` — log + allow on engine error (dev / policy authoring).
@@ -1427,18 +1532,39 @@ remains the authoritative chokepoint; the user hears the refusal via
 the MCP error. Reintroduce the client-side mirror when Cursor adds the
 hook.
 
-## Shape-C MCP servers
+## Shape-C MCP servers (LOCAL-ONLY)
 
-\`.cursor/mcp.json\` wires three MCP servers:
+\`.cursor/mcp.json\` wires three MCP servers; all three are invoked via
+LOCAL workspace paths — no auto-install \`npx\`, no registry fetch:
 
-- \`attest\` — \`npx -y @bpmforge/attest-mcp\`. The policy host and the
+- \`attest\` — \`node ${ATTEST_MCP_DIST_CLI}\`. The policy host and the
   validator surface. Policy tools (new in Shape C): ${policyToolList}.
-- \`attest-conductor\` — the hosted BDK chief (\`bdk serve\` locally, or
-  swap for an HTTP MCP transport pointing at the deployed URL).
-- \`attest-policy-dev\` — a second attest-mcp instance pinned to
+- \`attest-conductor\` — \`cursor-bdk serve --dir ${ATTEST_CONDUCTOR_DIR} --mode single\`.
+  The Cursor-published \`@cursor/bdk\` tool must be installed as a
+  workspace devDependency ahead of time; do NOT expect it to be
+  fetched at hook time. For a Cursor-hosted deploy, swap this stanza
+  for an HTTP MCP transport pointing at the URL that
+  \`npx @cursor/bdk deploy\` returned.
+- \`attest-policy-dev\` — same local build as \`attest\`, pinned to
   \`${POLICY_MODE_ENV}=LOG_ONLY\` so sdlc-lead can author / test
   policies against a live engine without blocking the user. Decisions
   go to \`docs/work/policy-decisions.jsonl\` via the hooks.
+
+### Local install (one-time)
+
+Before Cursor can launch the MCP servers or run the policy hooks:
+
+\`\`\`sh
+npm install                               # links workspace siblings into
+                                           # ./node_modules/.bin/
+npm --workspace packages/${PKG_ATTEST_MCP} run build
+                                           # produces the dist/ output
+                                           # that mcp.json invokes
+\`\`\`
+
+Neither step touches the registry for \`${PKG_ATTEST_MCP}\`,
+\`${PKG_ATTEST_EXPERTS}\`, or \`${PKG_ATTEST_CONDUCTOR}\` — they are
+workspace packages, linked locally.
 
 ### Flipping policy mode: LOG_ONLY → ENFORCE
 
@@ -1674,7 +1800,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     '# Generated by attest/scripts/build-target-cursor.mjs — DO NOT EDIT THESE FILES HERE.\n' +
       '# Edit the canonical source in attest, then run: npm run build:cursor\n' +
       '# `--check` is the CI drift gate; it diffs the committed .cursor/ tree against this generator\'s output.\n' +
-      '# Architecture: orchestrator-first — expert personas live in @bpmforge/attest-experts, orchestrated by @bpmforge/attest-conductor.\n\n' +
+      '# Architecture: orchestrator-first + Shape C (hybrid chief). Expert personas live in the workspace\n' +
+      '# sibling attest-experts, orchestrated by the workspace sibling attest-conductor. All packages are\n' +
+      '# LOCAL workspace siblings; NEVER fetched from the npm registry.\n\n' +
       manifest.join('\n') +
       '\n'
   );
