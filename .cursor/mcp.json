@@ -1,0 +1,15 @@
+{
+  "$note": "attest Director editor-front-door. One entry only (feat/attest-director scope). Local-only wiring — no `npx -y @bpmforge/...` anywhere. See .cursor/skills/director/SKILL.md for intended use.",
+  "mcpServers": {
+    "attest-director-mcp": {
+      "$comment": "Director MCP server, spawned from the local workspace build. Run `npm run build --workspace=@bpmforge/attest-director-mcp` once (or `cd packages/attest-director-mcp && npm run build`) before pointing Cursor at this entry. For edit-save-reload during development, swap `node` + the `dist/` args for `npx --no-install tsx packages/attest-director-mcp/src/cli.ts` — same binary surface, no build step.",
+      "command": "node",
+      "args": [
+        "./packages/attest-director-mcp/dist/cli.js"
+      ],
+      "env": {
+        "ATTEST_DIRECTOR_KV_ROOT": "./.attest-director-local/kv"
+      }
+    }
+  }
+}
