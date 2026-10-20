@@ -20,8 +20,21 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const PKG = resolve(HERE, "..");
 const BDK = resolve(PKG, "..", "..", "node_modules", ".bin", "bdk");
 
-const CONCRETE = ["security-auditor", "code-reviewer", "landscape-mapper"];
-const SAMPLE_STUBS = ["semgrep-runner", "dead-code-detector", "component-mapper"];
+const CONCRETE = [
+  "security-auditor",
+  "code-reviewer",
+  "landscape-mapper",
+  // Phase 2 — security cluster wave.
+  "semgrep-runner",
+  "secrets-scanner",
+  "dependency-auditor",
+  "owasp-web-checker",
+  "threat-modeler",
+];
+// Sample stubs for the refusal smoke step. Picked to avoid colliding with any
+// cluster currently being promoted (attack-chainer is the deferred security
+// synthesizer; dead-code-detector and component-mapper remain stubs today).
+const SAMPLE_STUBS = ["attack-chainer", "dead-code-detector", "component-mapper"];
 const STUB_SERVER = resolve(PKG, "lib", "stub-mcp-server.mjs");
 
 const fixtureReport = (id) => ({
