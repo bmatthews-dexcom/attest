@@ -26,6 +26,7 @@
     "inspect": "npx --yes @modelcontextprotocol/inspector node dist/cli.js"
   },
   "dependencies": {
+    "@cedar-policy/cedar-wasm": "^4.14.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "zod": "^3.25.0"
   },

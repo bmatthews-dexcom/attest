@@ -57,6 +57,8 @@ done
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CONDUCTOR_DIR="$REPO_ROOT/packages/attest-conductor"
+CEO_DIR="$REPO_ROOT/packages/attest-ceo"
+DIRECTOR_DIR="$REPO_ROOT/packages/attest-director"
 EXPERTS_DIR="$REPO_ROOT/packages/attest-experts/agents"
 REGISTRY_JSON="$REPO_ROOT/packages/attest-experts/lib/experts.generated.json"
 ARTIFACT_DIR="$REPO_ROOT/artifacts/deploy"
@@ -133,6 +135,10 @@ for id in $CONCRETE_EXPERT_IDS; do
   ALL_SLUGS="$ALL_SLUGS attest-expert-$id"
 done
 ALL_SLUGS="$ALL_SLUGS attest-conductor"
+# Phase-1 chiefs (PR #16 + PR #17): CEO and Director BDK agents. Each lives
+# in its own workspace package with a bot/agent.ts entry.
+[ -f "$CEO_DIR/bot/agent.ts" ] && ALL_SLUGS="$ALL_SLUGS attest-ceo"
+[ -f "$DIRECTOR_DIR/bot/agent.ts" ] && ALL_SLUGS="$ALL_SLUGS attest-director"
 ALL_SLUGS="$(echo "$ALL_SLUGS" | sed 's/^ *//')"
 
 if [ -n "${DEPLOY_SUBSET:-}" ]; then
@@ -178,7 +184,7 @@ fi
 log "ref: $REF (branch: $BRANCH)"
 
 # ─── step 4: bdk validate ───────────────────────────────────────────────
-log "step 4/5 — bdk validate (conductor + experts)"
+log "step 4/5 — bdk validate (conductor + experts + chiefs)"
 if ! run_bdk validate --dir "$CONDUCTOR_DIR" >/tmp/attest-deploy-conductor-validate.log 2>&1; then
   tail -60 /tmp/attest-deploy-conductor-validate.log >&2 || true
   die "bdk validate failed on packages/attest-conductor. See /tmp/attest-deploy-conductor-validate.log."
@@ -186,6 +192,18 @@ fi
 if ! run_bdk validate --dir "$EXPERTS_DIR" >/tmp/attest-deploy-experts-validate.log 2>&1; then
   tail -60 /tmp/attest-deploy-experts-validate.log >&2 || true
   die "bdk validate failed on packages/attest-experts/agents. See /tmp/attest-deploy-experts-validate.log."
+fi
+if echo "$SELECTED" | tr ' ' '\n' | grep -qx "attest-ceo"; then
+  if ! run_bdk validate --dir "$CEO_DIR" >/tmp/attest-deploy-ceo-validate.log 2>&1; then
+    tail -60 /tmp/attest-deploy-ceo-validate.log >&2 || true
+    die "bdk validate failed on packages/attest-ceo. See /tmp/attest-deploy-ceo-validate.log."
+  fi
+fi
+if echo "$SELECTED" | tr ' ' '\n' | grep -qx "attest-director"; then
+  if ! run_bdk validate --dir "$DIRECTOR_DIR" >/tmp/attest-deploy-director-validate.log 2>&1; then
+    tail -60 /tmp/attest-deploy-director-validate.log >&2 || true
+    die "bdk validate failed on packages/attest-director. See /tmp/attest-deploy-director-validate.log."
+  fi
 fi
 log "validate OK"
 
@@ -199,11 +217,12 @@ if [ "$MODE" = "dry-run" ]; then
   WOULD_RUN="["
   FIRST=1
   for slug in $SELECTED; do
-    if [ "$slug" = "attest-conductor" ]; then
-      DIR="$CONDUCTOR_DIR"
-    else
-      DIR="$EXPERTS_DIR"
-    fi
+    case "$slug" in
+      attest-conductor) DIR="$CONDUCTOR_DIR" ;;
+      attest-ceo)       DIR="$CEO_DIR" ;;
+      attest-director)  DIR="$DIRECTOR_DIR" ;;
+      *)                DIR="$EXPERTS_DIR" ;;
+    esac
     CMD="bdk deploy --dir $DIR --slug $slug --ref $REF --json"
     if [ -n "${DEPLOY_TEAM:-}" ]; then
       CMD="$CMD --team $DEPLOY_TEAM"
@@ -233,11 +252,12 @@ log "step 5/5 — deploying $SELECTED"
 RESULTS="["
 FIRST=1
 for slug in $SELECTED; do
-  if [ "$slug" = "attest-conductor" ]; then
-    DIR="$CONDUCTOR_DIR"
-  else
-    DIR="$EXPERTS_DIR"
-  fi
+  case "$slug" in
+    attest-conductor) DIR="$CONDUCTOR_DIR" ;;
+    attest-ceo)       DIR="$CEO_DIR" ;;
+    attest-director)  DIR="$DIRECTOR_DIR" ;;
+    *)                DIR="$EXPERTS_DIR" ;;
+  esac
   log "deploying $slug"
   DEPLOY_CMD=(deploy --dir "$DIR" --slug "$slug" --ref "$REF" --json)
   if [ -n "${DEPLOY_TEAM:-}" ]; then
