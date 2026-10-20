@@ -31,11 +31,36 @@ for safety + editor-time quality guidance.
 | `rules/*.mdc` | `rules/*.md` + `agents/shared/*.md` | Editor-time quality protocols (CHALLENGER, FIX_VERIFY, GATE_SCORING, PERSISTENCE, …) as on-demand rules with `@file` pointers to the committed sources. |
 | `skills/*/SKILL.md` | `skills/*/SKILL.md` + hand-authored | Only **technique / procedure** skills. See the keep set below. |
 | `hooks.json` + `hooks/*.sh` | `plugins/expert-hooks.ts` | 1:1 port of the attest plugin: dangerous-bash blocker, credential-write blocker, afterFileEdit lint/typecheck/secret-scan, postToolUse telemetry, sessionStart STATE.md injection (**local-only**: Cursor cloud agents do not fire `sessionStart`), stop phase-gate. |
-| `mcp.json` | generated | Points at the `attest` MCP server (`@bpmforge/attest-mcp`). |
+| `mcp.json` | generated | Points at three MCP servers: `attest` (`@bpmforge/attest-mcp`), `attest-conductor` (BDK agent), and `attest-ceo` (local workspace Phase-1 CEO MCP). |
+| `agents/attest-ceo.md` | `agents/shared/chiefs/ceo.md` | Editor-side **CEO** chief as a Cursor custom-mode / subagent; tool allowlist excludes raw bash — mutations go through `attest-ceo-mcp` + dispatch via `attest-conductor`. |
+| `skills/attest-ceo/SKILL.md` | `agents/shared/chiefs/ceo.md` | Same shared source, framed as a skill the current Cursor Agent loads when the user types a `/ceo` command. |
 
-### Kept skills (techniques, 12 total — includes `invoke-attest-conductor`)
+### CEO MCP surface (`attest-ceo` server, Phase 1)
 
-api-ground, design-options, explore, game-asset-pipeline, gate, goal, pre-code, reflow, simplify, vault, wave, invoke-attest-conductor
+Local workspace package `@bpmforge/attest-ceo-mcp` (`"private": true`,
+not published to npm). Build with
+`npm run build --workspace @bpmforge/attest-ceo-mcp` once; the
+`mcp.json` entry spawns `node packages/attest-ceo-mcp/dist/cli.js`.
+Tools exposed (names tracked by `CEO_MCP_TOOL_NAMES` in the generator):
+
+  - `ingest_discussion` (ingest)
+  - `extract_intent` (extract)
+  - `draft_plan` (draft)
+  - `approve_plan` (approve)
+  - `deny_plan` (deny)
+  - `refine_plan` (refine)
+  - `dispatch_plan` (dispatch)
+  - `director_create_expert` (director)
+  - `roadmap_sync` (roadmapSync)
+  - `autonomy_set` (autonomySet)
+
+Plus four resources: `attest://ceo/roadmap/current`,
+`attest://ceo/commitments/open`, `attest://ceo/plans/awaiting`,
+`attest://ceo/decisions/recent`.
+
+### Kept skills (techniques, 13 total — includes `invoke-attest-conductor` + `attest-ceo`)
+
+api-ground, design-options, explore, game-asset-pipeline, gate, goal, pre-code, reflow, simplify, vault, wave, invoke-attest-conductor, attest-ceo
 
 ### Dropped skills (personas — live in @bpmforge/attest-experts, 37 total)
 

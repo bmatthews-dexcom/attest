@@ -1,5 +1,5 @@
 {
-  "$note": "Two MCP servers: `attest` (stdio, published as @bpmforge/attest-mcp) exposes 77 validators + phase_gate_check + route_goal + list_experts; `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop. See .cursor/skills/invoke-attest-conductor/SKILL.md for the three-path dial-out (preferred: MCP tool, fallback: HTTPS, fallback: GitHub comment).",
+  "$note": "Three MCP servers: `attest` (stdio, published as @bpmforge/attest-mcp) exposes 77 validators + phase_gate_check + route_goal + list_experts; `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop; `attest-ceo` is the Phase-1 CEO MCP server (ingest / extract / draft / approve / dispatch / director). See .cursor/skills/invoke-attest-conductor/SKILL.md for the conductor dial-out and .cursor/skills/attest-ceo/SKILL.md for the CEO.",
   "mcpServers": {
     "attest": {
       "command": "npx",
@@ -19,6 +19,13 @@
         "./packages/attest-conductor",
         "--mode",
         "single"
+      ]
+    },
+    "attest-ceo": {
+      "$comment": "Phase-1 attest CEO MCP server (ingest / extract / draft / approve / dispatch / director). Local-only private workspace package — not published to npm. Local-dev invocation: node packages/attest-ceo-mcp/dist/cli.js. Build with `npm run build --workspace @bpmforge/attest-ceo-mcp` first. For hosted installs the CEO is reached via the attest-ceo BDK agent (packages/attest-ceo); point `attest-conductor` dispatch at its /v1/mcp endpoint.",
+      "command": "node",
+      "args": [
+        "./packages/attest-ceo-mcp/dist/cli.js"
       ]
     }
   }

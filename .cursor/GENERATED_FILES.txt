@@ -4,6 +4,7 @@
 # Architecture: orchestrator-first — expert personas live in @bpmforge/attest-experts, orchestrated by @bpmforge/attest-conductor.
 
 README.md
+agents/attest-ceo.md
 hooks.json
 hooks/block-credentials.sh
 hooks/block-dangerous.sh
@@ -48,6 +49,7 @@ rules/shared-tool-preflight.mdc
 rules/shared-tui-session-hygiene.mdc
 rules/validator-house-style.mdc
 skills/api-ground/SKILL.md
+skills/attest-ceo/SKILL.md
 skills/design-options/SKILL.md
 skills/explore/SKILL.md
 skills/game-asset-pipeline/SKILL.md
