@@ -2,8 +2,10 @@ import { defineChannel, POST, GET } from "@cursor/bdk/channels";
 import * as z from "zod/v4";
 import {
   activeTaskKey,
+  AUTONOMY_MODES,
   newTask,
   taskKey,
+  type AutonomyMode,
   type ConductorTask,
 } from "../lib/conductor-state.js";
 import {
@@ -38,6 +40,9 @@ const RunBody = z.object({
   iterationCap: z.number().int().positive().max(50).optional(),
   wallTimeCapMs: z.number().int().positive().max(60 * 60 * 1000).optional(),
   consecutiveNoProgressCap: z.number().int().positive().max(20).optional(),
+  autonomyMode: z
+    .enum(AUTONOMY_MODES as unknown as [AutonomyMode, ...AutonomyMode[]])
+    .optional(),
   /** Hard safety: never dispatch more than this many Ralph turns per POST. */
   maxTurns: z.number().int().positive().max(100).default(20),
 });
@@ -128,6 +133,7 @@ async function loadOrCreateTask(
     iterationCap: body.iterationCap,
     wallTimeCapMs: body.wallTimeCapMs,
     consecutiveNoProgressCap: body.consecutiveNoProgressCap,
+    autonomyMode: body.autonomyMode,
   });
   await host.kv.put(taskKey(fresh.taskId), fresh);
   await host.kv.put(activeTaskKey("autopilot-channel"), { taskId: fresh.taskId });
