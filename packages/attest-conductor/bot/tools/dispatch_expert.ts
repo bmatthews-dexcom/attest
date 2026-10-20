@@ -13,10 +13,18 @@ import {
   knownExpertIds,
   resolveExpertMode,
 } from "../lib/experts-registry.js";
-import {
-  isConcreteExpert,
-  peerSlugForExpert,
-} from "../lib/concrete-experts.js";
+
+/**
+ * BDK agent slug attest-experts publishes for a given expert id. Mirrors
+ * `defineExpert({ name: "attest-expert-<id>" })` in
+ * `packages/attest-experts/lib/expert-factory.ts`. Kept as a pure
+ * derivation (no hardcoded set) because the ported-vs-stub decision now
+ * reads `mcpEntry.ported` from attest-mcp's `list_experts` catalog, not
+ * a local allow-list.
+ */
+function peerSlugForExpert(expertId: string): string {
+  return `attest-expert-${expertId}`;
+}
 
 type DispatchArtifact = string | number | boolean | null;
 
@@ -41,6 +49,15 @@ type McpExpertEntry = {
     readonly agent?: string;
     readonly spawn?: string;
   };
+  /**
+   * True when `@bpmforge/attest-experts` ships a concrete BDK agent for
+   * this id; false when it only exposes a `refuse-not-ported` stub.
+   * Added by attest-mcp. Missing on pre-ported-field servers; we treat
+   * `undefined` as "assume concrete peer dispatch is viable" (old
+   * behaviour) so a stale attest-mcp does not silently refuse every
+   * dispatch.
+   */
+  readonly ported?: boolean;
 };
 
 /**
@@ -130,7 +147,7 @@ function parseExpertCatalog(raw: unknown): Map<string, McpExpertEntry> {
 
 export default defineTool({
   description:
-    "Dispatch an expert BDK agent for one unit of work. In non-stub mode (ATTEST_MCP_COMMAND is set), fetches `list_experts` from attest-mcp once per process and uses the MCP catalog's `invocationHint` as the source of truth for peer slugs — the local registry is only consulted as a fallback or in stub mode. If the resolved expert is a Phase-2 stub in @bpmforge/attest-experts, the dispatch short-circuits with a structured `not-ported` error so the Ralph loop can escalate or route to a concrete expert. With ATTEST_EXPERT_<ID>_PEER=<slug> set, overrides the catalog-derived slug and calls that peer's `ask` tool via ctx.host.mcp. With ATTEST_EXPERT_<ID>_URL=... set, POSTs to the deployed expert over HTTP. **Persists the visit directly to the task's `visitedExperts`** so Ralph can observe it next iteration. Idempotent via `actionId`.",
+    "Dispatch an expert BDK agent for one unit of work. In non-stub mode (ATTEST_MCP_COMMAND is set), fetches `list_experts` from attest-mcp once per process and uses the MCP catalog's `invocationHint` as the source of truth for peer slugs — the local registry is only consulted as a fallback or in stub mode. The Phase-2 stub short-circuit is driven by the catalog entry's `ported` field: when attest-mcp reports `ported === false` the dispatch returns a structured `not-ported` error so the Ralph loop can escalate or route to a concrete expert (no local hardcoded id list is consulted). With ATTEST_EXPERT_<ID>_PEER=<slug> set, overrides the catalog-derived slug and calls that peer's `ask` tool via ctx.host.mcp. With ATTEST_EXPERT_<ID>_URL=... set, POSTs to the deployed expert over HTTP. **Persists the visit directly to the task's `visitedExperts`** so Ralph can observe it next iteration. Idempotent via `actionId`.",
   effect: "write",
   inputSchema: z.object({
     taskId: z.string(),
@@ -246,8 +263,13 @@ export default defineTool({
     // This mirrors the shape attest-experts' refuse-not-ported tool
     // returns, without the round-trip (the stub BDK agent only exposes
     // refuse-not-ported anyway).
-    if (realMode && mcpEntry && !isConcreteExpert(input.expertId)) {
-      const summary = `expert "${input.expertId}" is a Phase-2 stub in @bpmforge/attest-experts; dispatch refused. Escalate to the user, pick a concrete expert, or wait until this id is ported.`;
+    //
+    // Trigger: the attest-mcp catalog entry's `ported` field is strictly
+    // `false`. Missing (`undefined`) means the attest-mcp server predates
+    // the ported field — fall through to the peer-dispatch branch to
+    // preserve the pre-field behaviour (every id was tried as a peer).
+    if (realMode && mcpEntry && mcpEntry.ported === false) {
+      const summary = `expert "${input.expertId}" is a Phase-2 stub in @bpmforge/attest-experts (list_experts reported ported=false); dispatch refused. Escalate to the user, pick a concrete expert, or wait until this id is ported.`;
       const result: DispatchResult = {
         expertId: input.expertId,
         mode: "not-ported",
@@ -259,6 +281,7 @@ export default defineTool({
           package: mcpEntry.invocationHint?.package ?? "@bpmforge/attest-experts",
           agentSlug:
             mcpEntry.invocationHint?.agent ?? peerSlugForExpert(input.expertId),
+          portedField: false,
         },
         findings: [{ severity: "gate", message: summary }],
         taskPersisted: false,
@@ -268,14 +291,15 @@ export default defineTool({
 
     // Resolve dispatch transport. Env-var overrides win when present (operator
     // steering a specific run); otherwise the attest-experts BDK slug is
-    // `attest-expert-<id>` for concrete experts.
+    // `attest-expert-<id>` for ported experts.
     const envMode = resolveExpertMode(input.expertId);
     let mode: { kind: "stub" } | { kind: "peer"; slug: string } | { kind: "http"; url: string };
     if (envMode.kind !== "stub") {
       mode = envMode;
-    } else if (realMode && isConcreteExpert(input.expertId)) {
+    } else if (realMode && mcpEntry && mcpEntry.ported !== false) {
       // Prefer the catalog-derived agent slug when the real MCP is active
-      // and the expert is concrete.
+      // and the expert is ported (or on an attest-mcp old enough to lack
+      // the `ported` field — treat as "try the peer").
       const slug =
         mcpEntry?.invocationHint?.agent &&
         mcpEntry.invocationHint.agent.startsWith("attest-expert-")
