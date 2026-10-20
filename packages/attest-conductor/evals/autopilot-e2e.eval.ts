@@ -50,9 +50,14 @@ export default defineEval({
 
     t.calledTool("run_autopilot_task");
 
-    t.calledTool("dispatch_expert").soft();
+    // Shape-C palette.
+    t.calledTool("invoke_expert").soft();
+    t.calledTool("pre_dispatch_check").soft();
     t.calledTool("phase_gate_check").soft();
     t.calledTool("validate_architecture").soft();
     t.calledTool("mark_done").soft();
+
+    // The Shape-A dispatch_expert must not reappear in the e2e trace.
+    t.notCalledTool("dispatch_expert");
   },
 });
