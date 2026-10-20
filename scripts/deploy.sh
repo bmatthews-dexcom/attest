@@ -254,6 +254,21 @@ fi
 log "step 5/5 — deploying $SELECTED"
 RESULTS="["
 FIRST=1
+FAILED_SLUGS=""
+# One slug's failure must not abort the rest (the deploy is idempotent per
+# slug — BDK treats a repeat `deploy --slug <x>` as a new release of the
+# existing deployment — so a later rerun can retry the failed ones in
+# place). Record per-slug status in the artifact and exit nonzero only if
+# any failed.
+append_result() {
+  local slug="$1" status="$2" url="$3" error="$4"
+  if [ "$FIRST" = "1" ]; then FIRST=0; else RESULTS="$RESULTS,"; fi
+  if [ -n "$error" ]; then
+    RESULTS="$RESULTS{\"slug\":\"$slug\",\"status\":\"$status\",\"url\":\"$url\",\"error\":\"$error\"}"
+  else
+    RESULTS="$RESULTS{\"slug\":\"$slug\",\"status\":\"$status\",\"url\":\"$url\"}"
+  fi
+}
 for slug in $SELECTED; do
   case "$slug" in
     attest-conductor) DIR="$CONDUCTOR_DIR" ;;
@@ -267,18 +282,54 @@ for slug in $SELECTED; do
     DEPLOY_CMD+=(--team "$DEPLOY_TEAM")
   fi
   if ! run_bdk "${DEPLOY_CMD[@]}" >"/tmp/attest-deploy-$slug.log" 2>&1; then
-    tail -60 "/tmp/attest-deploy-$slug.log" >&2 || true
-    die "deploy failed for $slug. See /tmp/attest-deploy-$slug.log."
+    log "WARN deploy exited nonzero for $slug — continuing with remaining slugs. See /tmp/attest-deploy-$slug.log."
+    tail -40 "/tmp/attest-deploy-$slug.log" >&2 || true
+    FAILED_SLUGS="$FAILED_SLUGS $slug"
+    append_result "$slug" "error" "" "cli-exit-nonzero"
+    continue
   fi
   DEPLOY_JSON="$(cat /tmp/attest-deploy-$slug.log)"
-  STATUS="$(node -e 'let r=""; process.stdin.on("data",d=>r+=d); process.stdin.on("end",()=>{try{const o=JSON.parse(r);process.stdout.write(o.status||o.deployment?.status||"")}catch{process.stdout.write("")}})' <<<"$DEPLOY_JSON")"
-  URL="$(node -e 'let r=""; process.stdin.on("data",d=>r+=d); process.stdin.on("end",()=>{try{const o=JSON.parse(r);process.stdout.write(o.url||o.hostedUrl||o.deployment?.url||"")}catch{process.stdout.write("")}})' <<<"$DEPLOY_JSON")"
+  # BDK prints a "Using team <id> (<name>)" preamble before the JSON body,
+  # so the raw log is not valid JSON. Extract the first top-level JSON
+  # object (balanced braces, newline-respecting) and parse THAT. Fail
+  # closed to "" when nothing parseable is found.
+  PARSE_SCRIPT='
+let r = "";
+process.stdin.on("data", (d) => (r += d));
+process.stdin.on("end", () => {
+  const field = process.argv[1];
+  const start = r.indexOf("{");
+  if (start === -1) return process.stdout.write("");
+  let depth = 0, inStr = false, esc = false, end = -1;
+  for (let i = start; i < r.length; i++) {
+    const c = r[i];
+    if (esc) { esc = false; continue; }
+    if (inStr) { if (c === "\\\\") esc = true; else if (c === "\"") inStr = false; continue; }
+    if (c === "\"") inStr = true;
+    else if (c === "{") depth++;
+    else if (c === "}") { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (end === -1) return process.stdout.write("");
+  try {
+    const o = JSON.parse(r.slice(start, end + 1));
+    const picks = {
+      status: o.status || o.deployment?.status || o.progress || "",
+      url:    o.url || o.hostedUrl || o.deployment?.url || "",
+    };
+    process.stdout.write(picks[field] || "");
+  } catch { process.stdout.write(""); }
+});
+'
+  STATUS="$(node -e "$PARSE_SCRIPT" status <<<"$DEPLOY_JSON")"
+  URL="$(node -e "$PARSE_SCRIPT" url <<<"$DEPLOY_JSON")"
   if [ "$STATUS" != "running" ]; then
-    die "deploy for $slug terminated with status=\"$STATUS\" (expected \"running\")."
+    log "WARN deploy for $slug status=\"$STATUS\" (expected running) — continuing with remaining slugs. See /tmp/attest-deploy-$slug.log."
+    FAILED_SLUGS="$FAILED_SLUGS $slug"
+    append_result "$slug" "${STATUS:-unknown}" "${URL}" "unexpected-status"
+    continue
   fi
   printf '[deploy publish]   %s → status=%s url=%s\n' "$slug" "$STATUS" "${URL:-"(no URL in response)"}"
-  if [ "$FIRST" = "1" ]; then FIRST=0; else RESULTS="$RESULTS,"; fi
-  RESULTS="$RESULTS{\"slug\":\"$slug\",\"status\":\"$STATUS\",\"url\":\"${URL}\"}"
+  append_result "$slug" "$STATUS" "${URL}" ""
 done
 RESULTS="$RESULTS]"
 cat >"$ARTIFACT" <<EOF
@@ -292,4 +343,10 @@ cat >"$ARTIFACT" <<EOF
 }
 EOF
 log "artifact: $ARTIFACT"
+if [ -n "$FAILED_SLUGS" ]; then
+  log "DONE with failures — attempted: $SELECTED"
+  log "FAILED:$FAILED_SLUGS"
+  log "The deploy is idempotent — rerun ./scripts/deploy.sh --publish to retry the failed slugs in place."
+  exit 1
+fi
 log "DONE — deployed: $SELECTED"
