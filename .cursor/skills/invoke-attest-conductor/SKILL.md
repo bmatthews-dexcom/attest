@@ -1,43 +1,71 @@
 ---
 name: invoke-attest-conductor
-description: 'Route a long-running / multi-expert / unattended attest task (autopilot, SDLC phases, fan-out code review, security audits that need multiple personas) to the attest conductor BDK agent. Use whenever the user asks for /sdlc, /security, /autopilot, /review, or any multi-persona workflow — Cursor itself does not host those personas (they live in @bpmforge/attest-experts).'
+description: 'Route a long-running / unattended attest task (autopilot, multi-phase SDLC build, scheduled runs) to the HOSTED conductor BDK agent (workspace sibling attest-conductor). For small SDLC questions ("what phase?", "run the gate", "advance one step") prefer the sdlc-lead skill — do not wake the hosted conductor unless you actually need autopilot. The hosted conductor and sdlc-lead share one policy engine; this skill is specifically the "I need the long-running Ralph loop" door.'
 disable-model-invocation: true
 ---
 
 <!--
-  attest-cursor skill — orchestrator-first architecture.
-  Expert personas live in @bpmforge/attest-experts, orchestrated by
-  @bpmforge/attest-conductor. This skill is the LOCAL Cursor side's
-  "dial out" to that orchestrator.
+  attest-cursor Shape-C skill — hosted-conductor dial-out.
+  Two chiefs:
+    • sdlc-lead (.cursor/skills/sdlc-lead/SKILL.md + agents/sdlc-lead.md)
+      — editor-side chief for interactive /sdlc work.
+    • conductor (workspace sibling attest-conductor, served via BDK)
+      — hosted BDK chief for /autopilot and GitHub-driven work.
+  Pick sdlc-lead for small / interactive asks; this skill for long-running
+  unattended work. Local-only — attest-conductor is a workspace sibling
+  and is NEVER fetched from npm. See .cursor/README.md for the full
+  two-chief design.
 -->
 
 # invoke-attest-conductor
 
-The local Cursor Agent is a thin editor-time veneer; the attest expert
-personas (security-auditor, code-reviewer, landscape-mapper, …) run as
-BDK agents in **@bpmforge/attest-experts**, orchestrated by
-**@bpmforge/attest-conductor**. This skill teaches you to invoke that
-orchestrator rather than attempting to run the persona workflow inline
-(which would silently drop the HANDOFF plumbing, gate scoring, delegation
-log, and multi-model review).
+The local Cursor Agent is a thin editor-time veneer. Under Shape C it
+has **two chiefs** it can wake up:
 
-## When to use
+1. **sdlc-lead** — the editor-side chief
+   (`.cursor/skills/sdlc-lead/SKILL.md` and
+   `.cursor/agents/sdlc-lead.md`). The user is at the keyboard, the
+   turn is short-lived, the ask fits in one Cursor conversation.
+2. **The hosted conductor** — the workspace sibling `attest-conductor`
+   (served locally via the `attest-conductor` MCP entry; the Cursor-
+   hosted deploy path is `npx @cursor/bdk deploy` from
+   `packages/attest-conductor`). The user has closed their laptop,
+   the ask is multi-phase, or the trigger is GitHub.
 
-Invoke the conductor whenever the user asks for anything that would, on
-OpenCode, have gone through `sdlc-lead` or any of the primary expert
-agents. Natural-language triggers:
+**This skill is specifically the hosted-conductor door.** For
+interactive SDLC asks, prefer sdlc-lead — do not wake the hosted
+conductor unless you actually need autopilot. Both chiefs share the
+same `attest-mcp` policy engine and the same `attest-experts`
+fleet, so the governance is unified; the difference is who starts the
+turn and whether the loop outlives the current chat.
 
-- "run /sdlc init / onboard / feature / improve …"
-- "do a full security audit"
-- "review this change" (multi-pass / cross-expert)
-- "run autopilot" / "finish the board"
-- "ship a release" / "cut v1.2.3"
-- Anything that reads like an attest slash command but is not a technique
-  skill present under `.cursor/skills/`.
+## When to prefer sdlc-lead instead
 
-If the request is a single-step technique already covered by a local
-Cursor skill (`/explore`, `/pre-code`, `/simplify`, `/gate`,
-`/goal`, `/wave`, `/reflow`, …), use that skill directly instead.
+If the ask would end in the same chat with the user still watching —
+"what phase are we in?", "run the gate", "advance one step", "which
+expert owns this?", "review the whole thing" — use the sdlc-lead skill
+or switch to the sdlc-lead custom-mode agent. sdlc-lead can `invoke_expert`
+through attest-mcp for a single expert turn and give you an answer
+in-conversation without waking a hosted BDK pod.
+
+## When to invoke the conductor (this skill)
+
+Invoke the conductor whenever the ask is:
+
+- "run /autopilot ..." (any variant),
+- "finish the board", "work through all the open tickets",
+- "do a full multi-phase build with no further input from me",
+- "ship a release and merge it",
+- A GitHub-channel trigger (comment, scheduled run) — the conductor
+  owns the GitHub front door already.
+
+Natural-language triggers that still belong here (not sdlc-lead):
+
+- "do a full security audit" — multi-expert, long-running.
+- "review this change" when "this change" spans dozens of files and
+  needs multiple experts.
+- Anything that reads like an attest slash command *and* takes long
+  enough that the user is closing their laptop.
 
 ## How to invoke
 
@@ -106,11 +134,12 @@ wants the run tracked on an issue / PR:
   `GITHUB_APP_PRIVATE_KEY`) picks it up.
 - The conductor replies on the same thread with run status + taskId.
 
-## Why not host the personas locally?
+## Why two chiefs instead of one?
 
-See `.cursor/README.md`. Short version: Cursor is single-agent-with-
-subagents; attest's value is 33+ specialists with HANDOFF plumbing, gate
-scoring, delegation log, multi-model review, and a conductor loop that
-owns tickets / worktrees / merges. That shape is what BDK is for; the
-local-editor surface is the hook/rule layer plus the few genuine
-technique skills (`.cursor/skills/*`).
+See `.cursor/README.md` and `docs/attest-chief-architecture.md`
+§Recommendation. Short version: the hosted conductor is right for
+unattended multi-phase work (the Ralph loop outlives the chat), the
+editor-side sdlc-lead is right for the interactive /sdlc flow (the user
+is at the keyboard and wants the answer in-conversation). Both chiefs
+share one policy engine and one experts fleet, so the governance is
+unified — the only difference is who starts the turn.

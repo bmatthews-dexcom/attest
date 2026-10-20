@@ -1,15 +1,17 @@
 ---
 name: api-ground
-description: 'Ground the agent in a library''''s real API before writing code against it — generate a version-pinned reference from the installed package, not from training data. Use before adopting a library, after a major upgrade, or when generated code keeps calling methods that do not exist.'
+description: 'Ground the agent in a library''s real API before writing code against it — generate a version-pinned reference from the installed package, not from training data. Use before adopting a library, after a major upgrade, or when generated code keeps calling methods that do not exist.'
 disable-model-invocation: true
 ---
 <!--
   attest-cursor skill — orchestrator-first architecture.
   Expert personas (a11y, analytics, security, sdlc-lead, …) are
   deliberately NOT emitted as .cursor/skills/* on this target —
-  they live as BDK agents in @bpmforge/attest-experts and are
-  invoked by @bpmforge/attest-conductor. To route the local Cursor
-  agent to the conductor, use /invoke-attest-conductor.
+  they live as BDK agents in the workspace sibling attest-experts
+  and are invoked by the workspace sibling attest-conductor. To
+  route the local Cursor agent to the conductor, use
+  /invoke-attest-conductor. Local-only — these packages are
+  workspace siblings and are NEVER published to npm.
   See .cursor/README.md for the full architecture + persona list.
 -->
 
