@@ -26,7 +26,7 @@ test("taskKey + activeTaskKey separate namespaces", () => {
   assert.equal(activeTaskKey("ses_xyz"), "conductor:active:ses_xyz");
 });
 
-test("newTask seeds a running task with Ralph defaults", () => {
+test("newTask seeds a running task with Shape-C Ralph defaults", () => {
   const task = newTask({ goal: "harden the login flow" });
   assert.equal(task.currentPhase, INITIAL_PHASE);
   assert.equal(task.iteration, 0);
@@ -42,6 +42,28 @@ test("newTask seeds a running task with Ralph defaults", () => {
   assert.deepEqual(task.iterationLog, []);
   assert.deepEqual(task.visitedExperts, []);
   assert.equal(task.phaseHistory[0].phase, INITIAL_PHASE);
+  // Shape-C additions.
+  assert.equal(task.autonomyMode, "auto");
+  assert.deepEqual(task.pendingApprovalIds, []);
+  assert.equal(task.githubContext, null);
+});
+
+test("newTask carries an explicit autonomy mode and github context", () => {
+  const task = newTask({
+    goal: "ship v3.10",
+    autonomyMode: "approve-each",
+    githubContext: {
+      owner: "bpmforge",
+      repo: "attest",
+      issueNumber: 42,
+      kind: "pull_request",
+      requestedBy: "bradford",
+    },
+  });
+  assert.equal(task.autonomyMode, "approve-each");
+  assert.ok(task.githubContext);
+  assert.equal(task.githubContext.owner, "bpmforge");
+  assert.equal(task.githubContext.issueNumber, 42);
 });
 
 test("alreadyApplied / recordAction gate idempotent writes", () => {
