@@ -1,14 +1,10 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/code-review/duplication-detector.md
-import { defineStubExpert } from "../../../lib/expert-factory.js";
-import type { ExpertMetadata } from "../../../lib/expert-registry.js";
+import { defineExpert } from "../../../lib/expert-factory.js";
+import { CONCRETE_EXPERTS } from "../../../lib/expert-registry.js";
 
-const META: ExpertMetadata = {
-  "id": "duplication-detector",
-  "source": "agents/code-review/duplication-detector.md",
-  "cluster": "code-review",
-  "status": "stub",
-  "summary": "Duplication and DRY specialist — copy-paste detection, near-duplicates, R-19 (repeated logic blocks). Uses jscpd/fdupes/PMD-CPD. Flags code that was duplicated rather than refactored — the #1 driver of AI-assisted tec…"
-};
+const META = CONCRETE_EXPERTS.find((e) => e.id === "duplication-detector")!;
 
-export default defineStubExpert(META);
+export default defineExpert({
+  meta: META,
+  descriptionAddendum:
+    "Specialist dispatched by code-reviewer — runs jscpd / fdupes / PMD-CPD and manual near-duplicate scanning, flags repeated logic blocks (R-19) and copy-paste that should have been a shared abstraction. Report-only.",
+});
