@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/schema/index.ts"],
+  "sourcesContent": ["export * from \"./autonomy.js\";\nexport * from \"./approval.js\";\nexport * from \"./capabilities.js\";\nexport * from \"./role-brief.js\";\nexport * from \"./draft.js\";\nexport * from \"./expert.js\";\nexport * from \"./refinement.js\";\n"],
+  "mappings": "AAAA,cAAc;AACd,cAAc;AACd,cAAc;AACd,cAAc;AACd,cAAc;AACd,cAAc;AACd,cAAc;",
+  "names": []
+}

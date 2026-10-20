@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/tools/_shared.ts"],
+  "sourcesContent": ["/**\n * Shared helpers for the MCP tool wrappers. Keeps the per-domain tool files\n * (lifecycle.ts, phases.ts, policy.ts, \u2026) short and consistent.\n */\nimport type {\n  CallToolResult,\n} from \"@modelcontextprotocol/sdk/types.js\";\n\nexport function okJson(payload: unknown): CallToolResult {\n  return {\n    content: [\n      { type: \"text\", text: JSON.stringify(payload, null, 2) },\n    ],\n  };\n}\n\nexport function errJson(message: string, payload?: unknown): CallToolResult {\n  return {\n    isError: true,\n    content: [\n      { type: \"text\", text: JSON.stringify({ error: message, payload }, null, 2) },\n    ],\n  };\n}\n"],
+  "mappings": "AAQO,SAAS,OAAO,SAAkC;AACvD,SAAO;AAAA,IACL,SAAS;AAAA,MACP,EAAE,MAAM,QAAQ,MAAM,KAAK,UAAU,SAAS,MAAM,CAAC,EAAE;AAAA,IACzD;AAAA,EACF;AACF;AAEO,SAAS,QAAQ,SAAiB,SAAmC;AAC1E,SAAO;AAAA,IACL,SAAS;AAAA,IACT,SAAS;AAAA,MACP,EAAE,MAAM,QAAQ,MAAM,KAAK,UAAU,EAAE,OAAO,SAAS,QAAQ,GAAG,MAAM,CAAC,EAAE;AAAA,IAC7E;AAAA,EACF;AACF;",
+  "names": []
+}

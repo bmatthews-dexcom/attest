@@ -1,5 +1,9 @@
 node_modules
-dist
+# dist/ is committed to git — same reason as packages/attest-ceo-mcp/.gitignore
+# (BDK deploy install skips devDeps, so tsc/esbuild aren't present; and
+# attest-director spawns this MCP via `./node_modules/attest-director-mcp/dist/cli.js`
+# which must exist on the deployed container). Regenerate dist/ via
+# `npm --workspace attest-director-mcp run build` before committing src/*.ts.
 .env
 .env.local
 .attest-director-local

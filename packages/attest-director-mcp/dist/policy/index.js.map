@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../src/policy/index.ts"],
+  "sourcesContent": ["export * from \"./cedar.js\";\nexport * from \"./fences.js\";\n"],
+  "mappings": "AAAA,cAAc;AACd,cAAc;",
+  "names": []
+}
