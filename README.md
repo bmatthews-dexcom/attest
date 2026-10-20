@@ -179,6 +179,25 @@ It asserts the full dispatch loop (`run_autopilot_task` → `route_goal`
 → `dispatch_expert` → `phase_gate_check` → `validate_<name>` →
 `mark_done`) with the real experts mounted as peers.
 
+## Migrate an OpenCode install to Cursor
+
+Already have attest-for-OpenCode installed and want the Cursor-flavored sibling alongside it? There is one command:
+
+```bash
+npm run migrate:to-cursor              # live write to <cwd>/.cursor/
+npm run migrate:to-cursor -- --dry-run # show the plan, write nothing
+```
+
+What it does, briefly:
+
+1. Detects your existing attest-for-OpenCode install (checks the markers `install.sh` places at `~/.config/opencode/` and / or `.opencode/`), reports what it found.
+2. Runs `scripts/build-target-cursor.mjs --write` to generate a complete `.cursor/` tree (rules, technique skills, hooks, `mcp.json`) in your current working directory.
+3. Writes `.cursor/MIGRATION_NOTES.md` with a per-surface summary of what was ported, what was intentionally dropped, and what to configure next (CURSOR_API_KEY, which MCP servers to enable at user vs. project scope).
+
+**Coexistence guarantee:** the migration script does **not** modify or uninstall the OpenCode install. The two live in different directories (`~/.config/opencode/` / `.opencode/` for OpenCode, `.cursor/` for Cursor) and can be used side by side; uninstalling either does not touch the other.
+
+The Cursor target is a thin editor-time veneer — the expert personas run as deployable BDK agents in `@bpmforge/attest-experts`, orchestrated by `@bpmforge/attest-conductor` and invoked from the local Cursor Agent via the generated `/invoke-attest-conductor` skill. See the "Cursor target architecture" section above and `docs/attest-cursor-integration.md` for the full design.
+
 ## Docs
 
 - [docs/SETUP.md](docs/SETUP.md) — **start here**: prerequisites, embedding models, env vars, troubleshooting
