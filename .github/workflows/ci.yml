@@ -49,3 +49,10 @@ jobs:
           path: attest-claude-sibling
       - if: github.event_name == 'push'
         run: npm run build:claude:check -- --out attest-claude-sibling
+      # build:cursor:check — the Cursor target is generated INTO this repo
+      # (.cursor/*), not into a sibling repo, so the drift gate runs on
+      # every PR and push (unlike the Claude gate above, which is only
+      # satisfiable post-merge against a separately-released repo). A
+      # non-zero exit means someone edited .cursor/* by hand or forgot to
+      # run `npm run build:cursor` after changing a source agent/skill.
+      - run: npm run build:cursor:check

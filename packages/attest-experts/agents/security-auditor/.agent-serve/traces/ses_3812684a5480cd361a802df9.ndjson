@@ -1,0 +1,5 @@
+{"index":0,"sessionId":"ses_3812684a5480cd361a802df9","at":"2026-10-19T20:52:47.436Z","type":"session.started","data":{"channelId":"http"}}
+{"index":1,"sessionId":"ses_3812684a5480cd361a802df9","turnId":"turn_1","at":"2026-10-19T20:52:47.439Z","type":"message.received","data":{"text":"{\"task_id\":\"T-K-FREE\",\"goal\":\"smoke\",\"current_phase\":\"phase-5-review\",\"context_refs\":[],\"prior_findings\":[]}","deliveryIds":["dlv_f712c9242717e08b7c55ccb2"]}}
+{"index":2,"sessionId":"ses_3812684a5480cd361a802df9","turnId":"turn_1","at":"2026-10-19T20:52:47.440Z","type":"turn.started","data":{}}
+{"index":3,"sessionId":"ses_3812684a5480cd361a802df9","turnId":"turn_1","at":"2026-10-19T20:52:47.590Z","type":"turn.failed","data":{"status":"error","message":"BDK needs a Cursor credential to run turns. Run `bdk login` (or set CURSOR_API_KEY / CURSOR_API_KEY_FILE / CURSOR_SERVICE_ACCOUNT_KEY / pass serve({ apiKey }))."}}
+{"index":4,"sessionId":"ses_3812684a5480cd361a802df9","turnId":"turn_1","at":"2026-10-19T20:52:47.591Z","type":"session.waiting","data":{}}
