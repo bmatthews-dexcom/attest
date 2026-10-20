@@ -2,7 +2,7 @@
  * Authoritative registry of every expert this pack exposes.
  *
  * Expert id convention: kebab-case derived from the attest source filename
- * (minus `.md`). The sibling `@bpmforge/attest-mcp` exposes the same ids via
+ * (minus `.md`). The sibling `attest-mcp` exposes the same ids via
  * `list_experts` and `attest://experts/<id>` — coordinate changes.
  *
  * The registry is checked into git (`experts.generated.json`) so other

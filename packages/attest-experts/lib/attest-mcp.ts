@@ -1,7 +1,7 @@
 /**
  * Shared factory for the `attest-mcp` MCP connection every expert uses.
  *
- * In production: spawns `@bpmforge/attest-mcp` over stdio and advertises its
+ * In production: spawns `attest-mcp` over stdio and advertises its
  * tools (validator catalog) and resources (`attest://experts/<id>`,
  * `attest://protocols/<name>`) to the model.
  *
@@ -35,15 +35,15 @@ export function attestMcpConnection(): ConnectionDefinition {
 }
 
 /**
- * Production transport: spawn the sibling `@bpmforge/attest-mcp` server over
+ * Production transport: spawn the sibling `attest-mcp` server over
  * stdio. The sibling worker owns the exact command — this factory assumes
- * `npx -y @bpmforge/attest-mcp` works once the package is published.
+ * `npx -y attest-mcp` works once the package is published.
  */
 export function realAttestConnection(): ConnectionDefinition {
   const command = process.env.ATTEST_MCP_COMMAND ?? "npx";
   const args = process.env.ATTEST_MCP_ARGS
     ? process.env.ATTEST_MCP_ARGS.split(" ")
-    : ["-y", "@bpmforge/attest-mcp"];
+    : ["-y", "attest-mcp"];
   return defineConnection({
     command,
     args,

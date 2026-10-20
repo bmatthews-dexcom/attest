@@ -1,4 +1,4 @@
-# `@bpmforge/attest-conductor`
+# `attest-conductor`
 
 The **Shape-2 orchestrator** for attest on Cursor. A BDK agent built on
 the **Ralph Wiggum loop pattern**: dumb outer loop in TypeScript, LLM
@@ -101,7 +101,7 @@ Then end the turn. The TS loop re-prompts with the new state.
 
 ## Spawning sibling expert agents
 
-Three concrete experts ship in `@bpmforge/attest-experts`:
+Three concrete experts ship in `attest-experts`:
 `security-auditor`, `code-reviewer`, `landscape-mapper`. Each is a
 deployable BDK agent whose published slug is `attest-expert-<id>`. The
 conductor wires them as peer MCP connections at
@@ -157,7 +157,7 @@ Dispatch resolution (`dispatch_expert`):
 
 ```
 packages/attest-conductor/
-├── package.json              name: @bpmforge/attest-conductor
+├── package.json              name: attest-conductor
 ├── tsconfig.json             strict + noEmit (tsx handles execution)
 ├── README.md                 (this file)
 ├── AGENTS.md                 BDK scaffold notes for coding agents
@@ -255,7 +255,7 @@ Once `feat/attest-mcp` publishes:
 
 ```sh
 ATTEST_MCP_COMMAND=npx \
-ATTEST_MCP_ARGS='["-y","@bpmforge/attest-mcp"]' \
+ATTEST_MCP_ARGS='["-y","attest-mcp"]' \
   npx @cursor/bdk dev --dir packages/attest-conductor
 ```
 

@@ -1,6 +1,6 @@
 # attest-experts — AGENTS.md
 
-Terse coding-agent reference for `@bpmforge/attest-experts`. Human-facing
+Terse coding-agent reference for `attest-experts`. Human-facing
 docs live in `README.md`.
 
 ## Loop
@@ -44,7 +44,7 @@ Run under Node, never Bun.
 
 ## Coordination
 
-- Agent ids match `attest://experts/<id>` on the sibling `@bpmforge/attest-mcp`.
+- Agent ids match `attest://experts/<id>` on the sibling `attest-mcp`.
 - Shared input/output schema (`lib/schema.ts`) is the contract the sibling
-  `@bpmforge/attest-conductor` binds to. Treat it as a published surface — do
+  `attest-conductor` binds to. Treat it as a published surface — do
   not break it without updating that package too.

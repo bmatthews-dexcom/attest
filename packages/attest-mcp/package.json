@@ -1,7 +1,8 @@
 {
-  "name": "@bpmforge/attest-mcp",
+  "name": "attest-mcp",
   "version": "0.1.0",
-  "description": "MCP server exposing attest's 79 shell validators, phase-gate state machine, /guide routing table, shared protocols, and expert prompts to any MCP-speaking client (Cursor, OpenCode, Claude Code, Claude Desktop).",
+  "private": true,
+  "description": "MCP server exposing attest's shell validators, phase-gate state machine, /guide routing table, shared protocols, and expert prompts over stdio. Local-only workspace package — not published anywhere.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
@@ -21,7 +22,6 @@
     "clean": "rm -rf dist bundled",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
-    "prepack": "npm run clean && npm run build",
     "start": "node dist/cli.js",
     "inspect": "npx -y @modelcontextprotocol/inspector node dist/cli.js"
   },
@@ -36,12 +36,9 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bpmforge/attest.git",
+    "url": "git+https://github.com/bmatthews-dexcom/attest.git",
     "directory": "packages/attest-mcp"
   },
   "keywords": [
@@ -55,8 +52,8 @@
     "opencode",
     "claude-code"
   ],
-  "homepage": "https://github.com/bpmforge/attest/tree/main/packages/attest-mcp#readme",
+  "homepage": "https://github.com/bmatthews-dexcom/attest/tree/main/packages/attest-mcp#readme",
   "bugs": {
-    "url": "https://github.com/bpmforge/attest/issues"
+    "url": "https://github.com/bmatthews-dexcom/attest/issues"
   }
 }

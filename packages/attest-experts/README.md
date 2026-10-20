@@ -1,9 +1,9 @@
-# `@bpmforge/attest-experts`
+# `attest-experts`
 
 BDK pack that ships each primary attest expert as its own deployable Cursor
-cloud agent. The companion [`@bpmforge/attest-conductor`](../attest-conductor)
+cloud agent. The companion [`attest-conductor`](../attest-conductor)
 dispatches to these experts dynamically; the companion
-[`@bpmforge/attest-mcp`](../attest-mcp) provides the validators, phase gate,
+[`attest-mcp`](../attest-mcp) provides the validators, phase gate,
 and persona resources every expert pulls from.
 
 > **Why BDK, not `.cursor/agents/`?** See the design report
@@ -18,7 +18,7 @@ and persona resources every expert pulls from.
 
 ```
 packages/attest-experts/
-  package.json                      @bpmforge/attest-experts
+  package.json                      attest-experts
   tsconfig.json
   AGENTS.md                         (coding-agent handoff; terse loop ref)
   lib/                              Shared code — NOT discovered by BDK
@@ -130,7 +130,7 @@ summarized methodology), `bot/tools/submit-report.ts`, and
 `bot/mcp-connections/attest.ts`. The persona is **not inlined** —
 `instructions.md` tells the agent to call `get_persona({ expert_id })` on
 `attest-mcp` as its first grounding step, which keeps the full persona in sync
-with `agents/<id>.md` in the attest repo (served live by `@bpmforge/attest-mcp`).
+with `agents/<id>.md` in the attest repo (served live by `attest-mcp`).
 
 ### Deviation note on "fetches persona at construction time"
 
@@ -205,7 +205,7 @@ exposes everything they need (expert ids, HTTP slugs, shared schema).
 npm --prefix packages/attest-experts run validate
 
 # Full eval requires a Cursor credential; set the stub flag so the real
-# `@bpmforge/attest-mcp` package is not needed:
+# `attest-mcp` package is not needed:
 ATTEST_MCP_STUB=1 npx bdk eval --dir packages/attest-experts/agents/security-auditor
 ATTEST_MCP_STUB=1 npx bdk eval --dir packages/attest-experts/agents/code-reviewer
 ATTEST_MCP_STUB=1 npx bdk eval --dir packages/attest-experts/agents/landscape-mapper
@@ -239,7 +239,7 @@ npx bdk deploy --dir packages/attest-experts/agents --all \
 Secrets each expert expects on its deployed pod:
 
 - `ATTEST_MCP_COMMAND` + `ATTEST_MCP_ARGS` (optional) — override the stdio
-  command used to spawn `@bpmforge/attest-mcp`.
+  command used to spawn `attest-mcp`.
 
 Egress allowlist (`hosting.egressDomains` in `defineExpert`):
 `api.anthropic.com`, `api.openai.com`, `api.cursor.com`,
@@ -251,9 +251,9 @@ Egress allowlist (`hosting.egressDomains` in `defineExpert`):
 | id | branch | status |
 |----|--------|--------|
 | cursor build-target (rules + hooks + mcp.json; no personas) | `feat/cursor-build-target` | separate worker |
-| `@bpmforge/attest-mcp` (validators + state machine + persona resources) | `feat/attest-mcp` | separate worker |
-| `@bpmforge/attest-experts` (**this pack**) | `feat/attest-experts` | here |
-| `@bpmforge/attest-conductor` (dispatches to experts) | `feat/attest-conductor-bdk` | separate worker |
+| `attest-mcp` (validators + state machine + persona resources) | `feat/attest-mcp` | separate worker |
+| `attest-experts` (**this pack**) | `feat/attest-experts` | here |
+| `attest-conductor` (dispatches to experts) | `feat/attest-conductor-bdk` | separate worker |
 
 **Agent id contract:** kebab-case of the attest source filename (e.g.
 `agents/security-auditor.md` → `security-auditor`). The sibling `attest-mcp`

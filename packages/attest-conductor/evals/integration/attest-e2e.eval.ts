@@ -4,8 +4,8 @@ import { defineEval } from "@cursor/bdk/evals";
  * Integration eval — the whole stack end-to-end.
  *
  * Boots the conductor's `/autopilot` loop against the trivial-repo
- * fixture, with the real `@bpmforge/attest-mcp` server as the attest
- * connection and the real `@bpmforge/attest-experts` security-auditor
+ * fixture, with the real `attest-mcp` server as the attest
+ * connection and the real `attest-experts` security-auditor
  * reachable as a peer. The eval asserts on the full dispatch loop:
  *
  *   /autopilot "review this trivial fixture for security issues"
@@ -33,7 +33,7 @@ import { defineEval } from "@cursor/bdk/evals";
  *
  * Running it directly (requires `CURSOR_API_KEY`):
  *   ATTEST_MCP_COMMAND=npx \
- *   ATTEST_MCP_ARGS='["-y","@bpmforge/attest-mcp"]' \
+ *   ATTEST_MCP_ARGS='["-y","attest-mcp"]' \
  *     npx @cursor/bdk eval --dir packages/attest-conductor integration/attest-e2e
  */
 export default defineEval({
