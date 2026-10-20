@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: bounded-task-contract — read on demand.'
+alwaysApply: false
+---
+
+# bounded-task-contract
+
+This rule points at the attest shared protocol `agents/shared/BOUNDED_TASK_CONTRACT.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/BOUNDED_TASK_CONTRACT.md

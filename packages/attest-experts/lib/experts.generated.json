@@ -1,0 +1,135 @@
+[
+  {
+    "id": "changelog-writer",
+    "source": "agents/changelog-writer.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Changelog and release notes writer — reads git log range, classifies commits by type, produces CHANGELOG.md entries in Keep-a-Changelog format (Added/Changed/Fixed/Removed/Security/Deprecated). Proactive: before any v…"
+  },
+  {
+    "id": "code-reviewer",
+    "source": "agents/code-reviewer.md",
+    "cluster": "primary",
+    "status": "concrete",
+    "summary": "Code health audit coordinator — dispatches 7 specialist micro-agents, synthesizes compound-risk findings via code-health-synthesizer. Specialists: complexity-analyzer, duplication-detector, error-handling-auditor, typ…"
+  },
+  {
+    "id": "coding-agent",
+    "source": "agents/coding-agent.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Senior implementation engineer — doc-driven coding from SDLC specs. Verifies all library APIs via Context7 before writing code. Enforces anti-slop rules: no over-engineering, no defensive bloat, no hallucinated APIs,…"
+  },
+  {
+    "id": "container-ops",
+    "source": "agents/container-ops.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Container operations expert — detects the local runtime (Docker/Podman/Rancher-nerdctl/Finch/colima) and uses the right CLI + compose flavor instead of guessing; Dockerfiles, compose, networking, rootless debugging, i…"
+  },
+  {
+    "id": "design-iterator",
+    "source": "agents/design-iterator.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Visual design iteration specialist — the closed render→screenshot→critique→fix→re-verify loop that makes a running UI match its design system (Claude-Design-style: code and pixels in one feedback cycle). Grounds every…"
+  },
+  {
+    "id": "game-audio-designer",
+    "source": "agents/game/game-audio-designer.md",
+    "cluster": "game",
+    "status": "stub",
+    "summary": "Game audio specialist — sonic direction, SFX/music/VO planning, middleware architecture (FMOD/Wwise vs engine-native), event naming, mix rules, memory/voice budgets, and agent-generated placeholder audio (ElevenLabs M…"
+  },
+  {
+    "id": "game-balance-designer",
+    "source": "agents/game/game-balance-designer.md",
+    "cluster": "game",
+    "status": "stub",
+    "summary": "Game balance and economy specialist — progression curves, economy sinks/sources, difficulty tuning, drop tables. Outputs spreadsheet-style models with formulas and SIMULATES them (1000 player-sessions as a script) bef…"
+  },
+  {
+    "id": "gameplay-engineer",
+    "source": "agents/game/gameplay-engineer.md",
+    "cluster": "game",
+    "status": "stub",
+    "summary": "Gameplay engineering specialist — engine-specific implementation patterns (Godot, Unity, Phaser, Bevy, vanilla canvas): game loop vs frame budget, ECS vs inheritance, physics, input buffering, state machines, determin…"
+  },
+  {
+    "id": "git-expert",
+    "source": "agents/git-expert.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Senior git & forge expert — repo bootstrap, feature branches, releases, history forensics, recovery, multi-remote sync. Six modes — `--init` bootstrap repo, `--feature` daily flow with atomic commits and draft PR, `--…"
+  },
+  {
+    "id": "landscape-mapper",
+    "source": "agents/sdlc/onboard/landscape-mapper.md",
+    "cluster": "onboarding",
+    "status": "concrete",
+    "summary": "Onboard specialist — Step 1. Maps project landscape from git history hotspots. Produces LANDSCAPE.md (tech stack, project size, directory structure, UI detection). Invoked by sdlc-onboard-mode.md coordinator."
+  },
+  {
+    "id": "level-designer",
+    "source": "agents/game/level-designer.md",
+    "cluster": "game",
+    "status": "stub",
+    "summary": "Level design specialist — player flow, encounter design, blockout/greybox discipline, pacing beat charts, teaching-through-space. Owns the physical/spatial experience of a level from blockout to content lock; works in…"
+  },
+  {
+    "id": "migration-planner",
+    "source": "agents/migration-planner.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Database migration planner — compares two schema states (files or git refs), produces ordered migration steps with rollback plan per step. Proactive: before any schema change that touches existing tables."
+  },
+  {
+    "id": "narrative-designer",
+    "source": "agents/game/narrative-designer.md",
+    "cluster": "game",
+    "status": "stub",
+    "summary": "Narrative design specialist — integrates story into SYSTEMS: branching structure, quest/mission logic, barks, environmental storytelling, dialogue data formats. Narrative designer ≠ writer: this agent designs how stor…"
+  },
+  {
+    "id": "qa-vnv-engineer",
+    "source": "agents/qa-vnv-engineer.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "QA & V&V (Verification and Validation) specialist — the end-user-testing discipline owner. Builds durable, automated, EVIDENCE-producing validation of the real rendered app: programmatic layout-defect detection (panel…"
+  },
+  {
+    "id": "release-manager",
+    "source": "agents/release-manager.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Release manager — thin coordinator for shipping a release: version bump, changelog assembly, tag, deploy-gate checklist, both-remotes push. Sequences git-expert, changelog-writer, and the validators; owns the release…"
+  },
+  {
+    "id": "reliability-engineer",
+    "source": "agents/reliability-engineer.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Reliability engineer — load testing & resilience specialist: what breaks under stress and what happens then. Load-test strategy (k6/Locust/vegeta), chaos scenarios, circuit breakers, bulkheads, retries with backoff+ji…"
+  },
+  {
+    "id": "security-auditor",
+    "source": "agents/security-auditor.md",
+    "cluster": "primary",
+    "status": "concrete",
+    "summary": "Security audit coordinator — dispatches 8 specialist micro-agents in sequence, synthesizes final report, triggers attack chainer last. Covers: Semgrep SAST, OWASP Web Top 10, OWASP LLM Top 10, threat modeling, secrets…"
+  },
+  {
+    "id": "sre-engineer",
+    "source": "agents/sre-engineer.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Senior SRE — runbooks, CI/CD pipelines, monitoring, incident response, deployment strategies. Use for operational concerns (deploy, monitor, respond to incidents). NOT for container/image building — use container-ops…"
+  },
+  {
+    "id": "test-engineer",
+    "source": "agents/test-engineer.md",
+    "cluster": "primary",
+    "status": "stub",
+    "summary": "Senior test engineer — Playwright e2e, vitest/jest unit tests, integration tests, test strategy, coverage analysis. Use when writing tests or designing test strategy. Proactive: after implementing any feature, or when…"
+  }
+]

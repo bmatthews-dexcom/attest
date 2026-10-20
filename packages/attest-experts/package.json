@@ -1,0 +1,40 @@
+{
+  "name": "attest-experts",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "attest experts shipped as BDK (Background Development Kit) agents — one Cursor-hosted agent per expert, dispatched by the attest conductor. Local-only workspace package.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmatthews-dexcom/attest.git",
+    "directory": "packages/attest-experts"
+  },
+  "type": "module",
+  "files": [
+    "agents",
+    "lib",
+    "evals",
+    "scripts",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "scripts": {
+    "check": "tsc --noEmit",
+    "validate": "node scripts/validate-all.mjs",
+    "info": "bdk info --dir . --json",
+    "eval:list": "bdk eval --dir . --list",
+    "eval": "bdk eval --dir .",
+    "serve": "bdk serve --dir . --dev",
+    "sync-classification": "tsx scripts/sync-classification.ts",
+    "test": "node --test scripts/test-classification.mjs"
+  },
+  "dependencies": {
+    "@cursor/bdk": "^0.2.27",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "tsx": "^4.19.2",
+    "typescript": "6.0.3"
+  }
+}

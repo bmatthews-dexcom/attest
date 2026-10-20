@@ -32,7 +32,7 @@ How to install, configure, and use each MCP server in the expert system. For the
 **Install (handled by `install.sh`):**
 ```bash
 # Claude Code — registers once per user
-claude mcp add playwright -- npx -y @playwright/mcp@latest
+claude mcp add playwright -- npx --yes @playwright/mcp@latest
 
 # OpenCode — in opencode.json (auto-written by install.sh)
 "playwright-mcp": {
@@ -45,7 +45,7 @@ claude mcp add playwright -- npx -y @playwright/mcp@latest
 **Manual install without install.sh:**
 ```bash
 # Claude Code
-claude mcp add playwright -- npx -y @playwright/mcp@latest
+claude mcp add playwright -- npx --yes @playwright/mcp@latest
 
 # OpenCode — edit ~/.config/opencode/opencode.json and add the block above
 ```
@@ -95,7 +95,7 @@ PLAYWRIGHT_MCP_HEADED=true claude
 
 ## playwright-search — Web research & page extraction
 
-> Powered by **Quarry** (`github.com/bpmforge/quarry`, npm `@bpmforge/quarry`) — the bpmforge web-retrieval product. The MCP server keeps the name `playwright-search` (and the `playwright-search_*` tool names) as a stable alias, so no config changes are needed.
+> Powered by **Quarry** (`github.com/bpmforge/quarry`, published separately as the `quarry` npm package under the bpmforge scope) — the bpmforge web-retrieval product. The MCP server keeps the name `playwright-search` (and the `playwright-search_*` tool names) as a stable alias, so no config changes are needed.
 
 **What it does:** Multi-engine web search (DuckDuckGo + Brave + Bing) with paragraph-ranked extraction and 24h cache. Also extracts clean content from any URL — handles JS-heavy SPAs, Cloudflare pages, and paywalled content via a 4-stage pipeline.
 
@@ -167,7 +167,7 @@ Use as the **last resort** in the research chain: playwright-search → pullmd �
 **Install:** Runs via npx — no local clone needed.
 ```bash
 # Claude Code
-claude mcp add context7 -- npx -y @upstash/context7-mcp@latest
+claude mcp add context7 -- npx --yes @upstash/context7-mcp@latest
 
 # OpenCode — in opencode.json
 "context7": {

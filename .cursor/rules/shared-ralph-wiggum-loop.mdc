@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: ralph-wiggum-loop — read on demand.'
+alwaysApply: false
+---
+
+# ralph-wiggum-loop
+
+This rule points at the attest shared protocol `agents/shared/RALPH_WIGGUM_LOOP.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/RALPH_WIGGUM_LOOP.md

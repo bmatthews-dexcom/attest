@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: research-tools — read on demand.'
+alwaysApply: false
+---
+
+# research-tools
+
+This rule points at the attest shared protocol `agents/shared/RESEARCH_TOOLS.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/RESEARCH_TOOLS.md

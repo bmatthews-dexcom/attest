@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: handoff-quick-ref — read on demand.'
+alwaysApply: false
+---
+
+# handoff-quick-ref
+
+This rule points at the attest shared protocol `agents/shared/HANDOFF_QUICK_REF.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/HANDOFF_QUICK_REF.md

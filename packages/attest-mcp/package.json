@@ -1,0 +1,60 @@
+{
+  "name": "attest-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server exposing attest's shell validators, phase-gate state machine, /guide routing table, shared protocols, and expert prompts over stdio. Local-only workspace package — not published anywhere.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "attest-mcp": "./dist/cli.js"
+  },
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "files": [
+    "dist",
+    "bundled",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/bundle-sources.mjs && tsc",
+    "bundle": "node scripts/bundle-sources.mjs",
+    "clean": "rm -rf dist bundled",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "start": "node dist/cli.js",
+    "inspect": "npx --yes @modelcontextprotocol/inspector node dist/cli.js"
+  },
+  "dependencies": {
+    "@cedar-policy/cedar-wasm": "^4.14.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmatthews-dexcom/attest.git",
+    "directory": "packages/attest-mcp"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "attest",
+    "cursor",
+    "sdlc",
+    "validators",
+    "phase-gate",
+    "opencode",
+    "claude-code"
+  ],
+  "homepage": "https://github.com/bmatthews-dexcom/attest/tree/main/packages/attest-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/bmatthews-dexcom/attest/issues"
+  }
+}

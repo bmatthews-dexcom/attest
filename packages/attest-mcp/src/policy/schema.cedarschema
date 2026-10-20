@@ -1,0 +1,97 @@
+// attest Shape-C Cedar schema (version 1).
+//
+// Entities and actions the policy engine reasons about. The engine compiles
+// this file at startup, pins it into the authorization call, and rejects
+// any policy that doesn't type-check against it.
+//
+// Change this file ↔ update:
+//   - src/experts/types.ts        (CapabilityKind union)
+//   - src/policy/engine.ts        (entity assembly in `buildAuthorizationCall`)
+//   - docs/attest-chief-architecture.md §Fences inventory
+
+namespace attest {
+  // ── Entities ──────────────────────────────────────────────────────────
+  // Expert = the in-process handler (or sandboxed BDK agent) attempting a
+  // capability. The engine passes expert id as the entity id; `cluster`
+  // lets a policy fence on cluster-wide rules (e.g. "no security expert
+  // may write source").
+  entity Expert = {
+    "cluster": String,
+  };
+
+  // Capability = the fence the engine is being asked to open. The id is
+  // the capability kind (`read:fs`, `write:fs`, ...), optionally suffixed
+  // with a scope (e.g. `write:fs:docs/work/`). Attributes carry the kind
+  // and (optional) scope so policies can match on either.
+  entity Capability = {
+    "kind": String,
+    "scope": String,
+  };
+
+  // Phase = the active SDLC phase id. Capability sets ratchet per phase
+  // (phase advance can only drop capabilities; see Yegge's pledge/unveil
+  // analogy in the design doc §Fences inventory).
+  entity Phase = {
+    "id": String,
+  };
+
+  // Task = the chief's active task. Carries phase and autonomy mode as
+  // attributes so policies can read both in one entity reference.
+  entity Task = {
+    "phase": String,
+    "autonomyMode": String,
+  };
+
+  // ── Actions ───────────────────────────────────────────────────────────
+  // Invoke = "may this expert exercise this capability right now?".
+  // Default-deny; a `permit` matching this action authorises the call to
+  // proceed to the handler.
+  action "Invoke" appliesTo {
+    principal: [Expert],
+    resource: [Capability],
+    context: {
+      "phase": String,
+      "autonomyMode": String,
+    }
+  };
+
+  // Validate = cheap read-only pre-flight; a policy may permit `Validate`
+  // for a capability it would still deny for `Invoke` (e.g. "any expert
+  // may read the catalogue, only coding experts may invoke a mutating
+  // tool"). The current engine does not use this action — reserved for
+  // sibling workers that want to pre-check without committing.
+  action "Validate" appliesTo {
+    principal: [Expert],
+    resource: [Capability],
+    context: {
+      "phase": String,
+      "autonomyMode": String,
+    }
+  };
+
+  // Dispatch = "may this expert hand off to another expert?" — the
+  // promotion-fence hook from Shape C §3.3. Not consumed by this engine
+  // directly; the attest-conductor Shape-C worker evaluates it before
+  // promoting an in-process handler to a sandboxed BDK dispatch.
+  action "Dispatch" appliesTo {
+    principal: [Expert],
+    resource: [Expert],
+    context: {
+      "phase": String,
+      "autonomyMode": String,
+    }
+  };
+
+  // Approve = "would this capability be allowed if a human said yes?".
+  // When Invoke denies but Approve permits, the engine returns the
+  // `requireApproval` decision and the dispatcher routes to the
+  // elicitation gate.
+  action "Approve" appliesTo {
+    principal: [Expert],
+    resource: [Capability],
+    context: {
+      "phase": String,
+      "autonomyMode": String,
+    }
+  };
+}

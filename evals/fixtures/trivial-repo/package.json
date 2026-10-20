@@ -1,0 +1,10 @@
+{
+  "name": "trivial-repo",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Integration smoke fixture for the attest cross-package suite. Not shipped.",
+  "type": "module",
+  "scripts": {
+    "noop": "echo trivial fixture"
+  }
+}

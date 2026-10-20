@@ -33,6 +33,9 @@ id_ed25519*
 # Local model context (per-user)
 docs/work/.model-context
 
+# Shape-C attest-mcp policy audit log (per-machine, append-only JSONL)
+audit/
+
 # Eval results (per-run, tier-stamped)
 docs/work/EVAL_RESULTS.json
 
@@ -49,6 +52,11 @@ docs/work/EVAL_RESULTS.json
 # reasoning as telemetry above: session ids and model pins from THIS machine's
 # runs, meaningless in anyone else's checkout.
 **/docs/work/session-receipts.jsonl
+
+# Shape-C policy decision log (per-machine, append-only) -- written by the
+# .cursor/hooks/evaluate-*-policy.sh scripts in LOG_ONLY mode when the local
+# attest-mcp engine is unreachable. Same reasoning as telemetry above.
+**/docs/work/policy-decisions.jsonl
 
 # Blind-grading answer key -- deliberately NOT committed. BENCH_BLIND_PACKET.md
 # is committed as evidence, but committing the key that maps candidate A/B back
@@ -82,3 +90,6 @@ logs/
 .tmp-*/
 .tmp-realworld/
 docs/work/realworld-runs/
+
+# Deploy + live-eval artifacts (per-run, append-only; may contain transcript JSONL)
+artifacts/

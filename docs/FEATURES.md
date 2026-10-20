@@ -501,7 +501,7 @@ LLM-agnostic browser automation via Microsoft's official Playwright MCP. No visi
 | `browser_close()` | Close the session |
 
 Full protocol: `agents/shared/BROWSER_TESTING.md`
-Install: `claude mcp add playwright -- npx -y @playwright/mcp@latest`
+Install: `claude mcp add playwright -- npx --yes @playwright/mcp@latest`
 
 ---
 

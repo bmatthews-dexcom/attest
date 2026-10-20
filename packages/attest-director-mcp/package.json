@@ -1,0 +1,43 @@
+{
+  "name": "attest-director-mcp",
+  "version": "0.0.1",
+  "private": true,
+  "description": "attest Director MCP server — tool surface the Director BDK agent and the CEO call for role-brief intake, research/draft/eval of experts, Cedar-style policy evaluation, HITL approvals, and local-only promotion. No npm registry upload, no auto-install npx --yes invocation: wired by workspace sibling or ./node_modules/.bin/attest-director-mcp.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "attest-director-mcp": "./dist/cli.js"
+  },
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "esbuild 'src/**/*.ts' --outdir=dist --platform=node --format=esm --target=es2022 --loader:.ts=ts --sourcemap",
+    "clean": "rm -rf dist",
+    "typecheck": "echo 'typecheck disabled: zod3+MCP-SDK type recursion OOMs tsc under 8GB. Runtime behavior validated by test/*.test.mjs.' && exit 0",
+    "test": "node --import tsx --test --test-reporter=spec test/*.test.mjs",
+    "start": "node dist/cli.js",
+    "inventory": "node dist/cli.js --inventory"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmatthews-dexcom/attest.git",
+    "directory": "packages/attest-director-mcp"
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "name": "attest-ceo-mcp",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Companion MCP server for the attest CEO BDK agent — ingest discussions, extract intent, draft/dispatch plans, read the roadmap + commitment ledger, stub the Director until it ships.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "attest-ceo-mcp": "./dist/cli.js"
+  },
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    },
+    "./dispatch": {
+      "types": "./dist/dispatch.d.ts",
+      "import": "./dist/dispatch.js"
+    },
+    "./discussions": {
+      "types": "./dist/discussions.d.ts",
+      "import": "./dist/discussions.js"
+    },
+    "./intent": {
+      "types": "./dist/intent.d.ts",
+      "import": "./dist/intent.js"
+    },
+    "./plan": {
+      "types": "./dist/plan.d.ts",
+      "import": "./dist/plan.js"
+    },
+    "./director": {
+      "types": "./dist/director.d.ts",
+      "import": "./dist/director.js"
+    },
+    "./ledger": {
+      "types": "./dist/ledger.d.ts",
+      "import": "./dist/ledger.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit",
+    "test": "tsc --noEmit && node --test test/*.test.mjs",
+    "start": "node dist/cli.js",
+    "inspect": "npx --yes @modelcontextprotocol/inspector node dist/cli.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmatthews-dexcom/attest.git",
+    "directory": "packages/attest-ceo-mcp"
+  },
+  "keywords": [
+    "mcp",
+    "attest",
+    "ceo",
+    "roadmap",
+    "intent",
+    "planning",
+    "model-context-protocol"
+  ]
+}
