@@ -121,7 +121,10 @@ if [ ! -f "$REGISTRY_JSON" ]; then
   die "experts registry not found at $REGISTRY_JSON (run \`npm --prefix packages/attest-experts run sync-stubs\`)."
 fi
 
-# conductor slug is attest-conductor; expert slugs are attest-expert-<id>.
+# Conductor / CEO / Director slugs are attest-<name>. Expert slugs are the
+# raw BDK agent directory name under packages/attest-experts/agents (e.g.
+# code-reviewer), because `bdk deploy --slug <name>` resolves <name> against
+# the directory listing — not against any registry-side identifier.
 CONCRETE_EXPERT_IDS="$(node -e "
 const r = require('$REGISTRY_JSON');
 console.log(r.filter(e => e.status === 'concrete').map(e => e.id).join(' '));
@@ -132,7 +135,7 @@ fi
 
 ALL_SLUGS=""
 for id in $CONCRETE_EXPERT_IDS; do
-  ALL_SLUGS="$ALL_SLUGS attest-expert-$id"
+  ALL_SLUGS="$ALL_SLUGS $id"
 done
 ALL_SLUGS="$ALL_SLUGS attest-conductor"
 # Phase-1 chiefs (PR #16 + PR #17): CEO and Director BDK agents. Each lives
