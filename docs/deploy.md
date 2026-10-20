@@ -1,166 +1,144 @@
-# attest-for-Cursor — deploy runbook
+# attest — deploy runbook
 
-**Audience:** the human running the release.
-**Prerequisites:** repo checked out at the release ref, Node ≥ 20,
-`npm`, and a shell with network access to npm + Cursor's control plane.
+**Audience:** Bradford (or anyone running attest on their own machine).
+**Prerequisites:** repo cloned from `bmatthews-dexcom/attest`, Node ≥ 20, `npm`.
 
-This runbook assumes you have already merged (or are about to merge) the
-five integration PRs — see
-[`docs/release-notes/attest-cursor-v0.1.0.md`](release-notes/attest-cursor-v0.1.0.md)
-for the stack.
+attest-for-Cursor is **local-only**. No npm packages are published, no
+public registry is used, no public pool is shared. The source lives on
+`bmatthews-dexcom/attest` on your personal GitHub and nowhere else. The
+BDK agents can also run as Cursor-hosted deployments — those run on
+Cursor's own infrastructure, not npm.
 
-Every script in this runbook defaults to `--dry-run`. Nothing hits a
-registry or Cursor until you add `--publish`.
+Two independent paths:
 
-## 1. Export credentials
+| Path | What it is | Credentials |
+|---|---|---|
+| **(1) Local run with `bdk dev`** | Everything runs on this machine. The conductor, every expert, and the attest-mcp server boot locally. Cursor talks to them over stdio / loopback MCP. | **None.** |
+| **(2) Hosted deploy with `./scripts/deploy.sh`** | The conductor and the three concrete expert BDK agents get uploaded to Cursor-managed hosting under your Cursor account. The attest-mcp stdio server still runs locally on each machine that uses them. | `CURSOR_API_KEY` from Cursor Dashboard → Settings → API Keys. |
 
-Export whichever credentials apply to the pieces you plan to publish:
+Pick (1) for day-to-day editor use. Pick (2) when you want the
+`/autopilot` loop to run server-side (so GitHub comments and HTTP calls
+can wake it up without a Cursor session attached).
+
+## Path 1 — local run
+
+One-time install:
 
 ```bash
-# For deploy-mcp.sh (npm publish):
-export NPM_TOKEN=npm_...          # scope: publish on @bpmforge/attest-mcp
-
-# For deploy-experts.sh + deploy-conductor.sh (bdk deploy):
-export CURSOR_API_KEY=sk-...       # personal account
-# or
-export CURSOR_SERVICE_ACCOUNT_KEY=sa_... # service account (preferred for CI)
+./scripts/local-install.sh
 ```
 
-The scripts refuse `--publish` without the required credential in-scope.
-`--dry-run` emits a warning when a credential is missing but still runs
-through its preflight checks.
+Idempotent. Does `npm install` at the repo root (npm workspaces links
+`packages/*` as workspace siblings), builds `attest-mcp` to produce
+`dist/cli.js`, and typechecks the two BDK packages.
 
-Optional overrides, documented inline in each script header:
+Then any of:
 
 ```bash
-export CONDUCTOR_SLUG=attest-conductor       # default: inferred from --dir
-export CONDUCTOR_TEAM=team_xxx               # default: service-account team
-export EXPERTS_SUBSET=security-auditor       # dry-run / test one at a time
+# conductor dev server (hot-reloads on source edits):
+npm --prefix packages/attest-conductor run dev
+
+# every expert, served as one multi-agent BDK host:
+npm --prefix packages/attest-experts run serve
+
+# attest-mcp stdio server, for manual MCP-client testing:
+npm --prefix packages/attest-mcp start
 ```
 
-## 2. Dry-run everything
+Cursor itself picks up the committed `.cursor/mcp.json` and launches
+`node packages/attest-mcp/dist/cli.js` on-demand — no extra wiring.
+
+To exercise the whole stack with a real Cursor model turn (needs a
+credential — see §Credentials below):
 
 ```bash
-./scripts/deploy-all.sh --dry-run
-```
-
-What runs under the hood, in order:
-
-1. `scripts/deploy-mcp.sh --dry-run` — resolves `@bpmforge/attest-mcp`
-   metadata, checks the version is free on the npm registry, builds +
-   bundles the package, runs the package test suite, and executes
-   `npm publish --dry-run` to print the exact tarball shape.
-2. `scripts/deploy-experts.sh --dry-run` — resolves the list of
-   `concrete` experts from `packages/attest-experts/lib/experts.generated.json`,
-   runs `bdk validate --dir packages/attest-experts/agents` (which
-   validates every expert, concrete + stub), and prints the exact
-   `bdk deploy …` command that would run per expert.
-3. `scripts/deploy-conductor.sh --dry-run` — runs `bdk validate` over
-   the conductor and prints the `bdk deploy …` command.
-
-Each step writes a timestamped JSON artifact under `artifacts/deploy/`:
-
-- `mcp-<timestamp>.dryrun.json`
-- `experts-<timestamp>.json`
-- `conductor-<timestamp>.json`
-
-### Inspect
-
-```bash
-ls artifacts/deploy/
-cat artifacts/deploy/mcp-*.dryrun.json
-```
-
-If the dry-run surfaces anything unexpected (a version collision, a
-dirty tree, a `bdk validate` failure), fix it before continuing. The
-scripts fail loudly with the specific remedy; nothing moves forward
-until the step before it is clean.
-
-## 3. Publish
-
-Only once the dry-run is clean:
-
-```bash
-./scripts/deploy-all.sh --publish
-```
-
-What this does, in order:
-
-1. `scripts/deploy-mcp.sh --publish`
-   - Requires `NPM_TOKEN`, clean git tree, matching version not already
-     on the registry, package tests green.
-   - Runs `npm publish --access public` for `@bpmforge/attest-mcp`.
-   - Writes `artifacts/deploy/mcp-<timestamp>.publish.json` with the
-     published version, the git SHA, and the branch.
-2. `scripts/deploy-experts.sh --publish`
-   - Requires `CURSOR_API_KEY` or `CURSOR_SERVICE_ACCOUNT_KEY`, clean
-     git tree, ref pushed to the remote.
-   - Runs `bdk deploy --dir packages/attest-experts/agents --slug
-     attest-expert-<id> --ref <HEAD-sha>` for each concrete expert,
-     serially. Fails fast if any single deploy ends in anything other
-     than `status: "running"`.
-   - Writes `artifacts/deploy/experts-<timestamp>.json` with the slug +
-     status of each.
-3. `scripts/deploy-conductor.sh --publish`
-   - Same preflight + env requirements as the experts.
-   - Runs `bdk deploy --dir packages/attest-conductor --ref <HEAD-sha>`.
-   - Writes `artifacts/deploy/conductor-<timestamp>.json`.
-
-The conductor is published last on purpose — it depends on the expert
-peer slugs being resolvable in Cursor's control plane, so publishing
-experts first ensures the conductor's `dispatch_expert` can find them
-on first invocation.
-
-### Verify
-
-```bash
-# npm side:
-npm view @bpmforge/attest-mcp version
-npm view @bpmforge/attest-mcp dist.tarball
-
-# bdk side (requires CURSOR_API_KEY / CURSOR_SERVICE_ACCOUNT_KEY):
-npx -y @cursor/bdk@0.2.27 deployments --json | jq '.[] | {slug, status}'
-npx -y @cursor/bdk@0.2.27 deployment attest-conductor --json | jq '{slug, status, ref}'
-npx -y @cursor/bdk@0.2.27 deployment attest-expert-security-auditor --json | jq '{slug, status}'
-```
-
-Every slug should show `status: "running"`.
-
-### Live-eval the stack
-
-```bash
-# requires CURSOR_API_KEY in-scope
 npm run live-eval
 ```
 
-This boots a local `@bpmforge/attest-mcp` child process, runs the
-`integration/attest-e2e` BDK eval against the conductor's chat tool, and
-captures the full transcript to `artifacts/live-eval/<timestamp>.jsonl`.
-A pass means the whole stack (route → dispatch → validate → gate → done)
-drives a trivial-repo fixture end-to-end against a real Cursor model.
+That runs the cross-package integration eval against a locally-booted
+attest-mcp child process and writes the full BDK transcript to
+`artifacts/live-eval/<timestamp>.jsonl`.
 
-## 4. Rollback
-
-### npm (attest-mcp)
+## Path 2 — hosted deploy
 
 ```bash
-# unpublish a buggy version (only within the 72-hour window npm allows):
-npm unpublish @bpmforge/attest-mcp@<bad-version>
+# 0. one-time install (same as Path 1 — the deploy still typechecks locally):
+./scripts/local-install.sh
 
-# OR deprecate a bad version in-place (preferred — doesn't break consumers
-# who already installed it, and tells future installers to avoid it):
-npm deprecate @bpmforge/attest-mcp@<bad-version> \
-  "Use @bpmforge/attest-mcp@<good-version> — <reason>"
+# 1. make the credential available (see §Credentials):
+export CURSOR_API_KEY=sk-...
+# or write it to .env (see .env.example) and the deploy script will source it
+
+# 2. dry-run first — no network calls to Cursor's control plane:
+./scripts/deploy.sh --dry-run
+
+# 3. inspect what would run:
+ls artifacts/deploy/
+cat artifacts/deploy/*.json
+
+# 4. publish:
+./scripts/deploy.sh --publish
 ```
 
-Clients consuming `npx -y @bpmforge/attest-mcp` without a version pin
-will pick up the latest; deprecating is usually the right move once a
-bad version has been seen by any downstream.
+`./scripts/deploy.sh --publish` runs serially: every concrete expert
+(`attest-expert-security-auditor`, `attest-expert-code-reviewer`,
+`attest-expert-landscape-mapper`) first, then `attest-conductor` last.
+The conductor goes last on purpose — its `dispatch_expert` tool needs
+the expert peer slugs to exist in Cursor's control plane before its
+first dispatch.
 
-### Cursor BDK deployments (conductor + experts)
+Each deploy writes its response (slug, status, hosted URL) to
+`artifacts/deploy/<timestamp>.json`.
+
+Verify:
+
+```bash
+npx -y @cursor/bdk@0.2.27 deployments --json | jq '.[] | {slug, status}'
+# every slug should show status: "running"
+```
+
+Once hosted, you can wire Cursor itself to the hosted conductor by
+swapping the `attest-conductor` stanza in your `.cursor/mcp.json` from
+the local `bdk serve` form to:
+
+```json
+"attest-conductor": {
+  "url": "https://<slug>.<team>.<host>/v1/mcp",
+  "type": "http"
+}
+```
+
+The URL is in the deploy artifact.
+
+## Credentials
+
+### `CURSOR_API_KEY`
+
+Create at: **[cursor.com/dashboard](https://cursor.com/dashboard) → Settings → API Keys**.
+Prefer a Project-scoped key over a personal key for deploys.
+
+Two places to put it:
+
+| Where | When |
+|---|---|
+| `.env` at the repo root | Default. `.env` is gitignored (`.env.example` is the template). `./scripts/deploy.sh` auto-sources `.env` if `CURSOR_API_KEY` is not already in the shell. |
+| Shell env (`export CURSOR_API_KEY=...`) | CI, one-off deploys, or when you don't want to persist the key to disk. Shell env always wins over `.env`. |
+
+**No npm registry token, ever.** This project is not pushed to the
+npm registry. The scripts never ask for one.
+
+### `CURSOR_SERVICE_ACCOUNT_KEY` (alternative)
+
+Only relevant if you're deploying from CI or a shared machine. See the
+BDK deploy skill (`skills-cursor/bdk-deploy/SKILL.md`) for the
+service-account flow. For personal use, `CURSOR_API_KEY` is simpler.
+
+## Rollback
+
+### Cursor hosted deployments
 
 `bdk` ships a `rollback` subcommand that restores a prior successful
-release of a deployment slug:
+release:
 
 ```bash
 # roll conductor back to the previous release:
@@ -172,20 +150,21 @@ npx -y @cursor/bdk@0.2.27 rollback attest-expert-security-auditor --json
 # roll to a specific release id:
 npx -y @cursor/bdk@0.2.27 rollback attest-conductor --release <rel_...>
 
-# worst case — stop the deployment entirely (returns 404 for all callers):
+# or stop the deployment entirely (returns 404 to callers; keeps metadata):
 npx -y @cursor/bdk@0.2.27 stop attest-conductor
 ```
 
-Rollbacks are atomic per slug: the control plane either swings traffic
-to the prior release cleanly or refuses. There is no half-state.
+Rollbacks are atomic per slug.
+
+### Local run
+
+There is nothing to roll back — just `git checkout` the earlier commit
+and re-run `./scripts/local-install.sh`.
 
 ### Full teardown
 
-If the entire release needs to come down (e.g. a credential leak or a
-serious regression):
-
 ```bash
-# stop everything (keeps the deployment metadata so you can roll forward):
+# stop every hosted slug (keeps deployment metadata for later roll-forward):
 for slug in attest-conductor attest-expert-security-auditor \
             attest-expert-code-reviewer attest-expert-landscape-mapper; do
   npx -y @cursor/bdk@0.2.27 stop "$slug" || true
@@ -196,30 +175,31 @@ for slug in attest-conductor attest-expert-security-auditor \
             attest-expert-code-reviewer attest-expert-landscape-mapper; do
   npx -y @cursor/bdk@0.2.27 delete "$slug" || true
 done
-
-# deprecate the npm package (do NOT unpublish once it has been seen):
-npm deprecate @bpmforge/attest-mcp@<released-version> \
-  "Pulled 0.1.0 due to <reason>. Next release will reset."
 ```
 
-## 5. Troubleshooting
+## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `deploy-mcp: version X already exists` | Someone else or a previous run already published. | Bump `packages/attest-mcp/package.json#version`, commit, re-run. |
-| `deploy-conductor: ref … is not on any remote branch` | HEAD was committed locally but not pushed. | `git push -u origin <branch>` and re-run. |
-| `deploy-experts: validate failed` | `bdk validate` surfaced a schema error in one of the 84 expert directories. | Read `/tmp/attest-experts-validate.log`. The common cause is a Phase-2 stub whose `bot/agent.ts` broke the registry convention. |
-| `deployment status is "failed"` | BDK accepted the deploy but the agent crashed on first boot. | `bdk logs <slug> --prod` for the boot error. Fix in-tree, re-deploy. |
-| `live-eval: set CURSOR_API_KEY to run.` | Credential not in-scope for the shell. | `export CURSOR_API_KEY=...` and re-run. |
+| `deploy FAIL: no Cursor credential found.` | `CURSOR_API_KEY` not in shell or `.env`. | Create at Cursor Dashboard → Settings → API Keys; put in `.env`. |
+| `deploy FAIL: ref … is not on any remote branch` | Local commit not pushed. | `git push -u origin <branch>` to `bmatthews-dexcom/attest`, re-run. |
+| `bdk validate failed on packages/attest-experts/agents` | One of the 84 expert agent directories is misconfigured. | Read `/tmp/attest-deploy-experts-validate.log`. |
+| `deployment status is "failed"` | BDK accepted the deploy but the agent crashed on first boot. | `npx -y @cursor/bdk@0.2.27 logs <slug> --prod` for the boot error. |
+| `live-eval: set CURSOR_API_KEY to run.` | Credential not in-scope for the shell. | `source .env` or `export CURSOR_API_KEY=...`. |
+| `attest-mcp build did not produce dist/cli.js` | TypeScript compile error in the mcp package. | Fix the error, re-run `./scripts/local-install.sh`. |
 
-## 6. What this runbook deliberately does NOT do
+## What this runbook deliberately does NOT do
 
-- **It does not bump versions.** Version bumps are a human decision; the
-  scripts refuse when a version already exists on the registry.
-- **It does not push git tags.** Tag the release after the publish is
-  green (`git tag v0.1.0-cursor && git push --tags`).
-- **It does not open the GitHub release.** Open it with the body from
-  [`docs/release-notes/attest-cursor-v0.1.0.md`](release-notes/attest-cursor-v0.1.0.md)
-  once the published versions are confirmed.
-- **It does not deploy to third-party registries.** No Cursor Marketplace,
-  no VSIX, no Homebrew. Those live in follow-up releases.
+- **No npm-registry upload.** This project does not ship to any public
+  registry. The three `packages/*` are all `"private": true`. If you
+  ever see a script attempting to push to the npm registry, that is a
+  bug — report it.
+- **No GitHub release workflow that publishes to a package registry.**
+  The `.github/workflows/ci.yml` runs tests, parity checks, and
+  validators; it does not publish artifacts off-machine.
+- **No separate `attest-experts` repo.** The experts live as a workspace
+  sibling in this repo under `packages/attest-experts/`. The hosted
+  deploy picks it up via `--dir packages/attest-experts/agents`.
+- **No shared "public pool" of attest-cursor packages.** Everyone who
+  wants to use this clones `bmatthews-dexcom/attest` and runs
+  `./scripts/local-install.sh` themselves.

@@ -2,8 +2,8 @@
 // build-target-cursor.mjs — Cursor build target (orchestrator-first).
 //
 // Shape 2 of the design report: attest's expert personas live as BDK
-// agents in the sibling package `@bpmforge/attest-experts`, invoked by
-// the sibling `@bpmforge/attest-conductor`. Cursor only ships a thin
+// agents in the sibling package `attest-experts`, invoked by
+// the sibling `attest-conductor`. Cursor only ships a thin
 // local-editor veneer:
 //
 //   .cursor/rules/*.mdc    — attest shared protocols as @file-pointer
@@ -11,13 +11,13 @@
 //   .cursor/hooks.json     — 1:1 port of plugins/expert-hooks.ts
 //   .cursor/hooks/*.sh     — the scripts those hooks run
 //   .cursor/mcp.json       — points at the `attest` MCP server
-//                            (@bpmforge/attest-mcp)
+//                            (attest-mcp)
 //   .cursor/skills/*/      — ONLY technique/procedure skills; expert
 //                            personas are deliberately omitted
 //   .cursor/README.md      — explains the architecture + where personas live
 //
 // Deliberately NOT emitted on this target:
-//   .cursor/agents/*.md         — ships as BDK in @bpmforge/attest-experts
+//   .cursor/agents/*.md         — ships as BDK in attest-experts
 //   .cursor/skills/<persona>/   — same reason; see PERSONA_SKILL_DROPS below
 //
 // Mirrors `scripts/build-target-claude.mjs`:
@@ -75,7 +75,7 @@ export const DROPPED = {
   'tools/append.ts': 'Same as tools/write.ts — LM-Studio/OpenCode patch.',
   'tools/update.ts': 'Same as tools/write.ts — LM-Studio/OpenCode patch.',
   'agents/':
-    'ORCHESTRATOR-FIRST ARCHITECTURE: expert personas ship as BDK agents in the sibling package `@bpmforge/attest-experts`, spawned on demand by `@bpmforge/attest-conductor`. The local Cursor Agent calls out to the conductor via MCP; it does not host the personas itself.',
+    'ORCHESTRATOR-FIRST ARCHITECTURE: expert personas ship as BDK agents in the sibling package `attest-experts`, spawned on demand by `attest-conductor`. The local Cursor Agent calls out to the conductor via MCP; it does not host the personas itself.',
 };
 
 // Shared protocols that are OpenCode-tier-specific and should NOT emit a
@@ -95,7 +95,7 @@ export const SHARED_RULE_SKIPS = new Set([
 
 // Skills that are *persona wrappers* ("Load and follow the instructions
 // in the <agent> agent") — orchestrator-first architecture means these
-// now ship as BDK agents in @bpmforge/attest-experts and are invoked via
+// now ship as BDK agents in attest-experts and are invoked via
 // the conductor, not as local Cursor slash-commands. Keeping them here
 // would show the user a /security that cannot route anywhere.
 //
@@ -192,7 +192,7 @@ export const SKILL_AMBIGUITY_NOTES = {
   'wave':
     "Kept: attest-internal 'Level-2 wave integration gate' — but the gate itself is a technique (compose reviewer set, run concurrently, synthesize report), not a persona.",
   'autopilot':
-    "Dropped: this IS the conductor outer loop. Replaced by `invoke-attest-conductor` which teaches the local agent to call @bpmforge/attest-conductor.",
+    "Dropped: this IS the conductor outer loop. Replaced by `invoke-attest-conductor` which teaches the local agent to call attest-conductor.",
   'vault':
     "Kept: depends on an external agent-brain-vault store the user may not have, but it's a self-describing technique (query/ingest/lint) rather than a persona.",
   'guide':
@@ -389,8 +389,8 @@ function generateSkills() {
     `  attest-cursor skill — orchestrator-first architecture.\n` +
     `  Expert personas (a11y, analytics, security, sdlc-lead, …) are\n` +
     `  deliberately NOT emitted as .cursor/skills/* on this target —\n` +
-    `  they live as BDK agents in @bpmforge/attest-experts and are\n` +
-    `  invoked by @bpmforge/attest-conductor. To route the local Cursor\n` +
+    `  they live as BDK agents in attest-experts and are\n` +
+    `  invoked by attest-conductor. To route the local Cursor\n` +
     `  agent to the conductor, use /invoke-attest-conductor.\n` +
     `  See .cursor/README.md for the full architecture + persona list.\n` +
     `-->\n`;
@@ -435,14 +435,14 @@ function generateSkills() {
 function generateInvokeConductorSkill() {
   return `---
 name: invoke-attest-conductor
-description: 'Route a long-running / multi-expert / unattended attest task (autopilot, SDLC phases, fan-out code review, security audits that need multiple personas) to the attest conductor BDK agent. Use whenever the user asks for /sdlc, /security, /autopilot, /review, or any multi-persona workflow — Cursor itself does not host those personas (they live in @bpmforge/attest-experts).'
+description: 'Route a long-running / multi-expert / unattended attest task (autopilot, SDLC phases, fan-out code review, security audits that need multiple personas) to the attest conductor BDK agent. Use whenever the user asks for /sdlc, /security, /autopilot, /review, or any multi-persona workflow — Cursor itself does not host those personas (they live in attest-experts).'
 disable-model-invocation: true
 ---
 
 <!--
   attest-cursor skill — orchestrator-first architecture.
-  Expert personas live in @bpmforge/attest-experts, orchestrated by
-  @bpmforge/attest-conductor. This skill is the LOCAL Cursor side's
+  Expert personas live in attest-experts, orchestrated by
+  attest-conductor. This skill is the LOCAL Cursor side's
   "dial out" to that orchestrator.
 -->
 
@@ -450,8 +450,8 @@ disable-model-invocation: true
 
 The local Cursor Agent is a thin editor-time veneer; the attest expert
 personas (security-auditor, code-reviewer, landscape-mapper, …) run as
-BDK agents in **@bpmforge/attest-experts**, orchestrated by
-**@bpmforge/attest-conductor**. This skill teaches you to invoke that
+BDK agents in **attest-experts**, orchestrated by
+**attest-conductor**. This skill teaches you to invoke that
 orchestrator rather than attempting to run the persona workflow inline
 (which would silently drop the HANDOFF plumbing, gate scoring, delegation
 log, and multi-model review).
@@ -619,7 +619,7 @@ if printf '%s' "$cmd" | grep -Eqi '\\bgit[[:space:]]+reset[[:space:]]+--hard\\b'
   deny "git reset --hard — would discard uncommitted work"
 fi
 if printf '%s' "$cmd" | grep -Eqi '\\bnpm[[:space:]]+publish\\b'; then
-  deny "npm publish — would publish to the public registry"
+  deny "attempted npm-registry upload — this project is local-only; no package is pushed to any public registry"
 fi
 if printf '%s' "$cmd" | grep -Eqi '\\bcurl[[:space:]]+.*\\|[[:space:]]*bash\\b|\\bwget[[:space:]]+.*\\|[[:space:]]*bash\\b'; then
   deny "curl|bash / wget|bash — executing untrusted remote code"
@@ -873,7 +873,7 @@ fi
 };
 
 // MCP: two servers today.
-//  - `attest`           — the stdio MCP server from @bpmforge/attest-mcp
+//  - `attest`           — the stdio MCP server from attest-mcp
 //                         (77 validators, phase_gate_check, route_goal,
 //                         list_experts, 74 resources, 37 prompts).
 //  - `attest-conductor` — the BDK agent at packages/attest-conductor,
@@ -890,15 +890,17 @@ function generateMcp() {
   const out = new Map();
   const mcp = {
     $note:
-      'Two MCP servers: `attest` (stdio, published as @bpmforge/attest-mcp) exposes 77 validators + phase_gate_check + route_goal + list_experts; `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop. See .cursor/skills/invoke-attest-conductor/SKILL.md for the three-path dial-out (preferred: MCP tool, fallback: HTTPS, fallback: GitHub comment).',
+      'Two MCP servers, both backed by local workspace packages (nothing is published to npm). `attest` is the stdio MCP server from packages/attest-mcp (77 validators + phase_gate_check + route_goal + list_experts), run as `node packages/attest-mcp/dist/cli.js` — run `npm run build:mcp` once after `npm install` to produce the dist. `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop, served out of packages/attest-conductor via @cursor/bdk serve. See .cursor/skills/invoke-attest-conductor/SKILL.md for the three-path dial-out (preferred: MCP tool, fallback: HTTPS, fallback: GitHub comment).',
     mcpServers: {
       attest: {
-        command: 'npx',
-        args: ['-y', '@bpmforge/attest-mcp'],
+        $comment:
+          'Workspace sibling — not uploaded to any registry. Build it once with `npm --prefix packages/attest-mcp run build` (or `./scripts/local-install.sh`). ${workspaceFolder} is Cursor-expanded to the project root.',
+        command: 'node',
+        args: ['${workspaceFolder}/packages/attest-mcp/dist/cli.js'],
       },
       'attest-conductor': {
         $comment:
-          'Local-dev invocation: served out of packages/attest-conductor via @cursor/bdk serve --mode single. For deployed Cursor installs, replace this stanza with { "url": "https://<your-conductor-host>/v1/mcp", "type": "http" } pointing at the deployed BDK agent (BDK deployments expose /<slug>/v1/mcp automatically). Private package: cannot be reached via `npx -y @bpmforge/attest-conductor`.',
+          'Local invocation: served out of packages/attest-conductor via @cursor/bdk serve --mode single. For a Cursor-hosted deploy (after `./scripts/deploy.sh`), swap this stanza for { "url": "https://<slug>/<team>/v1/mcp", "type": "http" } using the slug the deploy returned.',
         command: 'npx',
         args: [
           '-y',
@@ -940,11 +942,11 @@ attest's expert personas (\`security-auditor\`, \`code-reviewer\`,
 custom-mode / subagent files. They live as BDK agents in a sibling
 package, orchestrated by a conductor:
 
-- [\`@bpmforge/attest-experts\`](https://github.com/bpmforge/attest-experts) — each primary attest expert
-  packaged as a \`defineAgent({ … })\` BDK agent.
-- [\`@bpmforge/attest-conductor\`](https://github.com/bpmforge/attest-conductor) — the outer loop that
+- [\`attest-experts\`](https://github.com/bmatthews-dexcom/attest/tree/main/packages/attest-experts) — each primary attest expert
+  packaged as a \`defineAgent({ … })\` BDK agent. Private workspace sibling under \`packages/\`.
+- [\`attest-conductor\`](https://github.com/bmatthews-dexcom/attest/tree/main/packages/attest-conductor) — the outer loop that
   claims tickets, dispatches expert agents, scores HANDOFF returns,
-  and merges completed work (the \`v3.9.0\` autopilot shape).
+  and merges completed work (the \`v3.9.0\` autopilot shape). Private workspace sibling.
 
 The local Cursor Agent is a **thin editor-time veneer**: it talks to
 those packages through MCP (\`.cursor/mcp.json\`) and the
@@ -958,13 +960,13 @@ for safety + editor-time quality guidance.
 | \`rules/*.mdc\` | \`rules/*.md\` + \`agents/shared/*.md\` | Editor-time quality protocols (CHALLENGER, FIX_VERIFY, GATE_SCORING, PERSISTENCE, …) as on-demand rules with \`@file\` pointers to the committed sources. |
 | \`skills/*/SKILL.md\` | \`skills/*/SKILL.md\` + hand-authored | Only **technique / procedure** skills. See the keep set below. |
 | \`hooks.json\` + \`hooks/*.sh\` | \`plugins/expert-hooks.ts\` | 1:1 port of the attest plugin: dangerous-bash blocker, credential-write blocker, afterFileEdit lint/typecheck/secret-scan, postToolUse telemetry, sessionStart STATE.md injection (**local-only**: Cursor cloud agents do not fire \`sessionStart\`), stop phase-gate. |
-| \`mcp.json\` | generated | Points at the \`attest\` MCP server (\`@bpmforge/attest-mcp\`). |
+| \`mcp.json\` | generated | Points at the \`attest\` MCP server (\`attest-mcp\`). |
 
 ### Kept skills (techniques, ${TECHNIQUE_SKILL_KEEPS.size + 1} total — includes \`invoke-attest-conductor\`)
 
 ${kept}, invoke-attest-conductor
 
-### Dropped skills (personas — live in @bpmforge/attest-experts, ${PERSONA_SKILL_DROPS.size} total)
+### Dropped skills (personas — live in attest-experts, ${PERSONA_SKILL_DROPS.size} total)
 
 ${dropped}
 
@@ -1081,7 +1083,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     '# Generated by attest/scripts/build-target-cursor.mjs — DO NOT EDIT THESE FILES HERE.\n' +
       '# Edit the canonical source in attest, then run: npm run build:cursor\n' +
       '# `--check` is the CI drift gate; it diffs the committed .cursor/ tree against this generator\'s output.\n' +
-      '# Architecture: orchestrator-first — expert personas live in @bpmforge/attest-experts, orchestrated by @bpmforge/attest-conductor.\n\n' +
+      '# Architecture: orchestrator-first — expert personas live in attest-experts, orchestrated by attest-conductor.\n\n' +
       manifest.join('\n') +
       '\n'
   );

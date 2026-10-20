@@ -1,15 +1,15 @@
 {
-  "$note": "Two MCP servers: `attest` (stdio, published as @bpmforge/attest-mcp) exposes 77 validators + phase_gate_check + route_goal + list_experts; `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop. See .cursor/skills/invoke-attest-conductor/SKILL.md for the three-path dial-out (preferred: MCP tool, fallback: HTTPS, fallback: GitHub comment).",
+  "$note": "Two MCP servers, both backed by local workspace packages (nothing is published to npm). `attest` is the stdio MCP server from packages/attest-mcp (77 validators + phase_gate_check + route_goal + list_experts), run as `node packages/attest-mcp/dist/cli.js` — run `npm run build:mcp` once after `npm install` to produce the dist. `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop, served out of packages/attest-conductor via @cursor/bdk serve. See .cursor/skills/invoke-attest-conductor/SKILL.md for the three-path dial-out (preferred: MCP tool, fallback: HTTPS, fallback: GitHub comment).",
   "mcpServers": {
     "attest": {
-      "command": "npx",
+      "$comment": "Workspace sibling — not uploaded to any registry. Build it once with `npm --prefix packages/attest-mcp run build` (or `./scripts/local-install.sh`). ${workspaceFolder} is Cursor-expanded to the project root.",
+      "command": "node",
       "args": [
-        "-y",
-        "@bpmforge/attest-mcp"
+        "${workspaceFolder}/packages/attest-mcp/dist/cli.js"
       ]
     },
     "attest-conductor": {
-      "$comment": "Local-dev invocation: served out of packages/attest-conductor via @cursor/bdk serve --mode single. For deployed Cursor installs, replace this stanza with { \"url\": \"https://<your-conductor-host>/v1/mcp\", \"type\": \"http\" } pointing at the deployed BDK agent (BDK deployments expose /<slug>/v1/mcp automatically). Private package: cannot be reached via `npx -y @bpmforge/attest-conductor`.",
+      "$comment": "Local invocation: served out of packages/attest-conductor via @cursor/bdk serve --mode single. For a Cursor-hosted deploy (after `./scripts/deploy.sh`), swap this stanza for { \"url\": \"https://<slug>/<team>/v1/mcp\", \"type\": \"http\" } using the slug the deploy returned.",
       "command": "npx",
       "args": [
         "-y",

@@ -13,11 +13,11 @@ attest's expert personas (`security-auditor`, `code-reviewer`,
 custom-mode / subagent files. They live as BDK agents in a sibling
 package, orchestrated by a conductor:
 
-- [`@bpmforge/attest-experts`](https://github.com/bpmforge/attest-experts) — each primary attest expert
-  packaged as a `defineAgent({ … })` BDK agent.
-- [`@bpmforge/attest-conductor`](https://github.com/bpmforge/attest-conductor) — the outer loop that
+- [`attest-experts`](https://github.com/bmatthews-dexcom/attest/tree/main/packages/attest-experts) — each primary attest expert
+  packaged as a `defineAgent({ … })` BDK agent. Private workspace sibling under `packages/`.
+- [`attest-conductor`](https://github.com/bmatthews-dexcom/attest/tree/main/packages/attest-conductor) — the outer loop that
   claims tickets, dispatches expert agents, scores HANDOFF returns,
-  and merges completed work (the `v3.9.0` autopilot shape).
+  and merges completed work (the `v3.9.0` autopilot shape). Private workspace sibling.
 
 The local Cursor Agent is a **thin editor-time veneer**: it talks to
 those packages through MCP (`.cursor/mcp.json`) and the
@@ -31,13 +31,13 @@ for safety + editor-time quality guidance.
 | `rules/*.mdc` | `rules/*.md` + `agents/shared/*.md` | Editor-time quality protocols (CHALLENGER, FIX_VERIFY, GATE_SCORING, PERSISTENCE, …) as on-demand rules with `@file` pointers to the committed sources. |
 | `skills/*/SKILL.md` | `skills/*/SKILL.md` + hand-authored | Only **technique / procedure** skills. See the keep set below. |
 | `hooks.json` + `hooks/*.sh` | `plugins/expert-hooks.ts` | 1:1 port of the attest plugin: dangerous-bash blocker, credential-write blocker, afterFileEdit lint/typecheck/secret-scan, postToolUse telemetry, sessionStart STATE.md injection (**local-only**: Cursor cloud agents do not fire `sessionStart`), stop phase-gate. |
-| `mcp.json` | generated | Points at the `attest` MCP server (`@bpmforge/attest-mcp`). |
+| `mcp.json` | generated | Points at the `attest` MCP server (`attest-mcp`). |
 
 ### Kept skills (techniques, 12 total — includes `invoke-attest-conductor`)
 
 api-ground, design-options, explore, game-asset-pipeline, gate, goal, pre-code, reflow, simplify, vault, wave, invoke-attest-conductor
 
-### Dropped skills (personas — live in @bpmforge/attest-experts, 37 total)
+### Dropped skills (personas — live in attest-experts, 37 total)
 
 a11y, analytics, api-design, architect, autopilot, challenge, code, containers, cost, data-governance, dba, design-iterate, devops, documentation-gap-finder, end-user-simulator, frontend, gauntlet, git, guide, llm-integration, migration-planner, onboard-gap-fill, onboard-inventory, onboard-verify, perf, release, reliability, research, review, review-code, sdlc, security, steward, test-expert, ui-verify, user-guide, ux
 
