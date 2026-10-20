@@ -1,0 +1,19 @@
+{
+  "total": 1,
+  "passed": 0,
+  "failed": 1,
+  "scored": 0,
+  "skipped": 0,
+  "strict": false,
+  "startedAt": "2026-10-19T20:49:11.649Z",
+  "finishedAt": "2026-10-19T20:49:12.247Z",
+  "durationMs": 598,
+  "caseCount": 1,
+  "target": {
+    "baseUrl": "http://127.0.0.1:40757/security-auditor",
+    "mode": "local"
+  },
+  "discovered": [
+    "smoke"
+  ]
+}
