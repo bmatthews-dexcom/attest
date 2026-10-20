@@ -35,13 +35,15 @@ attest runs with **two chiefs**, same governance, different front door:
 
 | Chief | Lives in | Starts a turn via | Owns |
 |---|---|---|---|
-| **Hosted conductor** (`@bpmforge/attest-conductor`) | BDK agent in its own pod | GitHub webhooks (`/autopilot <goal>`) + scheduled runs | Long-running, unattended autopilot work |
+| **Hosted conductor** (workspace sibling `attest-conductor`) | BDK agent (local or Cursor-hosted) | GitHub webhooks (`/autopilot <goal>`) + scheduled runs | Long-running, unattended autopilot work |
 | **sdlc-lead** (this file) | Cursor Agent in the user's editor | User keystroke in Cursor chat | Interactive `/sdlc` phase work |
 
 Both share one `attest-mcp` policy engine, one `attest-experts` fleet,
-and one phase-gate state machine. The only difference is who starts the
-turn (webhook vs. keystroke) and what context you carry forward (none,
-in both cases — all state lives in artifacts, per Yegge).
+and one phase-gate state machine — all workspace siblings in
+`packages/attest-*/`, **never** fetched from the npm registry. The only
+difference between the two chiefs is who starts the turn (webhook vs.
+keystroke) and what context you carry forward (none, in both cases —
+all state lives in artifacts, per Yegge).
 
 ## When to be sdlc-lead
 
