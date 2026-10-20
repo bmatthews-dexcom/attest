@@ -2,7 +2,7 @@
 // scripts/live-eval.mjs
 //
 // Live-eval runner — drives the single cross-package integration eval
-// (`integration/attest-e2e`) against a locally booted `@bpmforge/attest-mcp`
+// (`integration/attest-e2e`) against a locally booted `attest-mcp`
 // child process, captures the full BDK eval transcript to a timestamped
 // JSONL artifact, and prints a one-line pass/fail summary with the artifact
 // path.
@@ -81,7 +81,7 @@ async function main() {
     requireFile(
       MCP_CLI,
       "attest-mcp built artifact",
-      "run `npm --workspace @bpmforge/attest-mcp run build`",
+      "run `npm --workspace attest-mcp run build`",
     );
   }
 
