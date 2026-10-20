@@ -5,3 +5,7 @@ bundled/
 # Node
 node_modules/
 npm-debug.log*
+
+# Runtime artifacts — Cedar policy audit log (default
+# ATTEST_POLICY_AUDIT_LOG=./audit/policy.jsonl).
+audit/

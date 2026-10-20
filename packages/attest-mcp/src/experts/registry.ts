@@ -20,8 +20,12 @@
  * attest + attest-claude + attest-cursor; using them avoids a parallel
  * naming scheme the sibling worker would have to maintain by hand.
  *
- * The sibling package name is pinned here as a constant; keep in sync with
- * whatever the feat/attest-experts worker chooses for its `name` field.
+ * The sibling package name is pinned here as a constant used only as a
+ * display label in the invocation hint; it is NOT an npm registry import.
+ * attest-experts is resolved as a workspace sibling (`workspace:*`) or a
+ * git+ssh clone of bmatthews-dexcom/attest — this package never fetches
+ * it from the public npm registry. Keep the string in sync with whatever
+ * the feat/attest-experts worker chooses for its `name` field.
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -29,8 +33,99 @@ import { basename, join } from "node:path";
 import { attestRoot } from "../sources.js";
 import { PHASES, PhaseId } from "../phase-gate/state-machine.js";
 import { ROUTING_TABLE } from "../routing/table.js";
+import { hasInProcessHandler } from "./registry-handlers.js";
+import {
+  classifiedExpert,
+  inProcessEligibleKeptAsSandbox,
+  loadClassificationManifest,
+} from "./classification.js";
 
 export const EXPERTS_PACKAGE = "@bpmforge/attest-experts";
+
+/**
+ * Shape-C port status for each primary expert.
+ *
+ * The sibling attest-experts cleanup PR introduced a boolean `ported` on
+ * `list_experts`. Shape C expands it to a richer object so a consumer can
+ * tell at a glance whether an expert is wired as an in-process MCP
+ * handler (`in-process`, `via: "mcp-handler"`), a sandboxed BDK agent
+ * (`sandbox`, `via: "bdk"`), or still a stub (`stub`, `via: null`).
+ *
+ * Backwards-compat: `list_experts`'s JSON payload also carries
+ * `ported: boolean` as a derived view (`status !== "stub"`), so the
+ * cleanup PR's consumers keep working.
+ */
+export type PortStatus = "sandbox" | "in-process" | "stub";
+export type PortVia = "bdk" | "mcp-handler" | null;
+
+export interface PortedRecord {
+  readonly status: PortStatus;
+  readonly via: PortVia;
+  /**
+   * Set when the classification manifest records an in-process-eligible
+   * expert that is *intentionally* kept as a sandboxed BDK agent (see
+   * `_summary.inProcessEligibleKeptAsSandbox` on the sibling manifest).
+   * Omitted (left `undefined`) for everything else so the ordinary
+   * `{status, via}` layering stays visually clean.
+   */
+  readonly keptAsSandbox?: true;
+}
+
+/**
+ * Resolve the Shape-C port status for a primary attest expert, driven by
+ * the sibling classification manifest at
+ * `src/experts/classification.generated.json`.
+ *
+ * Precedence:
+ *   1. An in-process handler registered via `registerInProcessExpert` wins.
+ *      (A sibling worker calling the dispatcher wants to see the
+ *      actually-wired path.)
+ *   2. Manifest classification `sandbox-required` → `{sandbox, bdk}`.
+ *   3. Manifest classification `in-process-eligible`, but listed in
+ *      `_summary.inProcessEligibleKeptAsSandbox` → `{sandbox, bdk,
+ *      keptAsSandbox: true}`.
+ *   4. Manifest classification `in-process-eligible` without a wired
+ *      handler → `{stub, null}`.
+ *   5. Manifest classification `stub` → `{stub, null}`.
+ *   6. Expert id absent from the manifest → `{stub, null}` (fail-open on
+ *      missing metadata; the catalog still lists the expert).
+ */
+export function portedForExpert(id: string): PortedRecord {
+  if (hasInProcessHandler(id)) return { status: "in-process", via: "mcp-handler" };
+  const classified = classifiedExpert(id);
+  if (!classified) return { status: "stub", via: null };
+  switch (classified.classification) {
+    case "sandbox-required":
+      return { status: "sandbox", via: "bdk" };
+    case "in-process-eligible":
+      if (inProcessEligibleKeptAsSandbox().includes(id)) {
+        return { status: "sandbox", via: "bdk", keptAsSandbox: true };
+      }
+      return { status: "stub", via: null };
+    case "stub":
+      return { status: "stub", via: null };
+    default:
+      return { status: "stub", via: null };
+  }
+}
+
+/**
+ * Re-export of the sibling manifest's "kept as sandbox" list so other
+ * modules (e.g. the inventory CLI, the policy engine's hot-reload path)
+ * don't have to depend on `./classification.ts` directly.
+ */
+export function keptAsSandboxList(): readonly string[] {
+  return inProcessEligibleKeptAsSandbox();
+}
+
+/**
+ * Shape-C classification summary + rubric; forwarded verbatim from the
+ * sibling attest-experts manifest. Lets the catalog JSON surface the
+ * `inProcessEligibleKeptAsSandbox` cohort without re-counting it here.
+ */
+export function classificationSummary(): object {
+  return loadClassificationManifest().summary;
+}
 
 export interface ExpertInvocationHint {
   readonly package: string;
@@ -49,6 +144,7 @@ export interface ExpertDescriptor {
   readonly requiredTools: string[];
   readonly promptName: string;
   readonly path: string;
+  readonly ported: PortedRecord;
 }
 
 export type ExpertCluster =
@@ -284,6 +380,11 @@ function titleFromId(id: string): string {
 
 let cached: ExpertDescriptor[] | null = null;
 
+/** Tests reset this after registering a new in-process handler. */
+export function resetListExpertsCache(): void {
+  cached = null;
+}
+
 export function listExperts(): ExpertDescriptor[] {
   if (cached) return cached;
   const dir = join(attestRoot().root, "agents");
@@ -319,6 +420,7 @@ export function listExperts(): ExpertDescriptor[] {
       requiredTools: enrichment.tools,
       promptName: `prompt_expert_${id.replace(/-/g, "_")}`,
       path: abs,
+      ported: portedForExpert(id),
     });
   }
   out.sort((a, b) => a.id.localeCompare(b.id));
@@ -346,6 +448,7 @@ export function expertCatalogJSON(): object {
       "expert id = attest primary agent filename minus '.md' (e.g. security-auditor.md -> 'security-auditor')",
     package: EXPERTS_PACKAGE,
     count: listExperts().length,
+    classificationSummary: classificationSummary(),
     experts: listExperts().map((e) => ({
       id: e.id,
       name: e.name,
@@ -355,6 +458,9 @@ export function expertCatalogJSON(): object {
       recommendedPhases: e.recommendedPhases,
       requiredTools: e.requiredTools,
       promptName: e.promptName,
+      portStatus: e.ported,
+      // back-compat with the sibling cleanup PR's boolean `ported` field.
+      ported: e.ported.status !== "stub",
     })),
   };
 }
@@ -385,6 +491,8 @@ export function expertManifestJSON(id: string): object {
     sourcePath: e.path,
     routing,
     persona,
+    portStatus: e.ported,
+    ported: e.ported.status !== "stub",
   };
 }
 

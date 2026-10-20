@@ -47,10 +47,41 @@ import {
   expertCatalogJSON,
   expertManifestJSON,
   invocationHintForAgent,
+  resetListExpertsCache,
 } from "./experts/registry.js";
+import {
+  describeAllHandlers,
+  dispatchInProcess,
+  type DispatcherOptions,
+  toolNameForHandler,
+} from "./experts/dispatcher.js";
+import {
+  listInProcessHandlers,
+  registerReferenceHandlers,
+} from "./experts/registry-handlers.js";
+import { getPolicyEngine } from "./policy/engine.js";
+import {
+  elicitationTransport,
+  type ApprovalTransport,
+} from "./elicitation/approval.js";
+import { registerPolicyTools, POLICY_TOOL_NAMES } from "./policy/tools.js";
 
 export const SERVER_NAME = "attest";
 export const SERVER_VERSION = "0.1.0";
+
+export interface BuildServerOptions {
+  /**
+   * Tests pass a mock transport to short-circuit the elicitation round
+   * trip. In normal operation the server builds a transport from itself
+   * at construction (see `buildServer`).
+   */
+  readonly approvalTransport?: ApprovalTransport;
+  /**
+   * Register the three Shape-C reference handlers before returning.
+   * Default true. Tests that register their own handlers pass `false`.
+   */
+  readonly registerReferenceHandlers?: boolean;
+}
 
 // Shared input schema for every validator tool. Typed as `any` because the
 // MCP SDK's registerTool generic unification over 79 identical schemas
@@ -136,6 +167,52 @@ const listExpertsInputSchema: any = {
     ),
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const invokeExpertInputSchema: any = {
+  expert_id: z
+    .string()
+    .describe(
+      "Id of the in-process expert handler to invoke (e.g. 'secrets-scanner'). Call list_experts or read attest://experts/handlers to see every registered handler.",
+    ),
+  input: z
+    .object({
+      goal: z.string().describe("Plain-English goal the expert should work on."),
+      projectRoot: z.string().optional().describe("Repo to analyse. Defaults to $ATTEST_TARGET_ROOT or the server's cwd."),
+      phase: z.string().optional().describe("Current SDLC phase id (e.g. 'phase-4')."),
+      taskId: z.string().optional().describe("Short-form task id — carried through the audit log."),
+      args: z.record(z.string(), z.unknown()).optional().describe("Handler-specific structured arguments."),
+    })
+    .describe("ExpertInput as declared in src/experts/types.ts."),
+  phase: z.string().optional().describe("Policy evaluation phase override. Defaults to input.phase or 'unknown'."),
+  task_id: z.string().optional().describe("Policy evaluation task-id override. Defaults to input.taskId."),
+  autonomy_mode: z
+    .enum(["interactive", "auto"])
+    .optional()
+    .describe("Autonomy mode (drives HITL transport selection). Defaults to 'interactive'."),
+  reason_for_approval: z
+    .string()
+    .optional()
+    .describe("Reason surfaced to the HITL approver when a capability requires approval."),
+};
+
+// Per-handler tool: same shape as invoke_expert minus `expert_id`.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const perHandlerInvokeInputSchema: any = {
+  input: z
+    .object({
+      goal: z.string(),
+      projectRoot: z.string().optional(),
+      phase: z.string().optional(),
+      taskId: z.string().optional(),
+      args: z.record(z.string(), z.unknown()).optional(),
+    })
+    .describe("ExpertInput as declared in src/experts/types.ts."),
+  phase: z.string().optional(),
+  task_id: z.string().optional(),
+  autonomy_mode: z.enum(["interactive", "auto"]).optional(),
+  reason_for_approval: z.string().optional(),
+};
+
 function registerPhaseGateTool(server: McpServer): void {
   server.registerTool(
     "phase_gate_check",
@@ -218,6 +295,271 @@ function registerRouteGoalTool(server: McpServer): void {
       }
     },
   );
+}
+
+// Shape-C: register the dispatcher tool (invoke_expert) + one
+// invoke_expert_<id> tool per registered in-process handler + the
+// per-handler attest://experts/<id>/handler resource + a top-level
+// attest://experts/handlers catalog resource.
+function registerInvokeExpertTools(
+  server: McpServer,
+  dispatcherOptions: DispatcherOptions,
+): void {
+  server.registerTool(
+    "invoke_expert",
+    {
+      title: "attest invoke expert",
+      description:
+        "Policy-mediated single entrypoint for every in-process expert handler. " +
+        "Looks up the handler by expert_id, runs the Cedar policy engine " +
+        "against each required capability (ATTEST_POLICY_MODE: OFF | LOG_ONLY | " +
+        "ENFORCE, default ENFORCE), elicits human approval for " +
+        "requireApproval decisions, then invokes the handler. Returns " +
+        "ExpertOutput or structured PolicyDenied / ApprovalRequired errors.",
+      inputSchema: invokeExpertInputSchema,
+    },
+    async (args: {
+      expert_id: string;
+      input: {
+        goal: string;
+        projectRoot?: string;
+        phase?: string;
+        taskId?: string;
+        args?: Record<string, unknown>;
+      };
+      phase?: string;
+      task_id?: string;
+      autonomy_mode?: "interactive" | "auto";
+      reason_for_approval?: string;
+    }) => {
+      return runDispatchAndFormat(
+        {
+          expertId: args.expert_id,
+          input: args.input,
+          phase: args.phase,
+          taskId: args.task_id,
+          autonomyMode: args.autonomy_mode,
+          toolName: "invoke_expert",
+          reasonForApproval: args.reason_for_approval,
+        },
+        dispatcherOptions,
+      );
+    },
+  );
+
+  for (const handler of listInProcessHandlers()) {
+    registerPerHandlerTool(server, handler.id, handler.cluster, dispatcherOptions);
+    registerPerHandlerResource(server, handler.id);
+  }
+
+  server.registerResource(
+    "experts-handlers",
+    "attest://experts/handlers",
+    {
+      title: "attest in-process expert handlers",
+      description:
+        "The in-process handlers this server has registered under the Shape-C " +
+        "framework. Includes required capabilities, derived tool name, and " +
+        "resource URI for the handler's own manifest.",
+      mimeType: "application/json",
+    },
+    async () => ({
+      contents: [
+        {
+          uri: "attest://experts/handlers",
+          mimeType: "application/json",
+          text: jsonText({
+            count: listInProcessHandlers().length,
+            handlers: describeAllHandlers(),
+          }),
+        },
+      ],
+    }),
+  );
+
+  server.registerResource(
+    "policy-config",
+    "attest://policy/config",
+    {
+      title: "attest Cedar policy engine config",
+      description:
+        "Active policy mode (OFF | LOG_ONLY | ENFORCE), Cedar runtime " +
+        "version, loaded policy ids, and the audit-log path. Read-only.",
+      mimeType: "application/json",
+    },
+    async () => {
+      const engine = getPolicyEngine();
+      const { resolveAuditPath } = await import("./policy/audit.js");
+      return {
+        contents: [
+          {
+            uri: "attest://policy/config",
+            mimeType: "application/json",
+            text: jsonText({
+              mode: engine.mode,
+              cedarVersion: engine.cedarVersion,
+              policyIds: engine.policyIds,
+              auditLogPath: resolveAuditPath(),
+              handlerCount: listInProcessHandlers().length,
+              handlers: describeAllHandlers().map((h) => ({ id: h.id, requiredCapabilities: h.requiredCapabilities })),
+            }),
+          },
+        ],
+      };
+    },
+  );
+}
+
+function registerPerHandlerTool(
+  server: McpServer,
+  id: string,
+  cluster: string,
+  dispatcherOptions: DispatcherOptions,
+): void {
+  const toolName = toolNameForHandler(id);
+  server.registerTool(
+    toolName,
+    {
+      title: `attest expert — ${id}`,
+      description:
+        `Shape-C in-process handler for the ${id} expert (${cluster} cluster). ` +
+        `Policy-mediated: every required capability is checked against the Cedar ` +
+        `bundle before invocation. Returns ExpertOutput or structured ` +
+        `PolicyDenied / ApprovalRequired errors.`,
+      inputSchema: perHandlerInvokeInputSchema,
+    },
+    async (args: {
+      input: {
+        goal: string;
+        projectRoot?: string;
+        phase?: string;
+        taskId?: string;
+        args?: Record<string, unknown>;
+      };
+      phase?: string;
+      task_id?: string;
+      autonomy_mode?: "interactive" | "auto";
+      reason_for_approval?: string;
+    }) => {
+      return runDispatchAndFormat(
+        {
+          expertId: id,
+          input: args.input,
+          phase: args.phase,
+          taskId: args.task_id,
+          autonomyMode: args.autonomy_mode,
+          toolName,
+          reasonForApproval: args.reason_for_approval,
+        },
+        dispatcherOptions,
+      );
+    },
+  );
+}
+
+function registerPerHandlerResource(server: McpServer, id: string): void {
+  const uri = `attest://experts/${id}/handler`;
+  server.registerResource(
+    `expert-handler-${id}`,
+    uri,
+    {
+      title: `attest handler manifest — ${id}`,
+      description:
+        `Shape-C handler manifest for ${id}: id, cluster, required ` +
+        `capabilities, and the inlined persona or persona source. Read by ` +
+        `sibling workers that need to bind to the same contract.`,
+      mimeType: "application/json",
+    },
+    async () => {
+      const handlers = describeAllHandlers();
+      const handler = handlers.find((h) => h.id === id);
+      const live = listInProcessHandlers().find((h) => h.id === id);
+      let persona: string | undefined;
+      if (live) {
+        try {
+          persona =
+            typeof live.persona === "string" ? live.persona : await live.persona();
+        } catch (err) {
+          persona = `[persona load failed: ${(err as Error).message}]`;
+        }
+      }
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: "application/json",
+            text: jsonText({
+              ...handler,
+              persona,
+            }),
+          },
+        ],
+      };
+    },
+  );
+}
+
+/**
+ * Format a `DispatchResult` into the MCP tool response shape consumed by
+ * the attest-conductor (PR #14) and any other MCP client. Contract:
+ * every payload carries a top-level `kind` field equal to one of
+ * `expert_output | policy_denied | approval_required`. The internal
+ * `unknown_expert` case is folded onto `policy_denied` (the server
+ * refuses to dispatch to a handler it does not have) so the conductor's
+ * three-case switch is exhaustive.
+ */
+async function runDispatchAndFormat(
+  request: Parameters<typeof dispatchInProcess>[0],
+  dispatcherOptions: DispatcherOptions,
+) {
+  try {
+    const result = await dispatchInProcess(request, dispatcherOptions);
+    switch (result.kind) {
+      case "expert_output":
+        return okContent({
+          kind: "expert_output",
+          ok: result.output.ok,
+          output: result.output,
+          decisions: result.decisions,
+        });
+      case "unknown_expert":
+        return errContent(
+          `unknown expert id: ${result.expertId}`,
+          {
+            kind: "policy_denied",
+            error: {
+              kind: "policy_denied",
+              expertId: result.expertId,
+              reason: "unknown_expert",
+              detail: "no in-process handler is registered for this expert id",
+              registered: result.registered,
+            },
+          },
+        );
+      case "policy_denied":
+        return errContent(
+          `policy denied: ${result.error.reason}`,
+          { kind: "policy_denied", error: result.error, decision: result.decision },
+        );
+      case "approval_required":
+        return errContent(
+          `approval required: ${result.error.reason} (${result.error.outcome})`,
+          { kind: "approval_required", error: result.error, decision: result.decision },
+        );
+    }
+  } catch (err) {
+    return errContent((err as Error).message, {
+      kind: "policy_denied",
+      tool: request.toolName ?? "invoke_expert",
+      expertId: request.expertId,
+      error: {
+        kind: "policy_denied",
+        expertId: request.expertId,
+        reason: "dispatch_exception",
+        detail: (err as Error).message,
+      },
+    });
+  }
 }
 
 function registerListExpertsTool(server: McpServer): void {
@@ -351,19 +693,59 @@ function errContent(message: string, extra: Record<string, unknown> = {}) {
 /**
  * Build and configure the MCP server. The transport is attached by the
  * caller (cli.ts) so the server itself is testable in-process.
+ *
+ * Shape-C additions (feat/shape-c-attest-mcp):
+ *   - Cedar policy engine evaluated server-side on every `invoke_expert[_<id>]`
+ *     call (see src/policy/engine.ts).
+ *   - In-process handler framework (see src/experts/types.ts and
+ *     src/experts/registry-handlers.ts).
+ *   - Three reference handlers (secrets-scanner, dependency-auditor,
+ *     semgrep-runner) registered by default.
+ *   - MCP elicitation gate for `requireApproval` decisions
+ *     (src/elicitation/approval.ts), fail-closed when the connected
+ *     client doesn't advertise elicitation.
  */
-export function buildServer(): McpServer {
+export function buildServer(options: BuildServerOptions = {}): McpServer {
+  // Shape-C HITL: advertise an `elicitation` capability on the wire so
+  // the attest-conductor (PR #14) picks the MCP-elicitation HITL path
+  // over GitHub-comment HITL. The conductor reads
+  // `ctx.capabilities?.elicitation` (or honours
+  // ATTEST_MCP_SUPPORTS_ELICITATION=1 as an env override). The MCP SDK's
+  // ServerCapabilities type does not currently include this key — it is
+  // formally a client capability in the vanilla spec — so we also
+  // mirror it under `experimental.elicitation` for implementations that
+  // only inspect the experimental namespace. The top-level `elicitation`
+  // field is the one the conductor keys on; the cast is deliberate.
+  const capabilities = {
+    tools: {},
+    resources: {},
+    prompts: {},
+    logging: {},
+    elicitation: {},
+    experimental: { elicitation: {} },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
-    {
-      capabilities: {
-        tools: {},
-        resources: {},
-        prompts: {},
-        logging: {},
-      },
-    },
+    { capabilities },
   );
+
+  // Register the three Shape-C reference handlers so list_experts flips
+  // their `ported.status` to "in-process" at startup. Tests that want
+  // isolation pass `registerReferenceHandlers: false`.
+  if (options.registerReferenceHandlers !== false) {
+    registerReferenceHandlers();
+    resetListExpertsCache();
+  }
+
+  // Build the elicitation transport from the server itself unless the
+  // caller injected a mock.
+  const approvalTransport = options.approvalTransport ?? elicitationTransport(server);
+  const dispatcherOptions: DispatcherOptions = { approvalTransport };
+
+  // Instantiate the policy engine eagerly so a bundle-parse failure
+  // surfaces at server construction, not on the first `invoke_expert`.
+  getPolicyEngine();
 
   // ── Tools: one per validator ────────────────────────────────────────────
   const validators = listValidators();
@@ -374,6 +756,14 @@ export function buildServer(): McpServer {
   registerPhaseGateTool(server);
   registerRouteGoalTool(server);
   registerListExpertsTool(server);
+  registerInvokeExpertTools(server, dispatcherOptions);
+  // Shape-C parity-contract tools (sibling cursor-build-target PR #13):
+  // evaluate_<kind>_policy, list_fences, request_approval,
+  // pre_dispatch_check. Mirrors `POLICY_TOOL_NAMES` in that generator.
+  registerPolicyTools(server, {
+    dispatcherOptions,
+    getApprovalTransport: () => approvalTransport,
+  });
 
   // ── Resource: attest://experts/catalog ─────────────────────────────────
   server.registerResource(
@@ -652,22 +1042,34 @@ export function serverInventory() {
   const expertCount = listExperts().length;
   const expertPromptCount = listExpertPrompts().length;
   const sdlcPromptCount = listSdlcModePrompts().length;
+  const handlerCount = listInProcessHandlers().length;
+  // Shape-C parity-contract tools from sibling cursor-build-target PR
+  // #13's POLICY_TOOL_NAMES: evaluate_shell_policy, evaluate_write_policy,
+  // evaluate_mcp_policy, list_fences, request_approval, pre_dispatch_check.
+  // (invoke_expert is counted separately below.)
+  const parityToolCount = 6;
   return {
     tools: {
       validators,
       phase_gate_check: 1,
       route_goal: 1,
       list_experts: 1,
-      total: validators + 3,
+      invoke_expert: 1,
+      invokeExpertHandlers: handlerCount,
+      parityContract: parityToolCount,
+      parityContractNames: POLICY_TOOL_NAMES,
+      total: validators + 4 + handlerCount + parityToolCount,
     },
     resources: {
       // phase-gate state-machine, routing-table, validators/catalog,
-      // experts/catalog (4 fixed) + N protocol resources + N expert
-      // manifest resources (the dynamic templates each list N children).
-      static: 4,
+      // experts/catalog (4 fixed) + experts/handlers + policy/config (2
+      // Shape-C additions) + N protocol resources + N expert manifest
+      // resources + N per-handler manifest resources.
+      static: 6,
       protocols: protocolCount,
       experts: expertCount,
-      total: 4 + protocolCount + expertCount,
+      handlers: handlerCount,
+      total: 6 + protocolCount + expertCount + handlerCount,
     },
     prompts: {
       experts: expertPromptCount,
