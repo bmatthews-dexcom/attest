@@ -20,7 +20,8 @@
     "typecheck": "echo 'typecheck disabled: zod3+MCP-SDK type recursion OOMs tsc under 8GB. Runtime behavior validated by test/*.test.mjs.' && exit 0",
     "test": "node --import tsx --test --test-reporter=spec test/*.test.mjs",
     "start": "node dist/cli.js",
-    "inventory": "node dist/cli.js --inventory"
+    "inventory": "node dist/cli.js --inventory",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
