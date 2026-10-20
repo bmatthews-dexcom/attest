@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: session-primer — read on demand.'
+alwaysApply: false
+---
+
+# session-primer
+
+This rule points at the attest shared protocol `agents/shared/SESSION_PRIMER.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/SESSION_PRIMER.md

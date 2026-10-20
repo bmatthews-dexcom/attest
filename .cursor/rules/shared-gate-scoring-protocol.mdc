@@ -1,0 +1,10 @@
+---
+description: 'HANDOFF resume scoring — 1-10 scale, asymmetric threshold, confidence gates, delegation log format. Load after a specialist returns before resuming the SDLC pipeline.'
+alwaysApply: false
+---
+
+# gate-scoring-protocol
+
+This rule points at the attest shared protocol `agents/shared/GATE_SCORING_PROTOCOL.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/GATE_SCORING_PROTOCOL.md

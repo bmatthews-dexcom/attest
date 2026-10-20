@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: tui-session-hygiene — read on demand.'
+alwaysApply: false
+---
+
+# tui-session-hygiene
+
+This rule points at the attest shared protocol `agents/shared/TUI_SESSION_HYGIENE.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/TUI_SESSION_HYGIENE.md
