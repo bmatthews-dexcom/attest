@@ -82,3 +82,6 @@ logs/
 .tmp-*/
 .tmp-realworld/
 docs/work/realworld-runs/
+
+# Deploy + live-eval artifacts (per-run, append-only; may contain transcript JSONL)
+artifacts/
