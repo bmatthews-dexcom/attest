@@ -125,6 +125,26 @@ Picked to span the clusters per the design report:
 | `code-reviewer`    | code-review | reads a diff, produces findings, no writes | `agents/code-reviewer.md` |
 | `landscape-mapper` | onboarding | reads unfamiliar codebase, produces orientation report | `agents/sdlc/onboard/landscape-mapper.md` |
 
+### Phase 2 code-review cluster port — five additional concrete experts
+
+The five always-run specialists `code-reviewer` dispatches across its two
+parallel waves (per `agents/code-reviewer.md` orchestrator table). All reads;
+no writes. Dispatched by the `code-reviewer` parent or directly by the
+conductor.
+
+| id | wave | source |
+|----|------|--------|
+| `complexity-analyzer`      | 1 | `agents/code-review/complexity-analyzer.md` |
+| `duplication-detector`     | 1 | `agents/code-review/duplication-detector.md` |
+| `error-handling-auditor`   | 1 | `agents/code-review/error-handling-auditor.md` |
+| `type-safety-checker`      | 2 | `agents/code-review/type-safety-checker.md` |
+| `dead-code-detector`       | 2 | `agents/code-review/dead-code-detector.md` |
+
+The remaining three code-review-cluster experts stay as Phase 2 stubs
+(`pattern-consistency-checker`, `anti-slop-auditor`,
+`code-health-synthesizer`) and will be ported in a follow-up. See
+`internal/phase2-code-review.md` in the project store for selection rationale.
+
 Each concrete expert ships `bot/instructions.md` (short intake + grounding +
 summarized methodology), `bot/tools/submit-report.ts`, and
 `bot/mcp-connections/attest.ts`. The persona is **not inlined** —
