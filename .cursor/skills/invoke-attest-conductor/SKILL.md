@@ -1,6 +1,6 @@
 ---
 name: invoke-attest-conductor
-description: 'Route a long-running / unattended attest task (autopilot, multi-phase SDLC build, scheduled runs) to the HOSTED conductor BDK agent. For small SDLC questions ("what phase?", "run the gate", "advance one step") prefer the sdlc-lead skill — do not wake the hosted conductor unless you actually need autopilot. The hosted conductor and sdlc-lead share one policy engine; this skill is specifically the "I need the long-running Ralph loop" door.'
+description: 'Route a long-running / unattended attest task (autopilot, multi-phase SDLC build, scheduled runs) to the HOSTED conductor BDK agent (workspace sibling attest-conductor). For small SDLC questions ("what phase?", "run the gate", "advance one step") prefer the sdlc-lead skill — do not wake the hosted conductor unless you actually need autopilot. The hosted conductor and sdlc-lead share one policy engine; this skill is specifically the "I need the long-running Ralph loop" door.'
 disable-model-invocation: true
 ---
 
@@ -9,10 +9,12 @@ disable-model-invocation: true
   Two chiefs:
     • sdlc-lead (.cursor/skills/sdlc-lead/SKILL.md + agents/sdlc-lead.md)
       — editor-side chief for interactive /sdlc work.
-    • conductor (@bpmforge/attest-conductor)
+    • conductor (workspace sibling attest-conductor, served via BDK)
       — hosted BDK chief for /autopilot and GitHub-driven work.
   Pick sdlc-lead for small / interactive asks; this skill for long-running
-  unattended work. See .cursor/README.md for the full two-chief design.
+  unattended work. Local-only — attest-conductor is a workspace sibling
+  and is NEVER fetched from npm. See .cursor/README.md for the full
+  two-chief design.
 -->
 
 # invoke-attest-conductor
@@ -24,9 +26,11 @@ has **two chiefs** it can wake up:
    (`.cursor/skills/sdlc-lead/SKILL.md` and
    `.cursor/agents/sdlc-lead.md`). The user is at the keyboard, the
    turn is short-lived, the ask fits in one Cursor conversation.
-2. **The hosted conductor** — `@bpmforge/attest-conductor`, a BDK
-   agent in its own pod running the Ralph loop. The user has closed
-   their laptop, the ask is multi-phase, or the trigger is GitHub.
+2. **The hosted conductor** — the workspace sibling `attest-conductor`
+   (served locally via the `attest-conductor` MCP entry; the Cursor-
+   hosted deploy path is `npx @cursor/bdk deploy` from
+   `packages/attest-conductor`). The user has closed their laptop,
+   the ask is multi-phase, or the trigger is GitHub.
 
 **This skill is specifically the hosted-conductor door.** For
 interactive SDLC asks, prefer sdlc-lead — do not wake the hosted

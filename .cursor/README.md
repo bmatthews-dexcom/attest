@@ -6,18 +6,29 @@ Do not edit any file under `.cursor/` by hand — CI runs
 sources in `agents/`, `agents/shared/chiefs/`, `skills/`,
 `rules/`, and `plugins/`, then run `npm run build:cursor`.
 
-## Architecture — two chiefs, one policy engine
+## Architecture — two chiefs, one policy engine (LOCAL-ONLY)
 
 attest's expert personas do **not** ship here as Cursor custom-mode /
-subagent files. They live either as in-process handlers inside
-`@bpmforge/attest-mcp` (readers / analyzers / validators) or as
-sandbox-isolated BDK agents in `@bpmforge/attest-experts` (writers /
-publishers / pushers). The chief is split in two:
+subagent files. They live either as in-process handlers inside the
+workspace sibling `attest-mcp` (readers / analyzers /
+validators) or as sandbox-isolated BDK agents in the workspace sibling
+`attest-experts` (writers / publishers / pushers). The chief
+is split in two:
 
 | Chief | Lives in | Starts a turn when | Owns |
 |---|---|---|---|
-| **Hosted conductor** (`@bpmforge/attest-conductor`) | BDK pod | GitHub webhook (`/autopilot <goal>`) or scheduled run | Long-running, unattended autopilot |
+| **Hosted conductor** (workspace sibling `attest-conductor`) | BDK pod (local or Cursor-hosted) | GitHub webhook (`/autopilot <goal>`) or scheduled run | Long-running, unattended autopilot |
 | **sdlc-lead** (`.cursor/skills/sdlc-lead/SKILL.md` + `.cursor/agents/sdlc-lead.md`) | Cursor Agent in the user's editor | User keystroke in Cursor chat (`/sdlc …`, phase question, routing ask) | Interactive /sdlc work |
+
+> **Local-only — hard constraint.** `attest-mcp`,
+> `attest-experts`, and `attest-conductor` are
+> workspace siblings in `packages/`. They are **never** fetched from
+> the npm registry — not via `npx`'s auto-install flag, not under any
+> flag. The generated `.cursor/` tree invokes them through local
+> workspace paths; a missing local build is a loud error, not a silent
+> download. The Cursor-hosted deploy path for the conductor is
+> `npx @cursor/bdk deploy` from `packages/attest-conductor`;
+> `@cursor/bdk` is Cursor's own tool and the only outside dependency.
 
 Both share one `attest-mcp` policy engine, one `attest-experts`
 fleet, and one phase-gate state machine. See
@@ -47,7 +58,7 @@ hook layer for the editor-side "no" before destructive ops.
 
 api-ground, design-options, explore, game-asset-pipeline, gate, goal, pre-code, reflow, simplify, vault, wave, invoke-attest-conductor, sdlc-lead
 
-### Dropped skills (personas — live in @bpmforge/attest-experts, 37 total)
+### Dropped skills (personas — live in the workspace sibling attest-experts, 37 total)
 
 a11y, analytics, api-design, architect, autopilot, challenge, code, containers, cost, data-governance, dba, design-iterate, devops, documentation-gap-finder, end-user-simulator, frontend, gauntlet, git, guide, llm-integration, migration-planner, onboard-gap-fill, onboard-inventory, onboard-verify, perf, release, reliability, research, review, review-code, sdlc, security, steward, test-expert, ui-verify, user-guide, ux
 
@@ -65,10 +76,23 @@ Two hooks delegate to the attest-mcp policy engine on every call:
 | `hooks/evaluate-shell-policy.sh` | `beforeShellExecution` | `attest.evaluate_shell_policy` |
 | `hooks/evaluate-write-policy.sh` | `preToolUse` matcher `Write`/`Edit` | `attest.evaluate_write_policy` |
 
-Each hook pipes the Cursor hook JSON into `attest-mcp-policy evaluate --kind=<shell|write>`
-(fallback: `npx -y @bpmforge/attest-mcp policy --kind=<shell|write>`),
-expects a Cursor hook decision JSON on stdout, and respects the
-`ATTEST_POLICY_MODE` env var:
+Each hook walks a **local-only** invocation chain, in order:
+
+1. `attest-mcp-policy evaluate --kind=<shell|write>` — the
+   dedicated bin shipped by `attest-mcp`'s `bin` field;
+   resolves via `./node_modules/.bin/` after `npm install` at
+   the repo root.
+2. `attest-mcp policy --kind=<shell|write>` — the main
+   `attest-mcp` CLI's `policy` subcommand (compat path).
+3. **Hard fail.** The hook never shells out to `npx` with the
+   auto-install flag, never passes `--package=…`, never fetches
+   from the npm registry under any flag. If neither bin resolves, the
+   hook returns a crisp error naming the install step
+   (`npm install at repo root (packages/* are workspace siblings; attest-mcp is NOT published to npm)`).
+
+The hook pipes the Cursor hook JSON into whichever bin resolves,
+expects a Cursor hook decision JSON on stdout, and respects
+`ATTEST_POLICY_MODE`:
 
 - `ENFORCE` — fail-closed on engine error or `deny`.
 - `LOG_ONLY` — log + allow on engine error (dev / policy authoring).
@@ -87,18 +111,39 @@ remains the authoritative chokepoint; the user hears the refusal via
 the MCP error. Reintroduce the client-side mirror when Cursor adds the
 hook.
 
-## Shape-C MCP servers
+## Shape-C MCP servers (LOCAL-ONLY)
 
-`.cursor/mcp.json` wires three MCP servers:
+`.cursor/mcp.json` wires three MCP servers; all three are invoked via
+LOCAL workspace paths — no auto-install `npx`, no registry fetch:
 
-- `attest` — `npx -y @bpmforge/attest-mcp`. The policy host and the
+- `attest` — `node ./packages/attest-mcp/dist/cli.js`. The policy host and the
   validator surface. Policy tools (new in Shape C): `evaluate_shell_policy` (shell), `evaluate_write_policy` (write), `evaluate_mcp_policy` (mcp), `list_fences` (fences), `request_approval` (approval), `invoke_expert` (invoke), `pre_dispatch_check` (preDispatch).
-- `attest-conductor` — the hosted BDK chief (`bdk serve` locally, or
-  swap for an HTTP MCP transport pointing at the deployed URL).
-- `attest-policy-dev` — a second attest-mcp instance pinned to
+- `attest-conductor` — `cursor-bdk serve --dir ./packages/attest-conductor --mode single`.
+  The Cursor-published `@cursor/bdk` tool must be installed as a
+  workspace devDependency ahead of time; do NOT expect it to be
+  fetched at hook time. For a Cursor-hosted deploy, swap this stanza
+  for an HTTP MCP transport pointing at the URL that
+  `npx @cursor/bdk deploy` returned.
+- `attest-policy-dev` — same local build as `attest`, pinned to
   `ATTEST_POLICY_MODE=LOG_ONLY` so sdlc-lead can author / test
   policies against a live engine without blocking the user. Decisions
   go to `docs/work/policy-decisions.jsonl` via the hooks.
+
+### Local install (one-time)
+
+Before Cursor can launch the MCP servers or run the policy hooks:
+
+```sh
+npm install                               # links workspace siblings into
+                                           # ./node_modules/.bin/
+npm --workspace packages/attest-mcp run build
+                                           # produces the dist/ output
+                                           # that mcp.json invokes
+```
+
+Neither step touches the registry for `attest-mcp`,
+`attest-experts`, or `attest-conductor` — they are
+workspace packages, linked locally.
 
 ### Flipping policy mode: LOG_ONLY → ENFORCE
 
