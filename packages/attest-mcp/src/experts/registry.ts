@@ -29,6 +29,7 @@ import { basename, join } from "node:path";
 import { attestRoot } from "../sources.js";
 import { PHASES, PhaseId } from "../phase-gate/state-machine.js";
 import { ROUTING_TABLE } from "../routing/table.js";
+import { isPorted } from "./ported.js";
 
 export const EXPERTS_PACKAGE = "@bpmforge/attest-experts";
 
@@ -49,6 +50,15 @@ export interface ExpertDescriptor {
   readonly requiredTools: string[];
   readonly promptName: string;
   readonly path: string;
+  /**
+   * True when this expert ships as a concrete BDK agent in
+   * `@bpmforge/attest-experts`. False means the sibling pack still exposes
+   * only a `refuse-not-ported` stub for this id — orchestrators should
+   * route around it or escalate. See src/experts/ported.ts for the
+   * resolution source (env override → attest-experts manifest → hardcoded
+   * Phase-1 fallback).
+   */
+  readonly ported: boolean;
 }
 
 export type ExpertCluster =
@@ -319,6 +329,7 @@ export function listExperts(): ExpertDescriptor[] {
       requiredTools: enrichment.tools,
       promptName: `prompt_expert_${id.replace(/-/g, "_")}`,
       path: abs,
+      ported: isPorted(id),
     });
   }
   out.sort((a, b) => a.id.localeCompare(b.id));
@@ -355,6 +366,7 @@ export function expertCatalogJSON(): object {
       recommendedPhases: e.recommendedPhases,
       requiredTools: e.requiredTools,
       promptName: e.promptName,
+      ported: e.ported,
     })),
   };
 }
@@ -385,6 +397,7 @@ export function expertManifestJSON(id: string): object {
     sourcePath: e.path,
     routing,
     persona,
+    ported: e.ported,
   };
 }
 

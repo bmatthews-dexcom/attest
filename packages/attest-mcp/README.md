@@ -46,8 +46,16 @@ node dist/cli.js --inventory
   to `/guide` for ambiguous goals rather than guessing.
 - `list_experts` — returns the structured catalog of every primary expert
   agent (id, name, summary, cluster, invocation hint, recommended SDLC phases,
-  required-tool list, prompt name, manifest URI). Supports `cluster` and
-  `phase` filters.
+  required-tool list, prompt name, manifest URI, **`ported` flag**).
+  `ported: true` means the sibling `@bpmforge/attest-experts` pack ships a
+  concrete BDK agent for this id; `ported: false` means it still exposes
+  only a `refuse-not-ported` stub, so an orchestrator should route around
+  it or escalate. Supports `cluster` and `phase` filters. The resolution
+  of `ported` reads `ATTEST_EXPERTS_MANIFEST`, then
+  `packages/attest-experts/lib/experts.generated.json` under the resolved
+  attest checkout, then falls back to the hardcoded Phase-1 three
+  (`security-auditor`, `code-reviewer`, `landscape-mapper`). See
+  `src/experts/ported.ts`.
 
 **Resources (74 total):**
 
@@ -61,9 +69,10 @@ node dist/cli.js --inventory
   form, browsable by any MCP client (same data; different access surface).
 - `attest://experts/<id>` — one dynamic resource per primary expert; returns
   the manifest with the **full persona prompt**, routing rationale(s) from the
-  `/guide` table, invocation hint, cluster, recommended phases, and required
-  tools. Consumed by `@bpmforge/attest-experts` BDK agents to stay in sync
-  with attest's source of truth. 33 experts as of attest v3.9.0.
+  `/guide` table, invocation hint, cluster, recommended phases, required
+  tools, and `ported` flag (same semantics as `list_experts`). Consumed by
+  `@bpmforge/attest-experts` BDK agents to stay in sync with attest's source
+  of truth. 33 experts as of attest v3.9.0.
 - `attest://protocols/<slug>` — one dynamic resource per shared protocol in
   `agents/shared/*.md` (e.g. `attest://protocols/handoff-templates`,
   `attest://protocols/gate-scoring-protocol`). 37 protocols as of attest
@@ -199,6 +208,7 @@ runs out of repo A.
 |---|---|---|
 | `ATTEST_ROOT` | (bundled copy) | Where to read validator scripts + protocol markdown from |
 | `ATTEST_TARGET_ROOT` | `process.cwd()` | Which repo validators run against (overridable per-call via `projectRoot`) |
+| `ATTEST_EXPERTS_MANIFEST` | (resolved from attest checkout) | Absolute path to an `experts.generated.json`-shaped file. Override the ported-set source for evals / tests. See [`src/experts/ported.ts`](./src/experts/ported.ts) for the full resolution order. |
 | `EXPERTS_TELEMETRY` | `0` (forced by the server) | Forwarded to `_lib.sh` only when a tool call sets `enableTelemetry: true` |
 
 ## Client configuration
