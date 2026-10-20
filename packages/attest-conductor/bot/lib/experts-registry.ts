@@ -1,30 +1,18 @@
 /**
- * Registry of expert BDK agents the conductor can dispatch.
+ * Local fallback expert catalog — Shape C.
  *
- * **Default: stub mode.** `dispatch_expert` returns canned responses that
- * are good enough for the eval loop and local dev before the sibling
- * `packages/attest-experts/` package publishes real agent slugs.
+ * Under Shape C the authoritative expert list lives in attest-mcp's
+ * `list_experts` MCP tool. The conductor's local copy is a cosmetic
+ * fallback used only when attest-mcp is unavailable (stub mode) and in
+ * the Ralph prompt as a hint catalog. All transport selection
+ * (in-process handler vs sandbox BDK agent) is attest-mcp's call — this
+ * file carries no env-var resolution, no peer-slug derivation, no mode
+ * switching. See `docs/attest-chief-architecture.md` §3.3.
  *
- * **Peer mode.** When the attest-experts worker lands and the experts are
- * mounted on the same serve host, override per expert with
- * `ATTEST_EXPERT_<ID>_PEER=<slug>` so `dispatch_expert` calls
- * `host.mcp.callTool(<slug>, "ask", { message })`. Each referenced slug
- * must also be authored as a peer MCP connection file under
- * `bot/mcp-connections/` so the serve host can address it.
- *
- * **HTTP mode (fallback).** `ATTEST_EXPERT_<ID>_URL=https://…` points
- * at a deployed BDK agent reachable over HTTP; `dispatch_expert` POSTs the
- * message to `<URL>/v1/session`. Used only when the experts are not on
- * the same serve host.
- *
- * The <ID> part of the env name is the expert id upper-cased with `-`
- * replaced by `_` (e.g. `security-reviewer` → `SECURITY_REVIEWER`).
+ * The old Shape-A `resolveExpertMode(expertId)` + `ATTEST_EXPERT_*_PEER` /
+ * `..._URL` env knobs were removed in favor of attest-mcp's policy-mediated
+ * `invoke_expert` which handles sandbox-vs-in-process routing.
  */
-
-export type ExpertMode =
-  | { kind: "stub" }
-  | { kind: "peer"; slug: string }
-  | { kind: "http"; url: string };
 
 export type ExpertRegistryEntry = {
   id: string;
@@ -32,12 +20,6 @@ export type ExpertRegistryEntry = {
   invocationHint: string;
 };
 
-/**
- * The canonical expert list the conductor's prompt + stub route against.
- * The real list lives in attest-mcp's `route_goal` tool; this is only used
- * to validate dispatch inputs and to render the `list_experts` tool
- * output. Keep in sync with the sibling `packages/attest-experts/`.
- */
 export const DEFAULT_EXPERT_REGISTRY: readonly ExpertRegistryEntry[] = [
   {
     id: "guide",
@@ -70,23 +52,6 @@ export const DEFAULT_EXPERT_REGISTRY: readonly ExpertRegistryEntry[] = [
     invocationHint: "Pass the deliverable list — docs chases those paths.",
   },
 ];
-
-export function expertEnvKey(expertId: string, suffix: "PEER" | "URL"): string {
-  const normalized = expertId.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
-  return `ATTEST_EXPERT_${normalized}_${suffix}`;
-}
-
-export function resolveExpertMode(expertId: string, env: NodeJS.ProcessEnv = process.env): ExpertMode {
-  const peer = env[expertEnvKey(expertId, "PEER")];
-  if (peer && peer.trim() !== "") {
-    return { kind: "peer", slug: peer.trim() };
-  }
-  const url = env[expertEnvKey(expertId, "URL")];
-  if (url && url.trim() !== "") {
-    return { kind: "http", url: url.trim() };
-  }
-  return { kind: "stub" };
-}
 
 export function knownExpertIds(): string[] {
   return DEFAULT_EXPERT_REGISTRY.map((e) => e.id);
