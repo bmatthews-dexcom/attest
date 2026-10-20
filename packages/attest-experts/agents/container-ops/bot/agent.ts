@@ -1,5 +1,6 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/container-ops.md
+// Shape C — sandbox-required BDK agent (stub pending full persona port + eval)
+// Attest source: agents/container-ops.md
+// Classification rationale: Execution step 4 explicitly says 'write/update Dockerfiles, compose, scripts' — write:fs to repo source.
 import { defineStubExpert } from "../../../lib/expert-factory.js";
 import type { ExpertMetadata } from "../../../lib/expert-registry.js";
 

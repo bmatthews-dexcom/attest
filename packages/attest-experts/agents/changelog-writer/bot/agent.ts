@@ -1,5 +1,6 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/changelog-writer.md
+// Shape C — sandbox-required BDK agent (stub pending full persona port + eval)
+// Attest source: agents/changelog-writer.md
+// Classification rationale: Writes CHANGELOG.md directly at repo root (not under docs/) in Keep-a-Changelog format — write:fs to a checked-in source file.
 import { defineStubExpert } from "../../../lib/expert-factory.js";
 import type { ExpertMetadata } from "../../../lib/expert-registry.js";
 

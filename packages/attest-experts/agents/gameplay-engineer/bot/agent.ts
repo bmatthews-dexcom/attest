@@ -1,5 +1,6 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/game/gameplay-engineer.md
+// Shape C — sandbox-required BDK agent (stub pending full persona port + eval)
+// Attest source: agents/game/gameplay-engineer.md
+// Classification rationale: WRITE-SCOPE = 'the source dirs named in the HANDOFF + docs/design/game/TECH_NOTES.md' — write:fs to repo source.
 import { defineStubExpert } from "../../../lib/expert-factory.js";
 import type { ExpertMetadata } from "../../../lib/expert-registry.js";
 
