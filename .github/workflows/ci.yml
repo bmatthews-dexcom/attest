@@ -66,14 +66,26 @@ jobs:
   # signal legible.
   #
   # What it does:
-  #   1. `npm run build:claude:check -- --out <tmp>` against a freshly-
-  #      regenerated Claude tree in /tmp (sidesteps the "sibling repo not
-  #      yet regenerated on a feature-branch PR" problem that keeps the
-  #      real build:claude:check on push-to-main above).
-  #   2. `npm run build:cursor:check` against the committed .cursor/ tree.
-  #   3. `node scripts/check-target-parity.mjs` — regenerates both targets
-  #      fresh and asserts every per-target difference is listed in
+  #   1. `npm run build:cursor:check` against the committed .cursor/ tree
+  #      (in-tree drift gate: catches hand edits to .cursor/* or a
+  #      forgotten `npm run build:cursor` after changing a source).
+  #   2. `node scripts/check-target-parity.mjs` — the cross-target gate.
+  #      Internally regenerates BOTH targets fresh into /tmp as a smoke
+  #      test (so if the Claude generator is broken, this fails loudly),
+  #      then asserts every per-target difference is listed in
   #      scripts/target-parity.config.mjs.
+  #
+  # Why not also run `npm run build:claude:check` here:
+  #   `build-target-claude.mjs --check` additionally runs a skills-parity
+  #   assertion against OUT/skills/*/SKILL.md. Claude's skills are
+  #   HAND-MAINTAINED in the sibling attest-claude repo (per the header
+  #   of build-target-claude.mjs — the generator intentionally does not
+  #   emit them). Running --check against a fresh /tmp regen reports
+  #   every source skill as "missing from attest-claude" and exits 1 —
+  #   the step is incoherent without a real sibling checkout. The `test`
+  #   job above runs the real build:claude:check on push-to-main against
+  #   the public sibling for exactly that reason; the parity script's
+  #   internal regen covers "Claude generator still runs cleanly" here.
   cursor-opencode-parity:
     runs-on: ubuntu-latest
     steps:
@@ -115,14 +127,6 @@ jobs:
       - name: build:cursor:check (in-tree Cursor target drift gate)
         if: steps.changed.outputs.run == 'true'
         run: npm run build:cursor:check
-      - name: build:claude:check (against fresh regeneration)
-        if: steps.changed.outputs.run == 'true'
-        run: |
-          set -eu
-          tmp=$(mktemp -d)
-          # Regenerate first (so --check has something to compare against).
-          node scripts/build-target-claude.mjs --write --out "$tmp" >/dev/null
-          node scripts/build-target-claude.mjs --check --out "$tmp"
       - name: check-target-parity (OpenCode↔Cursor cross-target gate)
         if: steps.changed.outputs.run == 'true'
         run: node scripts/check-target-parity.mjs
