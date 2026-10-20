@@ -73,6 +73,102 @@ function buildPerValidatorStubs(): Record<string, AttestStubTool> {
 }
 
 export const attestStubTools: Record<string, AttestStubTool> = {
+  invoke_expert: {
+    description:
+      "attest-mcp stub: Shape-C policy-mediated expert invocation. Evaluates policy, routes to the in-process handler or sandbox BDK expert, returns one of `expert_output`, `policy_denied`, or `approval_required`. The stub returns `expert_output` by default; set `input.simulate` to `policy_denied` / `approval_required` to drive the other branches in tests.",
+    inputSchema: z.object({
+      expertId: z.string(),
+      taskId: z.string(),
+      phase: z.string().optional(),
+      prompt: z.string().optional(),
+      input: z.record(z.string(), z.unknown()).optional(),
+      approvalId: z.string().optional(),
+    }),
+    execute(input) {
+      const expertId = String(input.expertId ?? "unknown");
+      const simulate =
+        (input.input as Record<string, unknown> | undefined)?.simulate ??
+        process.env.ATTEST_INVOKE_SIMULATE;
+      if (simulate === "policy_denied") {
+        return {
+          kind: "policy_denied",
+          reason: `stub policy denies expert ${expertId} at phase ${input.phase ?? "unknown"}`,
+          capability: "write:src",
+          ruleId: "stub.default-deny",
+        };
+      }
+      if (simulate === "approval_required") {
+        return {
+          kind: "approval_required",
+          capability: "write:src",
+          approver: "repo-maintainer",
+          prompt: `expert ${expertId} needs approval to write src/ at phase ${input.phase ?? "unknown"}`,
+          destructiveOp: "write:src",
+          target: (input.input as Record<string, unknown> | undefined)?.target ?? null,
+        };
+      }
+      return {
+        kind: "expert_output",
+        summary: `[stub ${expertId}] handled "${String(input.prompt ?? "").slice(0, 120)}" at phase ${input.phase ?? "unknown"}`,
+        result: {
+          stubbed: true,
+          expertId,
+          phase: input.phase ?? null,
+          approvalId: input.approvalId ?? null,
+        },
+      };
+    },
+  },
+  pre_dispatch_check: {
+    description:
+      "attest-mcp stub: Shape-C policy preview. Returns `{ decision: 'allow' | 'deny' | 'requires-approval', reason?, capability?, ruleId? }` without actually invoking. Set `scope.simulate` or `ATTEST_PRECHECK_SIMULATE` env to steer in tests.",
+    inputSchema: z.object({
+      expertId: z.string(),
+      taskId: z.string(),
+      phase: z.string().optional(),
+      scope: z.record(z.string(), z.unknown()).optional(),
+    }),
+    execute(input) {
+      const simulate =
+        (input.scope as Record<string, unknown> | undefined)?.simulate ??
+        process.env.ATTEST_PRECHECK_SIMULATE;
+      if (simulate === "deny") {
+        return {
+          decision: "deny",
+          reason: `stub pre_dispatch denies ${String(input.expertId)}`,
+          capability: "write:src",
+          ruleId: "stub.deny",
+        };
+      }
+      if (simulate === "requires-approval") {
+        return {
+          decision: "requires-approval",
+          reason: `stub pre_dispatch wants approval for ${String(input.expertId)}`,
+          capability: "write:src",
+        };
+      }
+      return { decision: "allow", capability: "read:workspace" };
+    },
+  },
+  request_approval: {
+    description:
+      "attest-mcp stub: MCP elicitation path. Returns `{ approved, reason, by }` based on `ATTEST_APPROVAL_SIMULATE` env (`approve` | `deny` | default `deny`). Real server runs MCP elicitation per the spec.",
+    inputSchema: z.object({
+      reason: z.string().optional(),
+      destructive_op: z.string().optional(),
+      target: z.string().optional(),
+      approvalId: z.string().optional(),
+      taskId: z.string().optional(),
+      capability: z.string().optional(),
+    }),
+    execute() {
+      const simulate = process.env.ATTEST_APPROVAL_SIMULATE;
+      if (simulate === "approve") {
+        return { approved: true, by: "stub-human", reason: "stub elicitation accept" };
+      }
+      return { approved: false, by: "stub-human", reason: "stub elicitation declined" };
+    },
+  },
   route_goal: {
     description:
       "attest-mcp stub: pick the expert / phase for a goal. Returns the next unit and the validator names the conductor should run after delegating.",

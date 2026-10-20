@@ -9,15 +9,16 @@ import { defineEval } from "@cursor/bdk/evals";
  * another validator, or escalating here are all wrong.
  */
 export default defineEval({
-  tags: ["ralph", "unit", "conductor"],
+  tags: ["ralph", "unit", "conductor", "shape-c"],
   description:
-    "Ralph prompt at phase=done with zero open findings produces exactly a mark_done tool call.",
+    "Shape C: Ralph prompt at phase=done with zero open findings produces exactly a mark_done tool call. Shape-A `dispatch_expert` must never reappear.",
   async test(t) {
     const taskId = "task_demo_final";
     await t.send(
       [
         `You are the attest autopilot conductor for task ${taskId}.`,
         "Goal: ship CVE-2026-1337 patch",
+        "Autonomy mode: auto",
         "",
         "Current state (compact JSON — the only thing that changes between iterations):",
         "```json",
@@ -30,6 +31,9 @@ export default defineEval({
             iterationCap: 6,
             consecutiveNoProgress: 0,
             consecutiveNoProgressCap: 3,
+            autonomyMode: "auto",
+            pendingApprovalIds: [],
+            githubContext: null,
             recentPhaseHistory: [
               { phase: "build", enteredAtMs: 1_000, reason: "intake gate green" },
               { phase: "verify", enteredAtMs: 2_000, reason: "build gate green" },
@@ -63,10 +67,10 @@ export default defineEval({
         "",
         "## Decide and perform the single next step toward the goal",
         "",
-        "Pick exactly one of: dispatch_expert, phase_gate_check (then",
-        "validate_<name>), advance_phase, record_finding, update_scratchpad,",
-        "compact_state, mark_done, escalate. Use actionId: \"final-5\". Then",
-        "end the turn.",
+        "Pick exactly one of: pre_dispatch_check, invoke_expert, phase_gate_check,",
+        "validate_<name>, advance_phase, record_finding, update_scratchpad,",
+        "compact_state, mark_done, escalate, request_approval, set_autonomy_mode.",
+        "Use actionId: \"final-5\". Then end the turn.",
       ].join("\n"),
     );
 
@@ -74,6 +78,8 @@ export default defineEval({
 
     t.calledTool("mark_done");
     t.notCalledTool("escalate");
+    t.notCalledTool("invoke_expert");
+    // Shape-A tool name must not reappear anywhere.
     t.notCalledTool("dispatch_expert");
     t.notCalledTool("advance_phase");
 
