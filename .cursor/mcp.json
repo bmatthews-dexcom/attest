@@ -1,7 +1,8 @@
 {
-  "$note": "Two MCP servers: `attest` (stdio, published as @bpmforge/attest-mcp) exposes 77 validators + phase_gate_check + route_goal + list_experts; `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop. See .cursor/skills/invoke-attest-conductor/SKILL.md for the three-path dial-out (preferred: MCP tool, fallback: HTTPS, fallback: GitHub comment).",
+  "$note": "Three MCP servers under Shape C: `attest` (stdio, published as @bpmforge/attest-mcp) hosts the Shape-C policy engine + in-process expert handlers + 77 validators + phase_gate_check + route_goal + list_experts; `attest-conductor` is the hosted BDK chief for /autopilot and GitHub-driven work; `attest-policy-dev` is a second attest-mcp instance pinned to ATTEST_POLICY_MODE=LOG_ONLY so the editor-side chief can author policies without blocking the user. See .cursor/README.md \"Shape-C policy mode flip\" for how to flip to ENFORCE.",
   "mcpServers": {
     "attest": {
+      "$comment": "Primary attest-mcp server. Under Shape C this is both the validator surface (unchanged) and the policy host (new in Shape C: evaluate_shell_policy, evaluate_write_policy, evaluate_mcp_policy, list_fences, request_approval, invoke_expert, pre_dispatch_check). Default mode is the attest-mcp server's own default (ENFORCE once the policy bundle lands); override per-user by setting ATTEST_POLICY_MODE in the user's shell env.",
       "command": "npx",
       "args": [
         "-y",
@@ -20,6 +21,17 @@
         "--mode",
         "single"
       ]
+    },
+    "attest-policy-dev": {
+      "$comment": "Shape-C local-dev policy engine. Same binary as `attest`, pinned to ATTEST_POLICY_MODE=LOG_ONLY so the editor-side chief (sdlc-lead) can test policies without blocking the user. Decisions get written through to `docs/work/policy-decisions.jsonl` by the policy hooks. Flip to ENFORCE (either here or in the `attest` entry) when the policy bundle is trusted; see .cursor/README.md.",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@bpmforge/attest-mcp"
+      ],
+      "env": {
+        "ATTEST_POLICY_MODE": "LOG_ONLY"
+      }
     }
   }
 }

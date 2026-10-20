@@ -1,6 +1,6 @@
 ---
 name: api-ground
-description: 'Ground the agent in a library''''s real API before writing code against it — generate a version-pinned reference from the installed package, not from training data. Use before adopting a library, after a major upgrade, or when generated code keeps calling methods that do not exist.'
+description: 'Ground the agent in a library''s real API before writing code against it — generate a version-pinned reference from the installed package, not from training data. Use before adopting a library, after a major upgrade, or when generated code keeps calling methods that do not exist.'
 disable-model-invocation: true
 ---
 <!--

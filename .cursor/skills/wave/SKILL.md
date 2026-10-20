@@ -1,6 +1,6 @@
 ---
 name: wave
-description: 'Wave integration gate (Level 2) — after a wave of tickets lands, composes a reviewer set from the aggregate diff, runs the reviewers CONCURRENTLY in isolated contexts, ingests their finding SETS (summaries, never transcripts), and synthesizes one consensus-weighted wave-gate report with each finding attributed to the ticket that introduced it. NOT /gauntlet (rebuilds until work beats a named bar); NOT /challenge (verifies factual claims in one artifact); NOT /review (one-pass verdict on one change) — this gates a whole wave''''s integrated result.'
+description: 'Wave integration gate (Level 2) — after a wave of tickets lands, composes a reviewer set from the aggregate diff, runs the reviewers CONCURRENTLY in isolated contexts, ingests their finding SETS (summaries, never transcripts), and synthesizes one consensus-weighted wave-gate report with each finding attributed to the ticket that introduced it. NOT /gauntlet (rebuilds until work beats a named bar); NOT /challenge (verifies factual claims in one artifact); NOT /review (one-pass verdict on one change) — this gates a whole wave''s integrated result.'
 disable-model-invocation: true
 ---
 <!--

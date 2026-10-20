@@ -1,10 +1,15 @@
 {
   "version": 1,
   "_note": "sessionStart (inject-state.sh) is LOCAL-ONLY; Cursor cloud agents do not run sessionStart (per https://cursor.com/docs/agent/hooks). All other hooks run in cloud and local.",
+  "_shape_c_note": "Shape-C policy hooks (evaluate-*-policy.sh) delegate to the attest-mcp policy engine. Mode is controlled by `ATTEST_POLICY_MODE` (ENFORCE | LOG_ONLY | OFF — default LOG_ONLY, flip to ENFORCE once policies land). `beforeMcpInvoke` is NOT wired: Cursor does not currently expose that hook (per https://cursor.com/docs/agent/hooks); the server-side `tools/call` check in attest-mcp remains the authoritative chokepoint. Reintroduce when Cursor adds the hook.",
+  "_shape_c_contract": "Policy tool names (keep in sync with @bpmforge/attest-mcp): {\"shell\":\"evaluate_shell_policy\",\"write\":\"evaluate_write_policy\",\"mcp\":\"evaluate_mcp_policy\",\"fences\":\"list_fences\",\"approval\":\"request_approval\",\"invoke\":\"invoke_expert\",\"preDispatch\":\"pre_dispatch_check\"}",
   "hooks": {
     "beforeShellExecution": [
       {
         "command": ".cursor/hooks/block-dangerous.sh"
+      },
+      {
+        "command": ".cursor/hooks/evaluate-shell-policy.sh"
       }
     ],
     "preToolUse": [
@@ -14,6 +19,14 @@
       },
       {
         "command": ".cursor/hooks/block-credentials.sh",
+        "matcher": "Edit"
+      },
+      {
+        "command": ".cursor/hooks/evaluate-write-policy.sh",
+        "matcher": "Write"
+      },
+      {
+        "command": ".cursor/hooks/evaluate-write-policy.sh",
         "matcher": "Edit"
       }
     ],

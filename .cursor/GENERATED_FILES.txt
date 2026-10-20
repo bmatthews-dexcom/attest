@@ -4,10 +4,13 @@
 # Architecture: orchestrator-first — expert personas live in @bpmforge/attest-experts, orchestrated by @bpmforge/attest-conductor.
 
 README.md
+agents/sdlc-lead.md
 hooks.json
 hooks/block-credentials.sh
 hooks/block-dangerous.sh
 hooks/end-of-turn-gate.sh
+hooks/evaluate-shell-policy.sh
+hooks/evaluate-write-policy.sh
 hooks/inject-state.sh
 hooks/post-edit-check.sh
 hooks/telemetry.sh
@@ -56,6 +59,7 @@ skills/goal/SKILL.md
 skills/invoke-attest-conductor/SKILL.md
 skills/pre-code/SKILL.md
 skills/reflow/SKILL.md
+skills/sdlc-lead/SKILL.md
 skills/simplify/SKILL.md
 skills/vault/SKILL.md
 skills/wave/SKILL.md
