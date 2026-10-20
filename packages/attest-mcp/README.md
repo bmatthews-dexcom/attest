@@ -18,14 +18,41 @@ calls directly.
 
 ## What it exposes
 
-Current inventory against attest v3.9.0: **80 tools**, **74 resources**,
-**37 prompts**. Print it live:
+Current inventory (attest v3.9.0 + Shape-C additions): **90 tools**,
+**80 resources**, **37 prompts**. Print it live:
 
 ```bash
 node dist/cli.js --inventory
 ```
 
-**Tools (80 total):**
+**Shape-C additions (feat/shape-c-attest-mcp):**
+
+- A **Cedar policy engine** (`@cedar-policy/cedar-wasm`) evaluated
+  server-side on every in-process expert dispatch, every policy-contract
+  hook call, and every explicit `request_approval`. Three enforcement
+  modes (`OFF | LOG_ONLY | ENFORCE`, default `ENFORCE`) via
+  `ATTEST_POLICY_MODE`. JSONL audit log (`ATTEST_POLICY_AUDIT_LOG`,
+  default `./audit/policy.jsonl`) with daily rotation.
+- An **in-process handler framework** (`InProcessExpertHandler`) that
+  runs an expert directly in the MCP server process without a VM, plus
+  three reference handlers (`secrets-scanner`, `dependency-auditor`,
+  `semgrep-runner`) aligned with the sibling attest-experts
+  classification manifest.
+- A **HITL approval path via MCP elicitation**
+  (`src/elicitation/approval.ts`), exposed as the `request_approval`
+  MCP tool. The server advertises `capabilities.elicitation` on the
+  wire so the sibling attest-conductor (PR #14) picks the elicitation
+  path over GitHub-comment HITL for editor-attached runs.
+- Six **parity-contract MCP tools** matching the
+  `POLICY_TOOL_NAMES` constant in the sibling cursor-build-target
+  generator (PR #13): `evaluate_shell_policy`, `evaluate_write_policy`,
+  `evaluate_mcp_policy`, `list_fences`, `request_approval`,
+  `pre_dispatch_check`. The `invoke_expert` dispatcher is the seventh.
+- A **dedicated policy CLI** (`attest-mcp-policy evaluate --kind=<kind>`)
+  for Cursor hook scripts, plus a fallback `attest-mcp policy
+  --kind=<kind>` subcommand on the main CLI.
+
+**Tools (90 total):**
 
 - **77 validator tools** — one per `scripts/validators/validate-*.sh` (minus
   the documented exclusions below), named `validate_<id>` where `<id>` is the
@@ -41,23 +68,28 @@ node dist/cli.js --inventory
   target phase's validators in one call.
 - `route_goal` — given a plain-English goal, returns the recommended expert
   agent + command + rationale + **invocation hint** for the matching
-  `@bpmforge/attest-experts` BDK agent (so an orchestrator can dispatch
-  without a second lookup). Returns a runner-up for close matches, or defers
-  to `/guide` for ambiguous goals rather than guessing.
+  attest-experts BDK agent (so an orchestrator can dispatch without a
+  second lookup). Returns a runner-up for close matches, or defers to
+  `/guide` for ambiguous goals rather than guessing.
 - `list_experts` — returns the structured catalog of every primary expert
-  agent (id, name, summary, cluster, invocation hint, recommended SDLC phases,
-  required-tool list, prompt name, manifest URI, **`ported` flag**).
-  `ported: true` means the sibling `@bpmforge/attest-experts` pack ships a
-  concrete BDK agent for this id; `ported: false` means it still exposes
-  only a `refuse-not-ported` stub, so an orchestrator should route around
-  it or escalate. Supports `cluster` and `phase` filters. The resolution
-  of `ported` reads `ATTEST_EXPERTS_MANIFEST`, then
-  `packages/attest-experts/lib/experts.generated.json` under the resolved
-  attest checkout, then falls back to the hardcoded Phase-1 three
-  (`security-auditor`, `code-reviewer`, `landscape-mapper`). See
-  `src/experts/ported.ts`.
+  agent (id, name, summary, cluster, invocation hint, recommended SDLC
+  phases, required-tool list, prompt name, manifest URI,
+  Shape-C `portStatus` driven by the sibling attest-experts
+  classification manifest). Supports `cluster` and `phase` filters.
+- `invoke_expert` + per-handler `invoke_expert_<id>` tools — policy-mediated
+  dispatcher for in-process handlers. Returns a discriminated union with
+  `kind ∈ {expert_output, policy_denied, approval_required}` consumed by
+  the attest-conductor (PR #14).
+- `evaluate_shell_policy`, `evaluate_write_policy`, `evaluate_mcp_policy`
+  — Cursor hook evaluators (Shape-C parity contract).
+- `list_fences` — enumerate every loaded Cedar policy + the handlers
+  that depend on each capability. Consumed by `sdlc-lead`'s orient step.
+- `request_approval` — explicit entry point for the MCP-elicitation HITL
+  path.
+- `pre_dispatch_check` — policy-only preview; returns the same
+  `kind` union as `invoke_expert` without actually invoking the handler.
 
-**Resources (74 total):**
+**Resources (80 total):**
 
 - `attest://phase-gate/state-machine` — the SDLC state machine as JSON (phases,
   prerequisites, required files, chained validators including the systemic
@@ -69,14 +101,19 @@ node dist/cli.js --inventory
   form, browsable by any MCP client (same data; different access surface).
 - `attest://experts/<id>` — one dynamic resource per primary expert; returns
   the manifest with the **full persona prompt**, routing rationale(s) from the
-  `/guide` table, invocation hint, cluster, recommended phases, required
-  tools, and `ported` flag (same semantics as `list_experts`). Consumed by
-  `@bpmforge/attest-experts` BDK agents to stay in sync with attest's source
-  of truth. 33 experts as of attest v3.9.0.
+  `/guide` table, invocation hint, cluster, recommended phases, and required
+  tools. Consumed by attest-experts BDK agents to stay in sync with
+  attest's source of truth. 33 experts as of attest v3.9.0.
 - `attest://protocols/<slug>` — one dynamic resource per shared protocol in
   `agents/shared/*.md` (e.g. `attest://protocols/handoff-templates`,
   `attest://protocols/gate-scoring-protocol`). 37 protocols as of attest
   v3.9.0.
+- `attest://experts/handlers` — Shape-C handler catalog (every
+  in-process handler + its required capabilities + derived tool / URI).
+- `attest://experts/<id>/handler` — per-handler manifest with the inlined
+  persona.
+- `attest://policy/config` — active Cedar mode, policy ids, audit-log
+  path, handler count.
 
 **Prompts (37 total):**
 
@@ -97,11 +134,17 @@ Expert ids come from attest's own filesystem. The rule is simple and stable:
 
 Examples:
 
-| Attest source | Expert id | Invocation hint |
+| Attest source | Expert id | Invocation hint (`package` is the workspace sibling name, NOT a registry pointer) |
 |---|---|---|
 | `agents/security-auditor.md` | `security-auditor` | `{ package: "@bpmforge/attest-experts", agent: "security-auditor" }` |
 | `agents/code-reviewer.md`    | `code-reviewer`    | `{ package: "@bpmforge/attest-experts", agent: "code-reviewer" }`    |
 | `agents/sdlc-lead.md`        | `sdlc-lead`        | `{ package: "@bpmforge/attest-experts", agent: "sdlc-lead" }`        |
+
+The `package` string in each invocation hint is a label the orchestrator
+uses to pick the workspace-sibling BDK agent package — resolution is
+`workspace:*` (local workspace) or a git+ssh path dep to the user's
+personal `bmatthews-dexcom/attest` clone. It is **not** an npm registry
+pointer.
 
 "Primary" means `mode: "primary"` in the agent file's YAML frontmatter.
 Cluster subagents (files under `agents/code-review/`, `agents/security/`,
@@ -166,21 +209,28 @@ for that fan-out:
 
 ## Install
 
-Not published yet. For now:
+`@bpmforge/attest-mcp` is **local-only**. It is not published to the
+public npm registry and does not support `npm i -g` or `npx -y`
+invocations. Install the workspace from the user's personal GitHub clone
+of `bmatthews-dexcom/attest` and point your MCP client at the built CLI:
 
 ```bash
-# From the attest repo:
-cd packages/attest-mcp
-npm install
-npm run build          # bundles sources into ./bundled, compiles ./dist
-node dist/cli.js --inventory
+# From the attest repo root (your personal clone of bmatthews-dexcom/attest):
+cd <path-to-attest>
+npm install                                     # workspace install at repo root
+node packages/attest-mcp/dist/cli.js --inventory
 ```
 
-Once published, the standard install will be:
+A workspace install (`npm install` at the repo root) also creates
+`node_modules/.bin/attest-mcp` and `node_modules/.bin/attest-mcp-policy`
+symlinks that the Shape-C Cursor hooks (sibling cursor-build-target
+PR #13) resolve in this order:
 
-```bash
-npx -y @bpmforge/attest-mcp --inventory
-```
+1. `attest-mcp-policy evaluate --kind=<shell|write|mcp>` (dedicated bin)
+2. `attest-mcp policy --kind=<shell|write|mcp>` (fallback subcommand)
+3. Hard fail with a "run `scripts/local-install.sh`" message
+
+There is no registry-fetch fallback by design.
 
 ## Finding attest sources at runtime
 
@@ -190,11 +240,12 @@ Resolution order:
 1. **`ATTEST_ROOT` env var** — point at a live attest checkout.
    Required for development; useful for consumers that want to track an
    unreleased attest ref.
-2. **Bundled copy** — `scripts/bundle-sources.mjs` runs at `npm run build` /
-   `npm pack` time and copies `scripts/validators/`, `rules/`, `agents/shared/`,
-   `agents/*.md`, and `commands/*.md` into `packages/attest-mcp/bundled/`.
-   This is the default `npx -y @bpmforge/attest-mcp` path — no attest checkout
-   required.
+2. **Bundled copy** — `scripts/bundle-sources.mjs` runs at `npm run build`
+   time and copies `scripts/validators/`, `rules/`, `agents/shared/`,
+   `agents/*.md`, and `commands/*.md` into
+   `packages/attest-mcp/bundled/`. This is the default local-workspace
+   path — no separate attest checkout required when the workspace itself
+   is already the attest repo.
 
 If a validator you want is missing from the bundled copy, set `ATTEST_ROOT`.
 
@@ -208,22 +259,27 @@ runs out of repo A.
 |---|---|---|
 | `ATTEST_ROOT` | (bundled copy) | Where to read validator scripts + protocol markdown from |
 | `ATTEST_TARGET_ROOT` | `process.cwd()` | Which repo validators run against (overridable per-call via `projectRoot`) |
-| `ATTEST_EXPERTS_MANIFEST` | (resolved from attest checkout) | Absolute path to an `experts.generated.json`-shaped file. Override the ported-set source for evals / tests. See [`src/experts/ported.ts`](./src/experts/ported.ts) for the full resolution order. |
 | `EXPERTS_TELEMETRY` | `0` (forced by the server) | Forwarded to `_lib.sh` only when a tool call sets `enableTelemetry: true` |
 
 ## Client configuration
 
+All client configs below assume the workspace has been built with
+`npm install && npm run build --workspace @bpmforge/attest-mcp` and point
+directly at the built CLI by absolute path. There is NO `npx -y` or
+registry-fetch form — the package is local-only.
+
 ### Cursor
 
 Add to `.cursor/mcp.json` at the project root (or the sibling
-`feat/cursor-build-target` worker's generated `.cursor/` will add it for you):
+`feat/cursor-build-target` worker's generated `.cursor/` will add it for
+you):
 
 ```json
 {
   "mcpServers": {
     "attest": {
-      "command": "npx",
-      "args": ["-y", "@bpmforge/attest-mcp"],
+      "command": "node",
+      "args": ["<path-to-attest>/packages/attest-mcp/dist/cli.js"],
       "env": {
         "ATTEST_TARGET_ROOT": "${workspaceFolder}"
       }
@@ -232,8 +288,8 @@ Add to `.cursor/mcp.json` at the project root (or the sibling
 }
 ```
 
-See the [Cursor MCP docs](https://docs.cursor.com/en/context/mcp) for the
-project-level vs user-level config distinction, allowlists, and the
+See the [Cursor MCP docs](https://docs.cursor.com/en/context/mcp) for
+the project-level vs user-level config distinction, allowlists, and the
 `beforeMCPExecution` hook matcher.
 
 ### OpenCode
@@ -244,8 +300,8 @@ Add to `~/.config/opencode/opencode.json`:
 {
   "mcp": {
     "attest": {
-      "command": "npx",
-      "args": ["-y", "@bpmforge/attest-mcp"]
+      "command": "node",
+      "args": ["<path-to-attest>/packages/attest-mcp/dist/cli.js"]
     }
   }
 }
@@ -259,8 +315,8 @@ Add to `~/.claude/mcp.json` (or `.claude/mcp.json` for project scope):
 {
   "mcpServers": {
     "attest": {
-      "command": "npx",
-      "args": ["-y", "@bpmforge/attest-mcp"]
+      "command": "node",
+      "args": ["<path-to-attest>/packages/attest-mcp/dist/cli.js"]
     }
   }
 }
@@ -274,8 +330,8 @@ Add to `claude_desktop_config.json`:
 {
   "mcpServers": {
     "attest": {
-      "command": "npx",
-      "args": ["-y", "@bpmforge/attest-mcp"]
+      "command": "node",
+      "args": ["<path-to-attest>/packages/attest-mcp/dist/cli.js"]
     }
   }
 }
