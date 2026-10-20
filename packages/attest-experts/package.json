@@ -1,12 +1,12 @@
 {
-  "name": "@bpmforge/attest-experts",
+  "name": "attest-experts",
   "version": "0.1.0-alpha.0",
-  "private": false,
+  "private": true,
   "license": "Apache-2.0",
-  "description": "attest experts shipped as BDK (Background Development Kit) agents — one deployable Cursor cloud agent per expert, dispatched by the attest conductor.",
+  "description": "attest experts shipped as BDK (Background Development Kit) agents — one Cursor-hosted agent per expert, dispatched by the attest conductor. Local-only workspace package.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bpmforge/attest.git",
+    "url": "git+https://github.com/bmatthews-dexcom/attest.git",
     "directory": "packages/attest-experts"
   },
   "type": "module",

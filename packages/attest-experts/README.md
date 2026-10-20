@@ -1,24 +1,10 @@
-# `@bpmforge/attest-experts`
+# `attest-experts`
 
-BDK pack that ships every **sandbox-required** attest expert as its own
-deployable Cursor cloud agent. Shape C of
-[`docs/attest-chief-architecture.md`](../../docs/attest-chief-architecture.md)
-whittled this pack from 84 experts down to the ~15 whose capability vector
-includes `write:fs` to repo source, `shell:destructive`, `git:write`,
-`pr:open`, `publish:npm`, or `env:write` — the ones that genuinely benefit
-from per-VM isolation. The other ~65 collapsed into in-process MCP tool
-handlers in the sibling [`@bpmforge/attest-mcp`](../attest-mcp); the chief
-dispatches them without spinning up a sibling VM.
-
-The authoritative source of truth for which expert goes where is
-[`lib/classification.generated.json`](./lib/classification.generated.json),
-regenerated from the typed manifest in
-[`lib/classification.ts`](./lib/classification.ts) by
-`npm run sync-classification`. The sibling
-[`@bpmforge/attest-conductor`](../attest-conductor) dispatches to these
-experts dynamically; [`@bpmforge/attest-mcp`](../attest-mcp) provides the
-validators, phase gate, in-process expert handlers, and persona resources
-every expert pulls from.
+BDK pack that ships each primary attest expert as its own deployable Cursor
+cloud agent. The companion [`attest-conductor`](../attest-conductor)
+dispatches to these experts dynamically; the companion
+[`attest-mcp`](../attest-mcp) provides the validators, phase gate,
+and persona resources every expert pulls from.
 
 > **Why BDK, not `.cursor/agents/`?** See the design report
 > [`docs/attest-cursor-integration.md`](../../docs/attest-cursor-integration.md)
@@ -32,22 +18,21 @@ every expert pulls from.
 
 ```
 packages/attest-experts/
-  package.json                      @bpmforge/attest-experts
+  package.json                      attest-experts
   tsconfig.json
   AGENTS.md                         (coding-agent handoff; terse loop ref)
   lib/                              Shared code — NOT discovered by BDK
     schema.ts                       expert input/output zod schemas (shared contract)
-    classification.ts               Shape C classification manifest (SOURCE)
-    classification.generated.json   Shape C classification mirror (consumers)
     expert-registry.ts              Hand-authored list of concrete experts
     expert-factory.ts               `defineExpert` + `defineStubExpert`
     submit-report-tool.ts           Shared `submit-report` tool factory
     not-ported-tool.ts              Shared `refuse-not-ported` tool factory
     attest-mcp.ts                   `attestMcpConnection()` — real stdio or stub
     stub-mcp-server.mjs             Bundled stub MCP server (deterministic)
-    experts.generated.json          Sandbox-set registry — regenerated via sync-classification
+    instructions.ts                 Shared instruction templates for stubs
+    experts.generated.json          Full registry — regenerated via sync-stubs
   agents/
-    <expert-id>/                    Only sandbox-required experts + 3 Phase-1 concretes
+    <expert-id>/
       bot/
         agent.ts                    defineExpert(...) or defineStubExpert(...)
         instructions.md             Short intake + grounding + methodology
@@ -59,8 +44,7 @@ packages/attest-experts/
         evals.config.ts
         smoke.eval.ts
   scripts/
-    sync-classification.ts          Classify, prune, scaffold Shape C sandbox set
-    test-classification.mjs         Node --test coverage + rubric invariants
+    sync-stubs.ts                   Enumerate attest/agents/, regenerate stubs
     validate-all.mjs                Key-free smoke verification
 ```
 
@@ -146,7 +130,7 @@ summarized methodology), `bot/tools/submit-report.ts`, and
 `bot/mcp-connections/attest.ts`. The persona is **not inlined** —
 `instructions.md` tells the agent to call `get_persona({ expert_id })` on
 `attest-mcp` as its first grounding step, which keeps the full persona in sync
-with `agents/<id>.md` in the attest repo (served live by `@bpmforge/attest-mcp`).
+with `agents/<id>.md` in the attest repo (served live by `attest-mcp`).
 
 ### Deviation note on "fetches persona at construction time"
 
@@ -158,35 +142,20 @@ practical effect (always-fresh persona from attest source) without a startup
 hazard. Documented here so the conductor worker and future readers do not
 chase a different implementation.
 
-## Shape C — sandbox-required stubs (pending Phase 2 persona port)
+## Phase 2 — 81 scaffold-only stubs
 
-The 16 experts in the sandbox-required set that aren't yet real-ported ship
-as scaffold-only BDK agents so the chief's dispatch surface is complete,
-but refuse execution until Phase 2 of Shape C ports each persona:
+Every other expert file under `attest/agents/` is wired up as a loadable BDK
+agent so the conductor's dispatch surface is complete, but refuses execution:
 
-- `bot/agent.ts` → `defineStubExpert(META)` — same shape as concrete,
-  marked with "sandbox-required stub pending full persona port + eval".
-- `bot/instructions.md` → "call `refuse-not-ported({ task_id })` immediately"
-  plus the full per-expert capability vector so a reviewer can see which
-  fences the stub will eventually need.
+- `bot/agent.ts` → `defineStubExpert(META)` — identical shape as concrete,
+  marked with `TODO Phase 2: full persona port + eval`.
+- `bot/instructions.md` → "call `refuse-not-ported({ task_id })` immediately".
 - `bot/tools/refuse-not-ported.ts` → returns
   `{ ok: false, status: "not_ported", expert_id, task_id, message }`.
 
-The chief can detect this with a single check on the tool result. See
-`lib/classification.generated.json` for the authoritative Shape C
-classification and `lib/experts.generated.json` for the on-disk sandbox
-surface — both regenerated via `npm run sync-classification`.
-
-### What was pruned
-
-Every expert whose only writes are to `docs/**` collapsed into an
-in-process MCP tool handler in [`@bpmforge/attest-mcp`](../attest-mcp) and
-no longer has a BDK agent in this package. See
-`lib/classification.generated.json` `_summary.byClassification` for the
-exact cluster split, and `_summary.inProcessEligibleKeptAsSandbox` for the
-three Phase-1 concretes that stay here even though they would classify as
-in-process-eligible under the rubric (so the attest-mcp Shape-C reference
-handlers can promote them in a follow-up).
+The conductor can detect this with a single check on the tool result. See
+`lib/experts.generated.json` for the full id surface (regenerated via
+`npm run sync-stubs`).
 
 ## How the conductor spawns experts
 
@@ -206,15 +175,11 @@ per-expert id surface are what the conductor binds to. Three shapes work:
 The sibling `attest-conductor` worker owns the final choice; this pack
 exposes everything they need (expert ids, HTTP slugs, shared schema).
 
-## How to add a new sandbox-required expert port
+## How to add a new expert port
 
-1. Confirm the expert is `sandbox-required` in `lib/classification.ts`
-   (needs `write:fs` to repo source, `shell:destructive`, `git:write`,
-   `pr:open`, `publish:npm`, or `env:write`). An in-process-eligible
-   expert belongs in `attest-mcp` as a handler, not here.
-2. Add a row to `lib/expert-registry.ts :: CONCRETE_EXPERTS` with the id,
+1. Add a row to `lib/expert-registry.ts :: CONCRETE_EXPERTS` with the id,
    source path, cluster, and summary.
-3. Create `agents/<id>/bot/agent.ts`:
+2. Create `agents/<id>/bot/agent.ts`:
    ```ts
    import { defineExpert } from "../../../lib/expert-factory.js";
    import { CONCRETE_EXPERTS } from "../../../lib/expert-registry.js";
@@ -222,17 +187,15 @@ exposes everything they need (expert ids, HTTP slugs, shared schema).
    const META = CONCRETE_EXPERTS.find((e) => e.id === "<id>")!;
    export default defineExpert({ meta: META });
    ```
-4. Write `agents/<id>/bot/instructions.md` (intake + grounding + methodology
+3. Write `agents/<id>/bot/instructions.md` (intake + grounding + methodology
    summary — persona itself stays authoritative in attest source).
-5. Add `agents/<id>/bot/tools/submit-report.ts` and
+4. Add `agents/<id>/bot/tools/submit-report.ts` and
    `agents/<id>/bot/mcp-connections/attest.ts` (both one-liners).
-6. Add `agents/<id>/evals/evals.config.ts` + `smoke.eval.ts` (one end-to-end
+5. Add `agents/<id>/evals/evals.config.ts` + `smoke.eval.ts` (one end-to-end
    case that asserts `t.calledTool("submit-report")`).
-7. Run `npm run sync-classification` to refresh
-   `experts.generated.json` and `classification.generated.json`, and remove
+6. Run `npm run sync-stubs` to refresh `experts.generated.json` and remove
    the now-redundant stub for this id.
-8. Run `npm run test` (classification coverage + rubric invariants),
-   `npm run validate` (key-free pack validate), and `npm run eval` (needs
+7. Run `npm run validate` (key-free) and `npm run eval` (needs
    `CURSOR_API_KEY` or `bdk login`).
 
 ## How to run the evals
@@ -242,7 +205,7 @@ exposes everything they need (expert ids, HTTP slugs, shared schema).
 npm --prefix packages/attest-experts run validate
 
 # Full eval requires a Cursor credential; set the stub flag so the real
-# `@bpmforge/attest-mcp` package is not needed:
+# `attest-mcp` package is not needed:
 ATTEST_MCP_STUB=1 npx bdk eval --dir packages/attest-experts/agents/security-auditor
 ATTEST_MCP_STUB=1 npx bdk eval --dir packages/attest-experts/agents/code-reviewer
 ATTEST_MCP_STUB=1 npx bdk eval --dir packages/attest-experts/agents/landscape-mapper
@@ -276,7 +239,7 @@ npx bdk deploy --dir packages/attest-experts/agents --all \
 Secrets each expert expects on its deployed pod:
 
 - `ATTEST_MCP_COMMAND` + `ATTEST_MCP_ARGS` (optional) — override the stdio
-  command used to spawn `@bpmforge/attest-mcp`.
+  command used to spawn `attest-mcp`.
 
 Egress allowlist (`hosting.egressDomains` in `defineExpert`):
 `api.anthropic.com`, `api.openai.com`, `api.cursor.com`,
@@ -288,9 +251,9 @@ Egress allowlist (`hosting.egressDomains` in `defineExpert`):
 | id | branch | status |
 |----|--------|--------|
 | cursor build-target (rules + hooks + mcp.json; no personas) | `feat/cursor-build-target` | separate worker |
-| `@bpmforge/attest-mcp` (validators + state machine + persona resources) | `feat/attest-mcp` | separate worker |
-| `@bpmforge/attest-experts` (**this pack**) | `feat/attest-experts` | here |
-| `@bpmforge/attest-conductor` (dispatches to experts) | `feat/attest-conductor-bdk` | separate worker |
+| `attest-mcp` (validators + state machine + persona resources) | `feat/attest-mcp` | separate worker |
+| `attest-experts` (**this pack**) | `feat/attest-experts` | here |
+| `attest-conductor` (dispatches to experts) | `feat/attest-conductor-bdk` | separate worker |
 
 **Agent id contract:** kebab-case of the attest source filename (e.g.
 `agents/security-auditor.md` → `security-auditor`). The sibling `attest-mcp`

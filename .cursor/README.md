@@ -15,10 +15,18 @@ validators) or as sandbox-isolated BDK agents in the workspace sibling
 `attest-experts` (writers / publishers / pushers). The chief
 is split in two:
 
+<<<<<<< HEAD
 | Chief | Lives in | Starts a turn when | Owns |
 |---|---|---|---|
 | **Hosted conductor** (workspace sibling `attest-conductor`) | BDK pod (local or Cursor-hosted) | GitHub webhook (`/autopilot <goal>`) or scheduled run | Long-running, unattended autopilot |
 | **sdlc-lead** (`.cursor/skills/sdlc-lead/SKILL.md` + `.cursor/agents/sdlc-lead.md`) | Cursor Agent in the user's editor | User keystroke in Cursor chat (`/sdlc …`, phase question, routing ask) | Interactive /sdlc work |
+=======
+- [`attest-experts`](https://github.com/bmatthews-dexcom/attest/tree/main/packages/attest-experts) — each primary attest expert
+  packaged as a `defineAgent({ … })` BDK agent. Private workspace sibling under `packages/`.
+- [`attest-conductor`](https://github.com/bmatthews-dexcom/attest/tree/main/packages/attest-conductor) — the outer loop that
+  claims tickets, dispatches expert agents, scores HANDOFF returns,
+  and merges completed work (the `v3.9.0` autopilot shape). Private workspace sibling.
+>>>>>>> origin/feat/attest-release-and-deploy-prep
 
 > **Local-only — hard constraint.** `attest-mcp`,
 > `attest-experts`, and `attest-conductor` are
@@ -45,6 +53,7 @@ hook layer for the editor-side "no" before destructive ops.
 
 | Surface | Source | Purpose |
 |---|---|---|
+<<<<<<< HEAD
 | `rules/*.mdc` | `rules/*.md` + `agents/shared/*.md` (top-level only) | Editor-time quality protocols (CHALLENGER, FIX_VERIFY, GATE_SCORING, PERSISTENCE, …) as on-demand rules with `@file` pointers to the committed sources. |
 | `agents/sdlc-lead.md` | `agents/shared/chiefs/sdlc-lead.md` | Editor-side chief as a Cursor custom-mode / subagent; tool allowlist excludes raw bash for destructive ops. |
 | `skills/sdlc-lead/SKILL.md` | `agents/shared/chiefs/sdlc-lead.md` | Same shared source, framed as a skill the current Cursor Agent loads when the user asks for /sdlc work. |
@@ -53,12 +62,22 @@ hook layer for the editor-side "no" before destructive ops.
 | `hooks.json` + `hooks/block-*.sh`, `hooks/post-edit-check.sh`, `hooks/telemetry.sh`, `hooks/inject-state.sh`, `hooks/end-of-turn-gate.sh` | `plugins/expert-hooks.ts` | Baseline (pre-Shape-C) hooks: dangerous-bash blocker, credential-write blocker, afterFileEdit lint/typecheck/secret-scan, postToolUse telemetry, sessionStart STATE.md injection (**local-only**: Cursor cloud agents do not fire `sessionStart`), stop phase-gate. |
 | `hooks/evaluate-shell-policy.sh`, `hooks/evaluate-write-policy.sh` | generated | Shape-C policy integration: delegates to attest-mcp's policy engine before every shell call and file mutation. See below. |
 | `mcp.json` | generated | Three MCP servers: `attest`, `attest-conductor`, `attest-policy-dev`. See below. |
+=======
+| `rules/*.mdc` | `rules/*.md` + `agents/shared/*.md` | Editor-time quality protocols (CHALLENGER, FIX_VERIFY, GATE_SCORING, PERSISTENCE, …) as on-demand rules with `@file` pointers to the committed sources. |
+| `skills/*/SKILL.md` | `skills/*/SKILL.md` + hand-authored | Only **technique / procedure** skills. See the keep set below. |
+| `hooks.json` + `hooks/*.sh` | `plugins/expert-hooks.ts` | 1:1 port of the attest plugin: dangerous-bash blocker, credential-write blocker, afterFileEdit lint/typecheck/secret-scan, postToolUse telemetry, sessionStart STATE.md injection (**local-only**: Cursor cloud agents do not fire `sessionStart`), stop phase-gate. |
+| `mcp.json` | generated | Points at the `attest` MCP server (`attest-mcp`). |
+>>>>>>> origin/feat/attest-release-and-deploy-prep
 
 ### Kept skills (techniques, 13 total — includes `invoke-attest-conductor` + `sdlc-lead`)
 
 api-ground, design-options, explore, game-asset-pipeline, gate, goal, pre-code, reflow, simplify, vault, wave, invoke-attest-conductor, sdlc-lead
 
+<<<<<<< HEAD
 ### Dropped skills (personas — live in the workspace sibling attest-experts, 37 total)
+=======
+### Dropped skills (personas — live in attest-experts, 37 total)
+>>>>>>> origin/feat/attest-release-and-deploy-prep
 
 a11y, analytics, api-design, architect, autopilot, challenge, code, containers, cost, data-governance, dba, design-iterate, devops, documentation-gap-finder, end-user-simulator, frontend, gauntlet, git, guide, llm-integration, migration-planner, onboard-gap-fill, onboard-inventory, onboard-verify, perf, release, reliability, research, review, review-code, sdlc, security, steward, test-expert, ui-verify, user-guide, ux
 

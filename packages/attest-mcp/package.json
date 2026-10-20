@@ -1,13 +1,12 @@
 {
-  "name": "@bpmforge/attest-mcp",
+  "name": "attest-mcp",
   "version": "0.1.0",
   "private": true,
-  "description": "MCP server exposing attest's 79 shell validators, phase-gate state machine, /guide routing table, shared protocols, and expert prompts to any MCP-speaking client (Cursor, OpenCode, Claude Code, Claude Desktop). LOCAL-ONLY: installed from the workspace or a git+ssh clone of bmatthews-dexcom/attest; never published to the public npm registry.",
+  "description": "MCP server exposing attest's shell validators, phase-gate state machine, /guide routing table, shared protocols, and expert prompts over stdio. Local-only workspace package — not published anywhere.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "attest-mcp": "./dist/cli.js",
-    "attest-mcp-policy": "./dist/cli-policy.js"
+    "attest-mcp": "./dist/cli.js"
   },
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
@@ -18,8 +17,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "node scripts/bundle-sources.mjs && tsc && node scripts/copy-policy-sources.mjs",
-    "bundle": "node scripts/bundle-sources.mjs && node scripts/copy-policy-sources.mjs",
+    "build": "node scripts/bundle-sources.mjs && tsc",
+    "bundle": "node scripts/bundle-sources.mjs",
     "clean": "rm -rf dist bundled",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
@@ -27,7 +26,6 @@
     "inspect": "npx -y @modelcontextprotocol/inspector node dist/cli.js"
   },
   "dependencies": {
-    "@cedar-policy/cedar-wasm": "4.14.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "zod": "^3.25.0"
   },
@@ -40,7 +38,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bpmforge/attest.git",
+    "url": "git+https://github.com/bmatthews-dexcom/attest.git",
     "directory": "packages/attest-mcp"
   },
   "keywords": [
@@ -54,8 +52,8 @@
     "opencode",
     "claude-code"
   ],
-  "homepage": "https://github.com/bpmforge/attest/tree/main/packages/attest-mcp#readme",
+  "homepage": "https://github.com/bmatthews-dexcom/attest/tree/main/packages/attest-mcp#readme",
   "bugs": {
-    "url": "https://github.com/bpmforge/attest/issues"
+    "url": "https://github.com/bmatthews-dexcom/attest/issues"
   }
 }

@@ -40,7 +40,7 @@ import {
   loadClassificationManifest,
 } from "./classification.js";
 
-export const EXPERTS_PACKAGE = "@bpmforge/attest-experts";
+export const EXPERTS_PACKAGE = "attest-experts";
 
 /**
  * Shape-C port status for each primary expert.

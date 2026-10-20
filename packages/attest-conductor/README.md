@@ -1,158 +1,174 @@
-# `@bpmforge/attest-conductor` — Shape C hybrid chief
+# `attest-conductor`
 
-The **Shape C hybrid chief** for attest on Cursor. A BDK agent that owns
-the task + SDLC state machine, dispatches experts through a
-policy-mediated single entry point in attest-mcp, and routes HITL asks
-over MCP elicitation or GitHub comment-approve. Driven by the **Ralph
-Wiggum loop pattern**: dumb outer loop in TypeScript, LLM in the inner
-loop.
-
-The architecture rationale lives in
-`docs/attest-chief-architecture.md` (project store); the per-shape
-comparison lives there as §3. This package implements Shape C's
-`attest-conductor` section (§8.3) — minor additive changes on top of
-the Shape-A skeleton.
+The **Shape-2 orchestrator** for attest on Cursor. A BDK agent built on
+the **Ralph Wiggum loop pattern**: dumb outer loop in TypeScript, LLM
+in the inner loop. See the design report at
+`docs/attest-cursor-integration.md` (project store copy) for why
+Shape-2 puts the orchestrator at the center, and the Ralph section
+below for why the TS stays dumb on purpose.
 
 ## Status
 
-**Shape C in-progress.** The policy-mediated `invoke_expert` call,
-`pre_dispatch_check` preview tool, HITL `request_approval` (MCP
-elicitation + GitHub comment-approve), `set_autonomy_mode` tool,
-autonomy-mode task state, and `/approve` / `/deny` GitHub channel reply
-handling are all in. Real end-to-end runs still require the sibling
-`@bpmforge/attest-mcp` Shape-C PR (owner of the Cedar/OPA policy engine
-and the sandbox-vs-in-process routing).
+**Phase-2 working skeleton.** The Ralph loop driver, idempotent
+state-mutation tools, three Ralph-pattern evals + one e2e eval,
+`run_autopilot_task` chat entry, HTTP `/v1/channels/autopilot/run`
+entry, and GitHub channel wiring are all complete and clean against
+`main`. Real expert runs light up when the sibling
+`packages/attest-experts/` publishes its agent slugs (one env var per
+expert — no code changes here).
 
-## The Shape C dispatch flow
+## The Ralph loop
 
-```
-    Ralph loop  ──►  pre_dispatch_check   (preview policy decision)
-                       │
-                       ├── allow              ──►  invoke_expert
-                       │                              │
-                       │                              ├── expert_output   ──►  consume, Ralph next turn
-                       │                              ├── policy_denied   ──►  escalate / route differently
-                       │                              └── approval_required ──► request_approval → retry
-                       │
-                       ├── deny               ──►  escalate / record_finding
-                       │
-                       └── requires-approval  ──►  request_approval
-                                                     │
-                                                     ├── approved   ──►  invoke_expert with approvalId
-                                                     ├── denied     ──►  escalate / route differently
-                                                     └── timeout    ──►  denied (fail-closed)
-```
-
-attest-mcp is the authoritative policy chokepoint — it decides
-`allow` / `deny` / `requires-approval` on every `invoke_expert` call,
-and routes approved work to the in-process handler OR a sandbox BDK
-expert depending on the capability map. The conductor's Ralph TS has
-zero transport logic; the Shape-A `dispatch_expert` tool's PEER / URL /
-stub switch is gone.
-
-## Autonomy modes
-
-Three modes, settable at task creation (`run_autopilot_task(...)`,
-`/autopilot --autonomy <mode>`, GitHub `[autonomy: <mode>]`) and
-mid-task via `set_autonomy_mode`:
-
-| mode | HITL asks on | When to use |
-| --- | --- | --- |
-| `auto` (default) | destructive capabilities only (`shell:destructive`, `write:fs`, `write:src`, `git:write`, `pr:*`, `publish:*`); fail-closed when no HITL transport is attached | Trusted overnight autopilot runs where you want HITL only when the chief is about to touch real artifacts. |
-| `approve-each` | every destructive op | After a bad run — "please double-check me on everything." Especially appropriate when a validator keeps flagging the chief's recent moves. |
-| `approve-destructive` | destructive capabilities (same matcher as `auto`) but **always** asks (`auto` can auto-approve the policy-mediated `requires-approval` outcome for an already-trusted sub-capability) | Mixed trust: autopilot handles reads, analysis, routing, test writing, but every source edit / PR comment / publish gets a human glance. |
-
-`auto` vs `approve-destructive` note: both ask on destructive. The
-difference is that `auto` + non-destructive is auto-approved even if
-the policy engine says `requires-approval` (the autonomy mode overrides
-down); `approve-destructive` honors the policy engine's `requires-
-approval` on destructive ops without exception, and the `pr:*` /
-`publish:*` subset even prefers the GitHub paper trail over MCP
-elicitation when both transports are attached.
-
-## HITL transports
-
-| transport | when it fires | failure |
-| --- | --- | --- |
-| **MCP elicitation** | MCP client advertises `elicitation` capability. Preferred when both transports exist (except see paper-trail rule below). The conductor calls `attest.request_approval` under the hood which runs the elicitation. | Call failure → fail-closed on this ask (reason surfaces to Ralph; `approved: false, source: "mcp"`). |
-| **GitHub comment-approve** | Task has a `githubContext` (originated from `/autopilot` on an issue / PR). Also preferred over MCP elicitation when autonomy is `approve-destructive` and capability is `pr:*` / `publish:*` (paper trail). Posts a comment on the originating PR/issue carrying an HTML marker; polls `ctx.host.kv` for `/approve` / `/deny` reply resolution. Default timeout 24h. | Timeout → `approved: false, source: "timeout"`; also fail-closed. |
-| **Fail-closed** | Neither MCP elicitation nor GitHub context is attached. | `request_approval` returns `{ approved: false, reason: "no_hitl_transport", source: "no_transport" }`. The Ralph loop then escalates. |
-
-### GitHub reply shape
-
-The chief's approval comment carries a stable HTML marker:
+Classic Ralph: the TypeScript owns a bounded `while (!stop)` loop. The
+LLM owns the thinking. Each iteration is:
 
 ```
-<!-- attest:approval id="approval_abc" task="task_xyz" -->
+loop:
+  state = kv.load(taskId)                              // kv is source of truth
+  stop = shouldStop(state)                              // TS-owned thresholds
+  if stop: break
+  if needsCompaction(state): sendCompactPrompt()
+  prompt = renderRalphPrompt(state, goal, sdlc_rules)   // constant template
+  agent.run(prompt, tools=[...])                        // ONE agent turn
+  // agent's single tool call mutates state in kv
 ```
 
-A reviewer replies on the same PR/issue (any comment):
+**The TS does not** encode `if phase === "build" then dispatch
+code-reviewer`. New behavior goes into one of:
 
-```
-/approve
-/approve approval_abc looks fine, ship it
-/deny
-/deny approval_abc hold until QA signs off
+- **attest-mcp** — SDLC rules (phases, validators-per-phase, gate
+  conditions). The agent reads them each turn via MCP tools /
+  resources.
+- **the tool palette** — `dispatch_expert`, `validate` (mcp),
+  `phase_gate_check` (mcp), `advance_phase`, `conductor_record_finding`,
+  `update_scratchpad`, `compact_state`, `mark_done`, `escalate`.
+- **the Ralph prompt** — the one template rendered each iteration
+  (`bot/lib/ralph-loop.ts`).
+
+### Why Ralph instead of imperative orchestration
+
+An imperative driver (`switch (state.phase)` → `dispatch(expert).then(validate).then(gate)`)
+locks every policy decision at compile time: adding a new validator or
+re-ordering a heal attempt means editing TS. attest's SDLC rules change
+far more often than its runtime shape does; a Ralph loop treats the
+rules as data (loaded from attest-mcp each turn) and the state as the
+only thing worth re-rendering between iterations. The frontier LLM is
+*already* a competent orchestrator for one bounded step at a time —
+Ralph just gives it a fresh, consistent view every turn, keeps a kv
+checkpoint, and enforces the few genuinely TS-owned invariants (hard
+iteration cap, wall-time cap, consecutive-no-progress cap, idempotency,
+compaction trigger).
+
+### What the TS *does* own
+
+- The loop driver (`while (!shouldStop)`), one entry per surface:
+  - **HTTP channel**: `POST /v1/channels/autopilot/run` →
+    `bot/channels/autopilot.ts`.
+  - **Chat / eval**: `run_autopilot_task` server tool →
+    `bot/tools/run_autopilot_task.ts`.
+  - **GitHub**: `onComment` returns `{ task: () => runRalphLoop(...) }`
+    → `bot/channels/github.ts` (TODO wire-up — currently just dispatches
+    a model turn; a follow-up PR flips it to the task-shaped run).
+- Loading / saving task state from `ctx.host.kv` (`conductor:task:<id>`).
+- Rendering the Ralph prompt (`renderRalphPrompt`).
+- Enforcing escalation thresholds (`shouldStop`): iteration cap, wall
+  time cap, consecutive-no-progress cap, agent-decided done/escalate.
+- Triggering compaction: when `approxStateSize(task) > budget` and the
+  agent hasn't yet set a `scratchpad`, the loop driver sends a one-shot
+  "compact your state" prompt before the next real Ralph turn.
+- Idempotency: every mutating tool takes `actionId`; the task's
+  `actionCache` short-circuits a duplicate so a crash-and-resume cannot
+  double-execute.
+
+### What the LLM owns (per turn)
+
+Given the Ralph prompt (state + SDLC rules + experts + validators +
+tool palette), pick **one** meaningful tool action:
+
+| tool | typical trigger |
+| --- | --- |
+| `dispatch_expert` | A unit of expert work is next. |
+| `validate` (attest-mcp) | Run one validator on scope. |
+| `phase_gate_check` (attest-mcp) | Check the current phase's gate. |
+| `advance_phase` | Gate approved a transition. |
+| `conductor_record_finding` | A gap / soft issue / halt surfaced. |
+| `update_scratchpad` | Rewrite short working notes for next turn. |
+| `compact_state` | TS loop asked for a summary. |
+| `mark_done` | Goal achieved — the loop ends. |
+| `escalate` | Stuck — the loop ends with `escalated: true`. |
+
+Then end the turn. The TS loop re-prompts with the new state.
+
+## Spawning sibling expert agents
+
+Three concrete experts ship in `attest-experts`:
+`security-auditor`, `code-reviewer`, `landscape-mapper`. Each is a
+deployable BDK agent whose published slug is `attest-expert-<id>`. The
+conductor wires them as peer MCP connections at
+`bot/mcp-connections/attest-expert-<id>.ts`, so when both are mounted
+on one `bdk serve --mode multi` host the conductor can delegate via
+`host.mcp.callTool("attest-expert-<id>", "ask", { message })` with
+zero extra configuration:
+
+```sh
+bdk serve \
+  --dir packages/attest-conductor \
+  --dir packages/attest-experts/agents/security-auditor \
+  --dir packages/attest-experts/agents/code-reviewer \
+  --dir packages/attest-experts/agents/landscape-mapper \
+  --mode multi
 ```
 
-Without an explicit id, the reply resolves the **oldest pending**
-approval on the issue. With an id, it resolves that specific one.
-Resolution → kv update → the Ralph loop's `request_approval` poll
-picks it up within `pollMs` (default 5s) and returns.
+Dispatch resolution (`dispatch_expert`):
+
+1. **Non-stub mode** (`ATTEST_MCP_COMMAND` set) — fetch `list_experts`
+   from attest-mcp once per process, cache it. The MCP catalog is the
+   source of truth for which expert ids exist and what their
+   `invocationHint` is; the local `experts-registry.ts` is only
+   consulted as a fallback.
+2. **Phase-2 stub experts** — the 81 experts in attest-experts that
+   only expose `refuse-not-ported` short-circuit here with a structured
+   `{ status: "not-ported", … }` response so the Ralph loop can
+   escalate or route to a concrete expert without paying for a peer
+   round-trip.
+3. **Concrete experts** — dispatch to the peer MCP connection by its
+   catalog-derived slug (`attest-expert-<id>`). Env var
+   `ATTEST_EXPERT_<ID>_PEER=<slug>` (upper-snake-cased id) overrides
+   when the operator wants to point at a different mounted expert
+   (e.g. a staging variant).
+4. **Remote deploy** — set `ATTEST_EXPERT_<ID>_URL=https://…` to POST
+   to a deployed expert over HTTP instead of relying on a mounted
+   peer.
+5. **Stub mode** (default, no `ATTEST_MCP_COMMAND`) — returns a canned
+   response from the local registry; good enough for every eval in
+   this package.
 
 ## Entry points
 
 | trigger | behavior |
 | --- | --- |
-| `/autopilot <goal>` (chat) | Agent calls `run_autopilot_task` → Ralph loop. Accepts `--autonomy {auto\|approve-each\|approve-destructive}`. |
-| `/autopilot <goal> [autonomy: approve-each]` (GitHub comment) | Same, with the bracket-directive shape. |
+| `/autopilot <goal>` (chat) | Agent calls `run_autopilot_task` → Ralph loop. |
 | `/autopilot resume` (chat) | Agent reads active-task pointer, re-enters the loop with the same `taskId`. |
-| `/autopilot status` (chat) | Agent calls `conductor_get_state`, replies read-only (includes autonomy mode + pending approvals). |
-| `POST /v1/channels/autopilot/run` `{ goal, autonomyMode? }` | HTTP entry; same loop. |
-| GitHub issue / PR / review comment starting with `/autopilot …` | Dispatches via `bot/channels/github.ts`. |
-| GitHub comment `/approve` / `/deny` | Resolves a pending `request_approval` (host-task, no model turn). |
-
-## Ralph tool palette (Shape C)
-
-| tool | kind | notes |
-| --- | --- | --- |
-| `invoke_expert` | write (mutating) | Shape-C policy-mediated expert invocation. Three outcomes: `expert_output` / `policy_denied` / `approval_required`. |
-| `pre_dispatch_check` | read | Preview the policy decision without invoking. |
-| `request_approval` | write (mutating) | HITL ask. MCP elicitation / GitHub comment-approve; fail-closed otherwise. |
-| `set_autonomy_mode` | write (mutating) | Mid-task autonomy change. |
-| `phase_gate_check` (attest-mcp) | read | Current phase's gate state. |
-| `validate_<name>` (attest-mcp) | read | Run one validator (77 total; names from `plannedValidators`). |
-| `advance_phase` | write | Phase transition (gate must have approved). |
-| `conductor_record_finding` | write | Record gap / soft issue / halt condition. |
-| `update_scratchpad` | write | Rewrite short working notes. |
-| `compact_state` | write | Summarize prior findings into scratchpad. |
-| `mark_done` | write | Goal achieved. Loop ends. |
-| `escalate` | write | Stuck. Loop ends with `escalated: true`. |
-| `conductor_get_state` | read | Full task record. |
-| `list_experts` | read | Local hint catalog (attest-mcp's `list_experts` is authoritative). |
+| `/autopilot status` (chat) | Agent calls `conductor_get_state`, replies read-only. |
+| `POST /v1/channels/autopilot/run` `{ goal }` | HTTP entry; same loop. |
+| GitHub issue / PR / review comment starting with `/autopilot …` | `bot/channels/github.ts` dispatch. |
 
 ## Package layout
 
 ```
 packages/attest-conductor/
-├── package.json              name: @bpmforge/attest-conductor
+├── package.json              name: attest-conductor
 ├── tsconfig.json             strict + noEmit (tsx handles execution)
 ├── README.md                 (this file)
 ├── AGENTS.md                 BDK scaffold notes for coding agents
 ├── bot/
 │   ├── agent.ts              defineAgent({})
-│   ├── instructions.md       short, Ralph-aware, Shape-C palette
+│   ├── instructions.md       short, Ralph-aware
 │   ├── lib/
-│   │   ├── conductor-state.ts    per-task kv model + idempotency + autonomy
+│   │   ├── conductor-state.ts    per-task kv model + idempotency helpers
 │   │   ├── ralph-loop.ts         prompt renderer + shouldStop + compaction
-│   │   ├── attest-stub-tools.ts  inline stub for attest-mcp (incl. invoke_expert)
-│   │   ├── experts-registry.ts   local hint catalog (no env transport switching)
-│   │   ├── autonomy.ts           autonomy mode + destructive-capability matcher
-│   │   ├── approvals.ts          approval record shape + kv helpers
-│   │   ├── github-approval.ts    comment body + reply parser
-│   │   ├── invoke-expert.ts      MCP adapter: callInvokeExpert / callPreDispatchCheck
-│   │   ├── request-approval-core.ts  HITL transport selection + poll loop
-│   │   └── autopilot-parse.ts    /autopilot ... --autonomy ... parser
+│   │   ├── attest-stub-tools.ts  inline stub for attest-mcp
+│   │   └── experts-registry.ts   known experts + env resolver
 │   ├── mcp-connections/
 │   │   └── attest.ts         switches stub ↔ real attest-mcp by env
 │   ├── tools/
@@ -164,34 +180,22 @@ packages/attest-conductor/
 │   │   ├── escalate.ts
 │   │   ├── update_scratchpad.ts
 │   │   ├── compact_state.ts
-│   │   ├── invoke_expert.ts        Shape-C policy-mediated dispatch (replaces dispatch_expert)
-│   │   ├── pre_dispatch_check.ts   Shape-C policy preview
-│   │   ├── request_approval.ts     Shape-C HITL
-│   │   ├── set_autonomy_mode.ts    Shape-C autonomy
+│   │   ├── dispatch_expert.ts     stub / peer / http (idempotent)
 │   │   ├── list_experts.ts
-│   │   └── run_autopilot_task.ts   chat/eval entry — drives Ralph loop
+│   │   └── run_autopilot_task.ts  chat/eval entry — drives Ralph loop
 │   └── channels/
 │       ├── autopilot.ts      POST /run — HTTP entry, drives Ralph loop
-│       └── github.ts         /autopilot dispatch + /approve /deny resolver
+│       └── github.ts         `/autopilot` dispatch gate
 ├── evals/
 │   ├── evals.config.ts
-│   ├── autopilot-e2e.eval.ts
+│   ├── autopilot-e2e.eval.ts         e2e — full Ralph loop via chat trigger
 │   └── ralph-pattern/
-│       ├── dispatch-allowed.eval.ts             Shape-C outcome: allowed
-│       ├── policy-denied.eval.ts                Shape-C outcome: policy_denied
-│       ├── approval-required-approved.eval.ts   Shape-C outcome: approval→approved
-│       ├── approval-required-denied.eval.ts     Shape-C outcome: approval→denied
-│       └── final-phase-done.eval.ts
+│       ├── early-phase.eval.ts        unit — fresh task, not a terminal move
+│       ├── mid-phase-blocked.eval.ts  unit — heal ladder at the end
+│       └── final-phase-done.eval.ts   unit — gate done, must mark_done
 └── test/
     ├── conductor-state.test.mjs
     ├── experts-registry.test.mjs
-    ├── autonomy.test.mjs
-    ├── autopilot-parse.test.mjs
-    ├── github-approval.test.mjs
-    ├── invoke-expert-lib.test.mjs
-    ├── invoke-expert-tool.test.mjs
-    ├── pre-dispatch-check.test.mjs
-    ├── request-approval-core.test.mjs
     └── ralph-loop.test.mjs
 ```
 
@@ -204,8 +208,12 @@ npm test                                     # tsc + node --test (tsx loader)
 npx tsx bot/agent.ts                         # agent module loads cleanly
 npx @cursor/bdk validate --dir .             # BDK diagnostic pass
 npx @cursor/bdk info --dir . --json          # tool / channel catalog
-npx @cursor/bdk eval --dir . --list          # six evals register
+npx @cursor/bdk eval --dir . --list          # all four evals register
 ```
+
+All six currently pass clean on `main`. 19 unit tests cover the state
+model + idempotency helpers + Ralph loop driver (prompt renderer, stop
+thresholds, compaction trigger).
 
 Running the evals needs a Cursor credential (`CURSOR_API_KEY`,
 `CURSOR_API_KEY_FILE`, `CURSOR_SERVICE_ACCOUNT_KEY`, or
@@ -216,10 +224,10 @@ invariant, not a bug in the skeleton.
 With a credential set:
 
 ```sh
-npx @cursor/bdk eval --dir .                             # all 6
-npx @cursor/bdk eval --dir . --tag shape-c               # 5 unit cases
-npx @cursor/bdk eval --dir . autopilot-e2e               # e2e only
-npx @cursor/bdk eval --dir . ralph-pattern/dispatch-allowed
+npx @cursor/bdk eval --dir .                            # all 4
+npx @cursor/bdk eval --dir . --tag ralph                # 3 unit cases
+npx @cursor/bdk eval --dir . autopilot-e2e              # e2e only
+npx @cursor/bdk eval --dir . ralph-pattern/early-phase
 ```
 
 ## Dev loop
@@ -229,18 +237,25 @@ npx @cursor/bdk dev --dir packages/attest-conductor
 # then open http://127.0.0.1:3000/playground
 ```
 
-Send `/autopilot --autonomy approve-each harden the login flow` and
-watch `run_autopilot_task` start the loop with each destructive-op
-dispatch going through `request_approval` first (fail-closed in dev
-unless you've attached a transport).
+Send `/autopilot harden the login flow` and watch
+`run_autopilot_task` start the loop. Each Ralph sub-turn's tool trail
+is visible in the trace.
+
+To invoke the HTTP entry directly:
+
+```sh
+curl -X POST http://127.0.0.1:3000/v1/channels/autopilot/run \
+  -H 'content-type: application/json' \
+  -d '{"goal":"harden the login flow","iterationCap":3,"maxTurns":5}'
+```
 
 ## Pointing at the real `attest-mcp`
 
-Once the sibling `feat/attest-mcp` Shape-C PR publishes:
+Once `feat/attest-mcp` publishes:
 
 ```sh
 ATTEST_MCP_COMMAND=npx \
-ATTEST_MCP_ARGS='["-y","@bpmforge/attest-mcp"]' \
+ATTEST_MCP_ARGS='["-y","attest-mcp"]' \
   npx @cursor/bdk dev --dir packages/attest-conductor
 ```
 
@@ -252,33 +267,61 @@ ATTEST_MCP_ARGS='["../attest-mcp/dist/stdio.js"]' \
   npx @cursor/bdk dev --dir packages/attest-conductor
 ```
 
-### Expected attest-mcp Shape-C tool contract
+### Expected attest-mcp tool contract (resolved on the integration pass)
 
-The conductor's Shape-C integration assumes attest-mcp exposes:
-
-| tool | input | expected output |
+| tool | input | expected output shape |
 | --- | --- | --- |
-| `invoke_expert` | `{ expertId, taskId, phase?, prompt?, input?, approvalId? }` | one of `{ kind: "expert_output", summary?, result }` / `{ kind: "policy_denied", reason, capability?, ruleId? }` / `{ kind: "approval_required", capability, approver, prompt, destructiveOp?, target? }` |
-| `pre_dispatch_check` | `{ expertId, taskId, phase?, scope? }` | `{ decision: "allow" \| "deny" \| "requires-approval", reason?, capability?, ruleId? }` |
-| `request_approval` | `{ reason?, destructive_op?, target?, approvalId?, taskId?, capability? }` | `{ approved, by?, reason? }` (SDK-wrapped `content: [{ text: "<json>" }]` also accepted) |
-| `route_goal`, `list_validators`, `phase_gate_check`, `list_experts`, `validate_<name>` | — (unchanged from Shape A) | — |
+| `route_goal` | `{ goal, context?, currentPhase? }` | `{ expert, rationale, nextPhase, unit: { id, description, writeScope }, expectedValidators: string[] }` |
+| `list_validators` | `{ phase? }` | `{ validators: Array<{ id, toolName, description }> }` |
+| `phase_gate_check` | `{ currentPhase, nextPhase, projectRoot?, runValidators? }` | `{ ok, transition, projectRoot, blockers, plannedValidators: string[], validatorResults? }` where each `plannedValidators` entry is a shell-script basename (e.g. `validate-architecture.sh`). |
+| `validate_<id>` (77 tools) | `{ scope?, projectRoot?, timeoutMs?, enableTelemetry? }` | `{ id, ok, exitCode, severity, gaps, receipt }` |
 
-The conductor's TS tolerates both snake_case (`policy_denied`) and
-camelCase (`PolicyDenied`) `kind` values, and the SDK-style
-`{ content: [{ type: "text", text: "<json>" }] }` wrapper, but throws
-`InvokeExpertParseError` on an unknown `kind` so the Ralph loop can
-surface a structured error rather than silently misinterpret the
-server. See `bot/lib/invoke-expert.ts`.
+**Snake vs dotted.** The design report originally listed dotted names
+(`attest.route`, `attest.validate.<name>`, `attest.gate.run`,
+`attest.gate.current`). Both the real `attest-mcp` and this conductor
+settled on **snake_case** (`route_goal`, `phase_gate_check`,
+`validate_<id>`). Documented in
+`internal/attest-integration.md`.
+
+**One `validate` vs 77 `validate_<id>`.** The design report (and this
+conductor's earlier skeleton) modeled validators as a single
+`validate(name)` call. `attest-mcp` instead publishes one MCP tool per
+validator shell script (77 total), each with its own tool-level
+description so the LLM does not have to guess at a free-text
+`category` parameter. The Ralph prompt teaches the agent to call
+`phase_gate_check` first and map each `plannedValidators` entry to the
+MCP tool `validate_<id>` where `<id>` is the basename stripped of
+`validate-` / `.sh` and dashes replaced by underscores (see
+`validatorScriptToToolName` in `bot/lib/ralph-loop.ts`).
+
+## GitHub channel
+
+`bot/channels/github.ts` dispatches when an issue title/body or an
+issue/PR comment starts with `/autopilot …`. Named secrets only (BDK v2
+pattern): `GITHUB_WEBHOOK_SECRET`, `GITHUB_APP_ID`,
+`GITHUB_APP_PRIVATE_KEY`. The dispatch currently returns
+`{ auth: defaultGitHubAuth(ctx) }` which starts a chat-style turn;
+a follow-up PR flips it to `{ task: () => runRalphLoopHere(...) }` so
+the full Ralph loop runs server-side without a chat session.
+
+## Deploy as a Cursor cloud agent
+
+```sh
+cd packages/attest-conductor
+npx @cursor/bdk login              # one-time
+npx @cursor/bdk deploy
+```
+
+Follow the hillclimb skill
+(`node_modules/@cursor/bdk/skills/hillclimb/SKILL.md`) once the sibling
+packages land and the stubs can be swapped out for real wires.
 
 ## Related
 
-- Design report: `docs/attest-chief-architecture.md` (project store) —
-  §3.3 (Shape C) and §8.3 (`attest-conductor` migration)
-- Sibling package: `packages/attest-mcp/` (owns the Cedar/OPA policy
-  engine, `invoke_expert`, `pre_dispatch_check`, `request_approval`
-  elicitation path, in-process expert handlers)
-- Sibling package: `packages/attest-experts/` (owns the ~15 risky-write
-  BDK agents under Shape C classification)
-- Earlier design: `docs/attest-cursor-integration.md`
-- Shape A baseline: `cursor/attest-conductor-bdk-0ce6` (this branch
-  diffs on top)
+- Design report: `docs/attest-cursor-integration.md` (project store)
+- Sibling package: `packages/attest-mcp/` (owns `route_goal`,
+  validators, `phase_gate_check`, SDLC rules)
+- Sibling package: `packages/attest-experts/` (owns each primary
+  expert as a deployable BDK agent)
+- Source conductor being ported: `scripts/conductor/conductor.mjs`
+- Source autopilot behavior: `skills/autopilot/SKILL.md`

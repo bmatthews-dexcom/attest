@@ -27,7 +27,7 @@ test("listExperts enumerates all primary agents and nothing else", () => {
   assert.ok(!ids.has("dead-code-detector"));
 });
 
-test("every expert has a well-formed invocation hint pointing at @bpmforge/attest-experts", () => {
+test("every expert has a well-formed invocation hint pointing at attest-experts", () => {
   for (const e of listExperts()) {
     assert.equal(e.invocationHint.package, EXPERTS_PACKAGE);
     assert.equal(e.invocationHint.agent, e.id);

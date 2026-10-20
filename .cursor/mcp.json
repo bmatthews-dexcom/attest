@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "$note": "Three MCP servers under Shape C — ALL invoked via LOCAL workspace paths (no auto-install `npx`, no registry fetch). `attest` and `attest-policy-dev` run the local build output at `./packages/attest-mcp/dist/cli.js` (produced by `npm --workspace packages/attest-mcp run build`); `attest-conductor` is served by the Cursor-published `@cursor/bdk` dev dependency (install locally; do not fetch at runtime). See .cursor/README.md \"Shape-C policy mode flip\" for how to flip to ENFORCE and \"Local install\" for how to prepare the workspace.",
   "mcpServers": {
     "attest": {
@@ -11,6 +12,20 @@
     "attest-conductor": {
       "$comment": "Local-dev invocation: served out of packages/attest-conductor via the Cursor-published `cursor-bdk` bin (`@cursor/bdk` must be a workspace devDependency — install locally, do NOT fetch at runtime). For deployed Cursor installs, swap this stanza for { \"url\": \"https://<your-conductor-host>/v1/mcp\", \"type\": \"http\" } pointing at the deployed BDK agent (BDK deployments expose /<slug>/v1/mcp automatically via `npx @cursor/bdk deploy`). This package is NEVER published to npm; it lives only in this workspace.",
       "command": "cursor-bdk",
+=======
+  "$note": "Two MCP servers, both backed by local workspace packages (nothing is published to npm). `attest` is the stdio MCP server from packages/attest-mcp (77 validators + phase_gate_check + route_goal + list_experts), run as `node packages/attest-mcp/dist/cli.js` — run `npm run build:mcp` once after `npm install` to produce the dist. `attest-conductor` is the BDK agent that runs the /autopilot Ralph loop, served out of packages/attest-conductor via @cursor/bdk serve. See .cursor/skills/invoke-attest-conductor/SKILL.md for the three-path dial-out (preferred: MCP tool, fallback: HTTPS, fallback: GitHub comment).",
+  "mcpServers": {
+    "attest": {
+      "$comment": "Workspace sibling — not uploaded to any registry. Build it once with `npm --prefix packages/attest-mcp run build` (or `./scripts/local-install.sh`). ${workspaceFolder} is Cursor-expanded to the project root.",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/packages/attest-mcp/dist/cli.js"
+      ]
+    },
+    "attest-conductor": {
+      "$comment": "Local invocation: served out of packages/attest-conductor via @cursor/bdk serve --mode single. For a Cursor-hosted deploy (after `./scripts/deploy.sh`), swap this stanza for { \"url\": \"https://<slug>/<team>/v1/mcp\", \"type\": \"http\" } using the slug the deploy returned.",
+      "command": "npx",
+>>>>>>> origin/feat/attest-release-and-deploy-prep
       "args": [
         "serve",
         "--dir",

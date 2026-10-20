@@ -95,7 +95,7 @@ PLAYWRIGHT_MCP_HEADED=true claude
 
 ## playwright-search — Web research & page extraction
 
-> Powered by **Quarry** (`github.com/bpmforge/quarry`) — the bpmforge web-retrieval product; install locally per Quarry's own README (do not expect it from the npm registry). The MCP server keeps the name `playwright-search` (and the `playwright-search_*` tool names) as a stable alias, so no config changes are needed.
+> Powered by **Quarry** (`github.com/bpmforge/quarry`, published separately as the `quarry` npm package under the bpmforge scope) — the bpmforge web-retrieval product. The MCP server keeps the name `playwright-search` (and the `playwright-search_*` tool names) as a stable alias, so no config changes are needed.
 
 **What it does:** Multi-engine web search (DuckDuckGo + Brave + Bing) with paragraph-ranked extraction and 24h cache. Also extracts clean content from any URL — handles JS-heavy SPAs, Cloudflare pages, and paywalled content via a 4-stage pipeline.
 
