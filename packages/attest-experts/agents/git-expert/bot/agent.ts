@@ -1,5 +1,6 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/git-expert.md
+// Shape C — sandbox-required BDK agent (stub pending full persona port + eval)
+// Attest source: agents/git-expert.md
+// Classification rationale: Six modes include --init bootstrap, --feature push+PR, --release tag+push, --sync multi-remote mirror — core git:write + pr:open.
 import { defineStubExpert } from "../../../lib/expert-factory.js";
 import type { ExpertMetadata } from "../../../lib/expert-registry.js";
 

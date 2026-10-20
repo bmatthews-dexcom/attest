@@ -1,5 +1,6 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/game/game-balance-designer.md
+// Shape C — sandbox-required BDK agent (stub pending full persona port + eval)
+// Attest source: agents/game/game-balance-designer.md
+// Classification rationale: WRITE-SCOPE explicitly includes 'the game's tunable config files' alongside docs/design/game/balance/ — write:fs to repo source.
 import { defineStubExpert } from "../../../lib/expert-factory.js";
 import type { ExpertMetadata } from "../../../lib/expert-registry.js";
 
