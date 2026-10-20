@@ -24,6 +24,9 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { buildServer, serverInventory, SERVER_VERSION } from "./server.js";
 import { attestRoot } from "./sources.js";
 import { listValidators } from "./validators/catalog.js";
+import { registerReferenceHandlers } from "./experts/registry-handlers.js";
+import { getPolicyEngine } from "./policy/engine.js";
+import { resolveAuditPath } from "./policy/audit.js";
 
 async function main() {
   const argv = process.argv.slice(2);
@@ -34,8 +37,10 @@ async function main() {
   }
 
   if (argv.includes("--inventory")) {
+    registerReferenceHandlers();
     const inv = serverInventory();
     const root = attestRoot();
+    const engine = getPolicyEngine();
     process.stdout.write(
       JSON.stringify(
         {
@@ -43,6 +48,12 @@ async function main() {
           version: SERVER_VERSION,
           attestRoot: root.root,
           origin: root.origin,
+          policy: {
+            mode: engine.mode,
+            cedarVersion: engine.cedarVersion,
+            policyIds: engine.policyIds,
+            auditLogPath: resolveAuditPath(),
+          },
           inventory: inv,
         },
         null,

@@ -16,8 +16,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "node scripts/bundle-sources.mjs && tsc",
-    "bundle": "node scripts/bundle-sources.mjs",
+    "build": "node scripts/bundle-sources.mjs && tsc && node scripts/copy-policy-sources.mjs",
+    "bundle": "node scripts/bundle-sources.mjs && node scripts/copy-policy-sources.mjs",
     "clean": "rm -rf dist bundled",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
@@ -26,6 +26,7 @@
     "inspect": "npx -y @modelcontextprotocol/inspector node dist/cli.js"
   },
   "dependencies": {
+    "@cedar-policy/cedar-wasm": "4.14.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "zod": "^3.25.0"
   },
