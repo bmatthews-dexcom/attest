@@ -1,0 +1,176 @@
+/**
+ * Role brief — the authoritative CEO → Director handoff artifact.
+ *
+ * Mirrors `docs/attest-director-architecture.md` §4.8.
+ *
+ * Required at the `director.create_expert` boundary. Validation here is the
+ * fail-closed gate: invalid briefs reject with field-specific errors (per
+ * AI-SDLC §4.3).
+ */
+import { z } from "zod";
+import { CapabilityMapSchema } from "./capabilities.js";
+
+export const TypicalIOSchema = z.object({
+  name: z.string().min(1),
+  type: z.string().min(1),
+  example: z.string().min(1).optional(),
+});
+export type TypicalIO = z.infer<typeof TypicalIOSchema>;
+
+export const RequestedCapabilitiesSchema = CapabilityMapSchema;
+export type RequestedCapabilities = z.infer<typeof RequestedCapabilitiesSchema>;
+
+export const RequiredIntegrationSchema = z.object({
+  kind: z.enum(["mcp-server", "library", "cli-tool", "service"]),
+  candidates: z.array(z.string().min(1)).min(1),
+  install_steps_tbd: z.boolean().default(true),
+  notes: z.string().optional(),
+});
+export type RequiredIntegration = z.infer<typeof RequiredIntegrationSchema>;
+
+export const GoldenSetEntrySchema = z.object({
+  input: z.string().min(1),
+  expected_rubric: z.string().min(1),
+  notes: z.string().optional(),
+});
+export type GoldenSetEntry = z.infer<typeof GoldenSetEntrySchema>;
+
+export const RoleBriefRequestedBySchema = z.object({
+  source: z.enum(["ceo", "bradford", "director-refinement"]),
+  task_id: z.string().min(1).optional(),
+  requested_by_user: z.string().optional(),
+});
+export type RoleBriefRequestedBy = z.infer<typeof RoleBriefRequestedBySchema>;
+
+export const RoleBriefProximityCheckSchema = z.object({
+  topMatches: z
+    .array(
+      z.object({
+        expertId: z.string().min(1),
+        score: z.number().min(0).max(1),
+        rationale: z.string().min(1),
+      }),
+    )
+    .default([]),
+  verdict: z
+    .enum([
+      "safely-new",
+      "surface-near-match",
+      "rename-and-dispatch",
+      "rename-and-create",
+      "create-separately",
+      "refuse-rejected-earlier",
+    ])
+    .describe(
+      "Proximity-check outcome; drives §4.7 close-match decision tree.",
+    ),
+  rejectionFingerprint: z.string().optional(),
+});
+export type RoleBriefProximityCheck = z.infer<typeof RoleBriefProximityCheckSchema>;
+
+export const RoleBriefStateSchema = z.enum([
+  "proposed",
+  "research-ready",
+  "draft-ready",
+  "eval-passing",
+  "eval-stuck",
+  "awaiting-approval",
+  "deployed",
+  "rejected",
+  "parked",
+  "org-mission-rejected",
+  "duplicate",
+]);
+export type RoleBriefState = z.infer<typeof RoleBriefStateSchema>;
+
+export const RoleBriefSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .regex(/^rb-[a-z0-9-]+$/i, "role-brief id must start with 'rb-'"),
+  version: z.string().default("1.0"),
+  role: z
+    .string()
+    .min(1)
+    .regex(/^[a-z0-9][a-z0-9-]*$/i, "role must be kebab-case id"),
+  title: z.string().min(1),
+  mission: z.string().min(1).describe("One-paragraph plain-English statement."),
+  responsibilities: z.array(z.string().min(1)).min(3).max(7),
+  typical_inputs: z.array(TypicalIOSchema).min(1),
+  typical_outputs: z.array(TypicalIOSchema).min(1),
+  example_task: z.string().min(1),
+  domain_context: z.string().min(1).optional(),
+  urgency: z.enum(["normal", "urgent", "scheduled"]).default("normal"),
+  requested_by: RoleBriefRequestedBySchema,
+  requested_capabilities: RequestedCapabilitiesSchema,
+  form_factor_preference: z
+    .enum(["auto", "skill", "in-process-handler", "sandbox-bdk-agent"])
+    .default("auto"),
+  required_integrations: z.array(RequiredIntegrationSchema).default([]),
+  golden_set: z.array(GoldenSetEntrySchema).default([]),
+  proximity_check: RoleBriefProximityCheckSchema.nullable().default(null),
+  state: RoleBriefStateSchema.default("proposed"),
+  created_at: z.string().min(1),
+  updated_at: z.string().min(1),
+});
+export type RoleBrief = z.infer<typeof RoleBriefSchema>;
+
+/**
+ * Shape used at the `director.create_expert` MCP boundary. Compared to
+ * `RoleBriefSchema`, the id, version, state, timestamps, and proximity
+ * check are all server-authored — the caller only supplies the semantic
+ * content. See §4.8.
+ */
+export const CreateExpertInputSchema = RoleBriefSchema.omit({
+  id: true,
+  version: true,
+  state: true,
+  proximity_check: true,
+  created_at: true,
+  updated_at: true,
+}).extend({
+  /** Opt-in brief id so retries from the CEO are idempotent. */
+  id: z.string().min(1).optional(),
+});
+export type CreateExpertInput = z.infer<typeof CreateExpertInputSchema>;
+
+export function newRoleBriefId(nowMs: number = Date.now(), rand?: string): string {
+  const d = new Date(nowMs);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const r = rand ?? Math.random().toString(36).slice(2, 6);
+  return `rb-${yyyy}${mm}${dd}-${r}`;
+}
+
+/**
+ * Deterministic semantic fingerprint for a brief: lowercased role +
+ * normalized mission + sorted responsibilities. Used by the proximity
+ * check's rejected-briefs log so Director doesn't propose the same thing
+ * twice (§11 `director:rejected:<role-fingerprint>`).
+ */
+export function roleFingerprint(input: {
+  role: string;
+  mission: string;
+  responsibilities: readonly string[];
+}): string {
+  const parts = [
+    input.role.toLowerCase().trim(),
+    normalizeWs(input.mission),
+    [...input.responsibilities].map(normalizeWs).sort().join("|"),
+  ];
+  return hashString(parts.join("::"));
+}
+
+function normalizeWs(s: string): string {
+  return s.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+/** Tiny stable hash (djb2) — deterministic across platforms, no crypto. */
+function hashString(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  }
+  return `fp-${h.toString(36)}`;
+}
