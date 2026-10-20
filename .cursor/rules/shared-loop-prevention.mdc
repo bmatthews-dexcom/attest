@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: loop-prevention — read on demand.'
+alwaysApply: false
+---
+
+# loop-prevention
+
+This rule points at the attest shared protocol `agents/shared/LOOP_PREVENTION.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/LOOP_PREVENTION.md

@@ -1,0 +1,10 @@
+---
+description: 'Smart routing table for sdlc-lead — maps natural-language user intent to modes, escape hatches for narrow asks, two-track gate system (coverage loop vs confidence loop), and validation gate chain per phase.'
+alwaysApply: false
+---
+
+# phase-routing-protocol
+
+This rule points at the attest shared protocol `agents/shared/PHASE_ROUTING_PROTOCOL.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/PHASE_ROUTING_PROTOCOL.md

@@ -1,0 +1,10 @@
+---
+description: 'Reference document — git checkpoint-per-phase and revert-to-known-good for deterministic recovery on multi-phase work.'
+alwaysApply: false
+---
+
+# checkpoint-revert
+
+This rule points at the attest shared protocol `agents/shared/CHECKPOINT_REVERT.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/CHECKPOINT_REVERT.md

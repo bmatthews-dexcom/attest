@@ -1,0 +1,10 @@
+---
+description: 'attest shared protocol: memory-primer — read on demand.'
+alwaysApply: false
+---
+
+# memory-primer
+
+This rule points at the attest shared protocol `agents/shared/MEMORY_PRIMER.md`. Read it when it is relevant to the current task; do not paraphrase from memory.
+
+@agents/shared/MEMORY_PRIMER.md

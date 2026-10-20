@@ -22,6 +22,8 @@
     "agents:compact": "node scripts/build-agents.mjs --compact",
     "build:claude": "node scripts/build-target-claude.mjs --write",
     "build:claude:check": "node scripts/build-target-claude.mjs --check",
+    "build:cursor": "node scripts/build-target-cursor.mjs --write",
+    "build:cursor:check": "node scripts/build-target-cursor.mjs --check",
     "evals": "node scripts/run-evals.mjs",
     "evals:agent": "node scripts/run-evals.mjs --agent",
     "evals:compare": "node scripts/eval-compare.mjs",
