@@ -1,14 +1,10 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/security/threat-modeler.md
-import { defineStubExpert } from "../../../lib/expert-factory.js";
-import type { ExpertMetadata } from "../../../lib/expert-registry.js";
+import { defineExpert } from "../../../lib/expert-factory.js";
+import { CONCRETE_EXPERTS } from "../../../lib/expert-registry.js";
 
-const META: ExpertMetadata = {
-  "id": "threat-modeler",
-  "source": "agents/security/threat-modeler.md",
-  "cluster": "security",
-  "status": "stub",
-  "summary": "Threat modeling specialist — STRIDE per component, DFD with trust boundaries, threat rating, and mitigation mapping. Produces THREAT_MODEL.md. Runs after semgrep-runner so it can reference confirmed findings when rati…"
-};
+const META = CONCRETE_EXPERTS.find((e) => e.id === "threat-modeler")!;
 
-export default defineStubExpert(META);
+export default defineExpert({
+  meta: META,
+  descriptionAddendum:
+    "STRIDE wave-3 specialist dispatched by security-auditor after semgrep-runner. Grounds on attest-mcp (`get_persona`, `get_protocol`), reads architecture docs + confirmed findings, builds a DFD + per-component STRIDE table + Standing Threat Archetype assessment, and reports structured findings via submit-report.",
+});

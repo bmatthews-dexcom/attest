@@ -1,14 +1,10 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/security/semgrep-runner.md
-import { defineStubExpert } from "../../../lib/expert-factory.js";
-import type { ExpertMetadata } from "../../../lib/expert-registry.js";
+import { defineExpert } from "../../../lib/expert-factory.js";
+import { CONCRETE_EXPERTS } from "../../../lib/expert-registry.js";
 
-const META: ExpertMetadata = {
-  "id": "semgrep-runner",
-  "source": "agents/security/semgrep-runner.md",
-  "cluster": "security",
-  "status": "stub",
-  "summary": "SAST specialist — runs semgrep with all registered rule packs (community + custom), triages findings REAL/FP/UNVERIFIED, writes structured finding output. Phase 1 of any security scan. Always runs; other specialists b…"
-};
+const META = CONCRETE_EXPERTS.find((e) => e.id === "semgrep-runner")!;
 
-export default defineStubExpert(META);
+export default defineExpert({
+  meta: META,
+  descriptionAddendum:
+    "SAST wave-1 specialist dispatched by security-auditor. Grounds on attest-mcp (`get_persona`, `list_validators`), runs the `semgrep` validator over the task target, triages REAL/FP/UNVERIFIED, and reports structured findings via submit-report.",
+});

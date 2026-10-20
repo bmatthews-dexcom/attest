@@ -1,14 +1,10 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/security/secrets-scanner.md
-import { defineStubExpert } from "../../../lib/expert-factory.js";
-import type { ExpertMetadata } from "../../../lib/expert-registry.js";
+import { defineExpert } from "../../../lib/expert-factory.js";
+import { CONCRETE_EXPERTS } from "../../../lib/expert-registry.js";
 
-const META: ExpertMetadata = {
-  "id": "secrets-scanner",
-  "source": "agents/security/secrets-scanner.md",
-  "cluster": "security",
-  "status": "stub",
-  "summary": "Secrets and credentials specialist — finds hardcoded API keys, tokens, passwords, and private keys in source code, configs, and git history. Uses TruffleHog, grep patterns, and git log. Runs in parallel with semgrep-r…"
-};
+const META = CONCRETE_EXPERTS.find((e) => e.id === "secrets-scanner")!;
 
-export default defineStubExpert(META);
+export default defineExpert({
+  meta: META,
+  descriptionAddendum:
+    "Credentials wave-1 specialist dispatched by security-auditor in parallel with semgrep-runner. Grounds on attest-mcp (`get_persona`), runs the `secrets-scan` validator over source + git history, escalates verified live credentials to CRITICAL, and reports structured findings via submit-report.",
+});

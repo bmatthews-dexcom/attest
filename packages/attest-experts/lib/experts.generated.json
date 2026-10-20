@@ -171,7 +171,7 @@
     "id": "dependency-auditor",
     "source": "agents/security/dependency-auditor.md",
     "cluster": "security",
-    "status": "stub",
+    "status": "concrete",
     "summary": "Dependency and supply chain security specialist — CVE scans, SBOM/SCA correlation (syft + grype, CISA KEV), outdated packages, license risk, and slopsquatting detection (AI-hallucinated package names registered by att…"
   },
   {
@@ -367,7 +367,7 @@
     "id": "owasp-web-checker",
     "source": "agents/security/owasp-web-checker.md",
     "cluster": "security",
-    "status": "stub",
+    "status": "concrete",
     "summary": "OWASP Web Top 10 specialist (2021) — manual A01–A10 checks per category with confidence loop. One context window per category. Reads semgrep-runner output to avoid duplicate findings. Writes per-category OWASP_TRACKER…"
   },
   {
@@ -507,7 +507,7 @@
     "id": "secrets-scanner",
     "source": "agents/security/secrets-scanner.md",
     "cluster": "security",
-    "status": "stub",
+    "status": "concrete",
     "summary": "Secrets and credentials specialist — finds hardcoded API keys, tokens, passwords, and private keys in source code, configs, and git history. Uses TruffleHog, grep patterns, and git log. Runs in parallel with semgrep-r…"
   },
   {
@@ -521,7 +521,7 @@
     "id": "semgrep-runner",
     "source": "agents/security/semgrep-runner.md",
     "cluster": "security",
-    "status": "stub",
+    "status": "concrete",
     "summary": "SAST specialist — runs semgrep with all registered rule packs (community + custom), triages findings REAL/FP/UNVERIFIED, writes structured finding output. Phase 1 of any security scan. Always runs; other specialists b…"
   },
   {
@@ -556,7 +556,7 @@
     "id": "threat-modeler",
     "source": "agents/security/threat-modeler.md",
     "cluster": "security",
-    "status": "stub",
+    "status": "concrete",
     "summary": "Threat modeling specialist — STRIDE per component, DFD with trust boundaries, threat rating, and mitigation mapping. Produces THREAT_MODEL.md. Runs after semgrep-runner so it can reference confirmed findings when rati…"
   },
   {

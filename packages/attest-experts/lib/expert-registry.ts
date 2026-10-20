@@ -63,6 +63,47 @@ export const CONCRETE_EXPERTS: ReadonlyArray<ExpertMetadata> = [
     summary:
       "Onboarding specialist — reads an unfamiliar codebase (README, package manifests, source tree, git hotspots) and produces LANDSCAPE.md orientation report.",
   },
+  // Phase 2 — security cluster wave 1 (always-run under security-auditor).
+  {
+    id: "semgrep-runner",
+    source: "agents/security/semgrep-runner.md",
+    cluster: "security",
+    status: "concrete",
+    summary:
+      "SAST specialist — runs semgrep with all registered rule packs (community + custom), triages findings REAL/FP/UNVERIFIED, writes structured finding output. Phase 1 of any security scan. Always runs; other specialists build on its output.",
+  },
+  {
+    id: "secrets-scanner",
+    source: "agents/security/secrets-scanner.md",
+    cluster: "security",
+    status: "concrete",
+    summary:
+      "Secrets and credentials specialist — finds hardcoded API keys, tokens, passwords, and private keys in source code, configs, and git history. Uses TruffleHog, grep patterns, and git log. Runs in parallel with semgrep-runner.",
+  },
+  {
+    id: "dependency-auditor",
+    source: "agents/security/dependency-auditor.md",
+    cluster: "security",
+    status: "concrete",
+    summary:
+      "Dependency and supply chain security specialist — CVE scans, SBOM/SCA correlation (syft + grype, CISA KEV), outdated packages, license risk, and slopsquatting detection (AI-hallucinated package names registered by attackers). Runs npm audit, pip-audit, cargo audit, govulncheck. Flags packages added by AI assistants that may not exist or may be malicious.",
+  },
+  {
+    id: "owasp-web-checker",
+    source: "agents/security/owasp-web-checker.md",
+    cluster: "security",
+    status: "concrete",
+    summary:
+      "OWASP Web Top 10 specialist (2021) — manual A01–A10 checks per category with confidence loop. One context window per category. Reads semgrep-runner output to avoid duplicate findings. Writes per-category OWASP_TRACKER rows.",
+  },
+  {
+    id: "threat-modeler",
+    source: "agents/security/threat-modeler.md",
+    cluster: "security",
+    status: "concrete",
+    summary:
+      "Threat modeling specialist — STRIDE per component, DFD with trust boundaries, threat rating, and mitigation mapping. Produces THREAT_MODEL.md. Runs after semgrep-runner so it can reference confirmed findings when rating threats.",
+  },
 ];
 
 export const CONCRETE_IDS = new Set(CONCRETE_EXPERTS.map((e) => e.id));
