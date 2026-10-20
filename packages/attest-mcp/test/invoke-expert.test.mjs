@@ -95,7 +95,7 @@ test("ENFORCE allows a handler whose capability is permitted", async () => {
     input: { goal: "scan" },
     phase: "phase-4",
   });
-  assert.equal(result.kind, "ok");
+  assert.equal(result.kind, "expert_output");
   assert.equal(result.output.summary, "noop");
   assert.equal(result.decisions.length, 1);
   assert.equal(result.decisions[0].effective, "allow");
@@ -133,7 +133,7 @@ test("elicitation transport (accept with confirm=true) permits the call", async 
     },
     { approvalTransport: transport },
   );
-  assert.equal(result.kind, "ok");
+  assert.equal(result.kind, "expert_output");
   assert.equal(result.output.ok, true);
 });
 
@@ -188,7 +188,7 @@ test("OFF mode runs the handler regardless of policy outcome", async () => {
     expertId: "would-be-denied",
     input: { goal: "x" },
   });
-  assert.equal(result.kind, "ok");
+  assert.equal(result.kind, "expert_output");
   // The record kept in-engine says "deny" but effective was "allow" per OFF.
   assert.equal(result.decisions[0].decision, "deny");
   assert.equal(result.decisions[0].effective, "allow");
@@ -216,7 +216,7 @@ test("LOG_ONLY mode logs deny but still runs the handler", async () => {
     expertId: "logged-only",
     input: { goal: "x" },
   });
-  assert.equal(result.kind, "ok");
+  assert.equal(result.kind, "expert_output");
   assert.equal(result.decisions[0].decision, "deny");
   assert.equal(result.decisions[0].effective, "allow");
 });

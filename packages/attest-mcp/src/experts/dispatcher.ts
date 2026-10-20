@@ -54,8 +54,23 @@ export interface DispatchRequest {
   readonly reasonForApproval?: string;
 }
 
+/**
+ * Discriminated union consumed by the attest-conductor (PR #14) via its
+ * `invoke_expert` / `pre_dispatch_check` MCP tool calls. The conductor
+ * contract mandates `kind` ∈ {`expert_output`, `policy_denied`,
+ * `approval_required`} — any drift surfaces as `InvokeExpertParseError`
+ * on the conductor side. Snake_case or camelCase payload fields are both
+ * accepted; this package emits snake_case fields in the MCP response
+ * body (see `runDispatchAndFormat` in `src/server.ts`).
+ *
+ * We internally keep an extra "no handler for this id" case that maps
+ * onto `policy_denied` when the MCP response is formatted (an unknown
+ * expert is, from the policy POV, a dispatch the server refuses to
+ * perform; grouping it under `policy_denied` keeps the conductor's
+ * three-case switch complete).
+ */
 export type DispatchResult =
-  | { kind: "ok"; output: ExpertOutput; decisions: readonly PolicyDecision[] }
+  | { kind: "expert_output"; output: ExpertOutput; decisions: readonly PolicyDecision[] }
   | { kind: "unknown_expert"; expertId: string; registered: readonly string[] }
   | { kind: "policy_denied"; error: PolicyDeniedError; decision: PolicyDecision }
   | { kind: "approval_required"; error: ApprovalRequiredError; decision: PolicyDecision };
@@ -149,7 +164,7 @@ export async function dispatchInProcess(
   }
 
   const output = await handler.invoke(request.input);
-  return { kind: "ok", output, decisions };
+  return { kind: "expert_output", output, decisions };
 }
 
 /**

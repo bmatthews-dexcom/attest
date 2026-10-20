@@ -1,11 +1,13 @@
 {
   "name": "@bpmforge/attest-mcp",
   "version": "0.1.0",
-  "description": "MCP server exposing attest's 79 shell validators, phase-gate state machine, /guide routing table, shared protocols, and expert prompts to any MCP-speaking client (Cursor, OpenCode, Claude Code, Claude Desktop).",
+  "private": true,
+  "description": "MCP server exposing attest's 79 shell validators, phase-gate state machine, /guide routing table, shared protocols, and expert prompts to any MCP-speaking client (Cursor, OpenCode, Claude Code, Claude Desktop). LOCAL-ONLY: installed from the workspace or a git+ssh clone of bmatthews-dexcom/attest; never published to the public npm registry.",
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "attest-mcp": "./dist/cli.js"
+    "attest-mcp": "./dist/cli.js",
+    "attest-mcp-policy": "./dist/cli-policy.js"
   },
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
@@ -21,7 +23,6 @@
     "clean": "rm -rf dist bundled",
     "typecheck": "tsc --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
-    "prepack": "npm run clean && npm run build",
     "start": "node dist/cli.js",
     "inspect": "npx -y @modelcontextprotocol/inspector node dist/cli.js"
   },
@@ -36,9 +37,6 @@
   },
   "engines": {
     "node": ">=20.0.0"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "repository": {
     "type": "git",

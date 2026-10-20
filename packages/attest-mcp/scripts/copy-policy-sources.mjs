@@ -17,7 +17,7 @@
  * `--bundle`-only invocation also materialises these trees.
  */
 
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync, rmSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, statSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -72,12 +72,34 @@ function copyClassificationManifest() {
   return 1;
 }
 
+function chmodBins() {
+  // tsc preserves the #! shebang but drops the executable bit; npm's bin
+  // install path sets it at install time, but local workspace callers
+  // (and `node_modules/.bin/attest-mcp-policy` symlinks created by a
+  // workspace install) need it set at build time too. Both bins are
+  // declared in `package.json#bin`; keep this list in sync.
+  const bins = ["cli.js", "cli-policy.js"];
+  const dist = resolve(PKG_ROOT, "dist");
+  for (const name of bins) {
+    const abs = join(dist, name);
+    if (existsSync(abs)) {
+      try {
+        chmodSync(abs, 0o755);
+      } catch (err) {
+        console.warn(`[copy-policy-sources] chmod ${abs} failed: ${err.message}`);
+      }
+    }
+  }
+}
+
 function main() {
   const policyCount = copyPolicyTree();
   const classificationCount = copyClassificationManifest();
+  chmodBins();
   console.log(
     `[copy-policy-sources] copied ${policyCount} Cedar file(s) into ${DIST_POLICY} ` +
-      `and ${classificationCount} classification manifest(s) into ${DIST_EXPERTS}`,
+      `and ${classificationCount} classification manifest(s) into ${DIST_EXPERTS}; ` +
+      `set +x on dist/cli.js, dist/cli-policy.js`,
   );
 }
 

@@ -64,6 +64,7 @@ import {
   elicitationTransport,
   type ApprovalTransport,
 } from "./elicitation/approval.js";
+import { registerPolicyTools, POLICY_TOOL_NAMES } from "./policy/tools.js";
 
 export const SERVER_NAME = "attest";
 export const SERVER_VERSION = "0.1.0";
@@ -498,6 +499,15 @@ function registerPerHandlerResource(server: McpServer, id: string): void {
   );
 }
 
+/**
+ * Format a `DispatchResult` into the MCP tool response shape consumed by
+ * the attest-conductor (PR #14) and any other MCP client. Contract:
+ * every payload carries a top-level `kind` field equal to one of
+ * `expert_output | policy_denied | approval_required`. The internal
+ * `unknown_expert` case is folded onto `policy_denied` (the server
+ * refuses to dispatch to a handler it does not have) so the conductor's
+ * three-case switch is exhaustive.
+ */
 async function runDispatchAndFormat(
   request: Parameters<typeof dispatchInProcess>[0],
   dispatcherOptions: DispatcherOptions,
@@ -505,8 +515,9 @@ async function runDispatchAndFormat(
   try {
     const result = await dispatchInProcess(request, dispatcherOptions);
     switch (result.kind) {
-      case "ok":
+      case "expert_output":
         return okContent({
+          kind: "expert_output",
           ok: result.output.ok,
           output: result.output,
           decisions: result.decisions,
@@ -514,7 +525,16 @@ async function runDispatchAndFormat(
       case "unknown_expert":
         return errContent(
           `unknown expert id: ${result.expertId}`,
-          { kind: "unknown_expert", registered: result.registered },
+          {
+            kind: "policy_denied",
+            error: {
+              kind: "policy_denied",
+              expertId: result.expertId,
+              reason: "unknown_expert",
+              detail: "no in-process handler is registered for this expert id",
+              registered: result.registered,
+            },
+          },
         );
       case "policy_denied":
         return errContent(
@@ -528,7 +548,17 @@ async function runDispatchAndFormat(
         );
     }
   } catch (err) {
-    return errContent((err as Error).message, { tool: "invoke_expert", expertId: request.expertId });
+    return errContent((err as Error).message, {
+      kind: "policy_denied",
+      tool: request.toolName ?? "invoke_expert",
+      expertId: request.expertId,
+      error: {
+        kind: "policy_denied",
+        expertId: request.expertId,
+        reason: "dispatch_exception",
+        detail: (err as Error).message,
+      },
+    });
   }
 }
 
@@ -676,16 +706,28 @@ function errContent(message: string, extra: Record<string, unknown> = {}) {
  *     client doesn't advertise elicitation.
  */
 export function buildServer(options: BuildServerOptions = {}): McpServer {
+  // Shape-C HITL: advertise an `elicitation` capability on the wire so
+  // the attest-conductor (PR #14) picks the MCP-elicitation HITL path
+  // over GitHub-comment HITL. The conductor reads
+  // `ctx.capabilities?.elicitation` (or honours
+  // ATTEST_MCP_SUPPORTS_ELICITATION=1 as an env override). The MCP SDK's
+  // ServerCapabilities type does not currently include this key — it is
+  // formally a client capability in the vanilla spec — so we also
+  // mirror it under `experimental.elicitation` for implementations that
+  // only inspect the experimental namespace. The top-level `elicitation`
+  // field is the one the conductor keys on; the cast is deliberate.
+  const capabilities = {
+    tools: {},
+    resources: {},
+    prompts: {},
+    logging: {},
+    elicitation: {},
+    experimental: { elicitation: {} },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
   const server = new McpServer(
     { name: SERVER_NAME, version: SERVER_VERSION },
-    {
-      capabilities: {
-        tools: {},
-        resources: {},
-        prompts: {},
-        logging: {},
-      },
-    },
+    { capabilities },
   );
 
   // Register the three Shape-C reference handlers so list_experts flips
@@ -715,6 +757,13 @@ export function buildServer(options: BuildServerOptions = {}): McpServer {
   registerRouteGoalTool(server);
   registerListExpertsTool(server);
   registerInvokeExpertTools(server, dispatcherOptions);
+  // Shape-C parity-contract tools (sibling cursor-build-target PR #13):
+  // evaluate_<kind>_policy, list_fences, request_approval,
+  // pre_dispatch_check. Mirrors `POLICY_TOOL_NAMES` in that generator.
+  registerPolicyTools(server, {
+    dispatcherOptions,
+    getApprovalTransport: () => approvalTransport,
+  });
 
   // ── Resource: attest://experts/catalog ─────────────────────────────────
   server.registerResource(
@@ -994,6 +1043,11 @@ export function serverInventory() {
   const expertPromptCount = listExpertPrompts().length;
   const sdlcPromptCount = listSdlcModePrompts().length;
   const handlerCount = listInProcessHandlers().length;
+  // Shape-C parity-contract tools from sibling cursor-build-target PR
+  // #13's POLICY_TOOL_NAMES: evaluate_shell_policy, evaluate_write_policy,
+  // evaluate_mcp_policy, list_fences, request_approval, pre_dispatch_check.
+  // (invoke_expert is counted separately below.)
+  const parityToolCount = 6;
   return {
     tools: {
       validators,
@@ -1002,7 +1056,9 @@ export function serverInventory() {
       list_experts: 1,
       invoke_expert: 1,
       invokeExpertHandlers: handlerCount,
-      total: validators + 4 + handlerCount,
+      parityContract: parityToolCount,
+      parityContractNames: POLICY_TOOL_NAMES,
+      total: validators + 4 + handlerCount + parityToolCount,
     },
     resources: {
       // phase-gate state-machine, routing-table, validators/catalog,

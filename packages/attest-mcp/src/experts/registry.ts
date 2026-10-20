@@ -20,8 +20,12 @@
  * attest + attest-claude + attest-cursor; using them avoids a parallel
  * naming scheme the sibling worker would have to maintain by hand.
  *
- * The sibling package name is pinned here as a constant; keep in sync with
- * whatever the feat/attest-experts worker chooses for its `name` field.
+ * The sibling package name is pinned here as a constant used only as a
+ * display label in the invocation hint; it is NOT an npm registry import.
+ * attest-experts is resolved as a workspace sibling (`workspace:*`) or a
+ * git+ssh clone of bmatthews-dexcom/attest — this package never fetches
+ * it from the public npm registry. Keep the string in sync with whatever
+ * the feat/attest-experts worker chooses for its `name` field.
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
