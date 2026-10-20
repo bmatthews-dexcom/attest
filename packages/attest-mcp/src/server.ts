@@ -228,9 +228,12 @@ function registerListExpertsTool(server: McpServer): void {
       description:
         "List every attest primary expert agent with its cluster, " +
         "invocation hint (for the sibling @bpmforge/attest-experts BDK " +
-        "agents), recommended SDLC phases, and required-tool list. The " +
-        "same payload is browsable via the attest://experts/catalog " +
-        "resource; per-expert manifests (with the full persona) live at " +
+        "agents), recommended SDLC phases, required-tool list, and " +
+        "`ported` flag (true when the agent ships as a concrete BDK agent " +
+        "in @bpmforge/attest-experts; false when the sibling pack still " +
+        "exposes only a `refuse-not-ported` stub for this id). The same " +
+        "payload is browsable via the attest://experts/catalog resource; " +
+        "per-expert manifests (with the full persona) live at " +
         "attest://experts/<id>.",
       inputSchema: listExpertsInputSchema,
     },
@@ -253,6 +256,7 @@ function registerListExpertsTool(server: McpServer): void {
           idRule:
             "expert id = attest primary agent filename minus '.md' (e.g. security-auditor.md -> 'security-auditor')",
           count: experts.length,
+          portedCount: experts.filter((e) => e.ported).length,
           experts: experts.map((e) => ({
             id: e.id,
             name: e.name,
@@ -263,6 +267,7 @@ function registerListExpertsTool(server: McpServer): void {
             requiredTools: e.requiredTools,
             promptName: e.promptName,
             manifestUri: `attest://experts/${e.id}`,
+            ported: e.ported,
           })),
         });
       } catch (err) {
