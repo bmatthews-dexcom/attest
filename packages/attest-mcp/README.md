@@ -1,6 +1,6 @@
-# @bpmforge/attest-mcp
+# attest-mcp
 
-MCP server that exposes [attest](https://github.com/bpmforge/attest)'s 79 shell
+MCP server that exposes [attest](https://github.com/bmatthews-dexcom/attest)'s 79 shell
 validators, the SDLC phase-gate state machine, the `/guide` routing table, every
 shared protocol, and every primary expert agent's system prompt as native
 Model Context Protocol tools, resources, and prompts.
@@ -41,7 +41,7 @@ node dist/cli.js --inventory
   target phase's validators in one call.
 - `route_goal` — given a plain-English goal, returns the recommended expert
   agent + command + rationale + **invocation hint** for the matching
-  `@bpmforge/attest-experts` BDK agent (so an orchestrator can dispatch
+  `attest-experts` BDK agent (so an orchestrator can dispatch
   without a second lookup). Returns a runner-up for close matches, or defers
   to `/guide` for ambiguous goals rather than guessing.
 - `list_experts` — returns the structured catalog of every primary expert
@@ -62,7 +62,7 @@ node dist/cli.js --inventory
 - `attest://experts/<id>` — one dynamic resource per primary expert; returns
   the manifest with the **full persona prompt**, routing rationale(s) from the
   `/guide` table, invocation hint, cluster, recommended phases, and required
-  tools. Consumed by `@bpmforge/attest-experts` BDK agents to stay in sync
+  tools. Consumed by `attest-experts` BDK agents to stay in sync
   with attest's source of truth. 33 experts as of attest v3.9.0.
 - `attest://protocols/<slug>` — one dynamic resource per shared protocol in
   `agents/shared/*.md` (e.g. `attest://protocols/handoff-templates`,
@@ -90,9 +90,9 @@ Examples:
 
 | Attest source | Expert id | Invocation hint |
 |---|---|---|
-| `agents/security-auditor.md` | `security-auditor` | `{ package: "@bpmforge/attest-experts", agent: "security-auditor" }` |
-| `agents/code-reviewer.md`    | `code-reviewer`    | `{ package: "@bpmforge/attest-experts", agent: "code-reviewer" }`    |
-| `agents/sdlc-lead.md`        | `sdlc-lead`        | `{ package: "@bpmforge/attest-experts", agent: "sdlc-lead" }`        |
+| `agents/security-auditor.md` | `security-auditor` | `{ package: "attest-experts", agent: "security-auditor" }` |
+| `agents/code-reviewer.md`    | `code-reviewer`    | `{ package: "attest-experts", agent: "code-reviewer" }`    |
+| `agents/sdlc-lead.md`        | `sdlc-lead`        | `{ package: "attest-experts", agent: "sdlc-lead" }`        |
 
 "Primary" means `mode: "primary"` in the agent file's YAML frontmatter.
 Cluster subagents (files under `agents/code-review/`, `agents/security/`,
@@ -142,7 +142,7 @@ tools, derived from attest's 79-validator surface.
 ### Orchestrator-first architecture (Shape 2)
 
 The user picked an orchestrator-first integration (design report §7, "Shape 2").
-`@bpmforge/attest-experts` (sibling package, `feat/attest-experts` branch) ships
+`attest-experts` (sibling package, `feat/attest-experts` branch) ships
 the primary expert agents as deployable BDK agents, and the attest conductor
 BDK agent dispatches to them. This MCP server exposes the **discovery** surface
 for that fan-out:
@@ -170,7 +170,7 @@ node dist/cli.js --inventory
 Once published, the standard install will be:
 
 ```bash
-npx -y @bpmforge/attest-mcp --inventory
+npx -y attest-mcp --inventory
 ```
 
 ## Finding attest sources at runtime
@@ -184,7 +184,7 @@ Resolution order:
 2. **Bundled copy** — `scripts/bundle-sources.mjs` runs at `npm run build` /
    `npm pack` time and copies `scripts/validators/`, `rules/`, `agents/shared/`,
    `agents/*.md`, and `commands/*.md` into `packages/attest-mcp/bundled/`.
-   This is the default `npx -y @bpmforge/attest-mcp` path — no attest checkout
+   This is the default `npx -y attest-mcp` path — no attest checkout
    required.
 
 If a validator you want is missing from the bundled copy, set `ATTEST_ROOT`.
@@ -213,7 +213,7 @@ Add to `.cursor/mcp.json` at the project root (or the sibling
   "mcpServers": {
     "attest": {
       "command": "npx",
-      "args": ["-y", "@bpmforge/attest-mcp"],
+      "args": ["-y", "attest-mcp"],
       "env": {
         "ATTEST_TARGET_ROOT": "${workspaceFolder}"
       }
@@ -235,7 +235,7 @@ Add to `~/.config/opencode/opencode.json`:
   "mcp": {
     "attest": {
       "command": "npx",
-      "args": ["-y", "@bpmforge/attest-mcp"]
+      "args": ["-y", "attest-mcp"]
     }
   }
 }
@@ -250,7 +250,7 @@ Add to `~/.claude/mcp.json` (or `.claude/mcp.json` for project scope):
   "mcpServers": {
     "attest": {
       "command": "npx",
-      "args": ["-y", "@bpmforge/attest-mcp"]
+      "args": ["-y", "attest-mcp"]
     }
   }
 }
@@ -265,7 +265,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "attest": {
       "command": "npx",
-      "args": ["-y", "@bpmforge/attest-mcp"]
+      "args": ["-y", "attest-mcp"]
     }
   }
 }

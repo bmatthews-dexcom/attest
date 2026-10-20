@@ -1,7 +1,7 @@
 import * as z from "zod/v4";
 
 /**
- * Inline stub for the sibling `@bpmforge/attest-mcp` server.
+ * Inline stub for the sibling `attest-mcp` server.
  *
  * These handlers return canned, deterministic responses so the conductor
  * skeleton (and its eval) can prove end-to-end without the real MCP server

@@ -7,8 +7,8 @@ disable-model-invocation: true
   attest-cursor skill — orchestrator-first architecture.
   Expert personas (a11y, analytics, security, sdlc-lead, …) are
   deliberately NOT emitted as .cursor/skills/* on this target —
-  they live as BDK agents in @bpmforge/attest-experts and are
-  invoked by @bpmforge/attest-conductor. To route the local Cursor
+  they live as BDK agents in attest-experts and are
+  invoked by attest-conductor. To route the local Cursor
   agent to the conductor, use /invoke-attest-conductor.
   See .cursor/README.md for the full architecture + persona list.
 -->

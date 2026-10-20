@@ -7,9 +7,9 @@
 //
 // Cross-package integration smoke for the attest Cursor target. Boots:
 //
-//   * `@bpmforge/attest-mcp` as a stdio child process (via `node packages/attest-mcp/dist/cli.js`),
-//   * `@bpmforge/attest-experts` three concrete BDK agents (serve or scaffold-only, see --real),
-//   * `@bpmforge/attest-conductor` as a BDK agent (serve or in-process),
+//   * `attest-mcp` as a stdio child process (via `node packages/attest-mcp/dist/cli.js`),
+//   * `attest-experts` three concrete BDK agents (serve or scaffold-only, see --real),
+//   * `attest-conductor` as a BDK agent (serve or in-process),
 //
 // drives one `/autopilot "review this trivial fixture for security issues"`
 // goal end-to-end against `evals/fixtures/trivial-repo/`, and asserts
@@ -233,7 +233,7 @@ async function runRealMode() {
     record(
       "attest-mcp built artifact (packages/attest-mcp/dist/cli.js)",
       false,
-      `missing — run \`npm --workspace @bpmforge/attest-mcp run build\``,
+      `missing — run \`npm --workspace attest-mcp run build\``,
     );
     console.log("\ncannot continue without the built attest-mcp cli");
     process.exit(1);

@@ -30,7 +30,7 @@ import { attestRoot } from "../sources.js";
 import { PHASES, PhaseId } from "../phase-gate/state-machine.js";
 import { ROUTING_TABLE } from "../routing/table.js";
 
-export const EXPERTS_PACKAGE = "@bpmforge/attest-experts";
+export const EXPERTS_PACKAGE = "attest-experts";
 
 export interface ExpertInvocationHint {
   readonly package: string;

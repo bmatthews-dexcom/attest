@@ -8,7 +8,7 @@
  *     "mcpServers": {
  *       "attest": {
  *         "command": "npx",
- *         "args": ["-y", "@bpmforge/attest-mcp"],
+ *         "args": ["-y", "attest-mcp"],
  *         "env": { "ATTEST_TARGET_ROOT": "${workspaceFolder}" }
  *       }
  *     }

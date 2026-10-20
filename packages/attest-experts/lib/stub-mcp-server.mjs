@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * attest-mcp STUB — a minimal stdio MCP server used in evals / bring-up when
- * the sibling `@bpmforge/attest-mcp` package is not available.
+ * the sibling `attest-mcp` package is not available.
  *
  * Deterministic fixtures only; see `lib/attest-mcp.ts` for how it is wired
  * into each expert's `bot/mcp-connections/attest.ts`.
@@ -91,7 +91,7 @@ server.registerTool(
       "",
       row.summary,
       "",
-      `Full persona lives at ${row.source} in the attest repo and is served live by @bpmforge/attest-mcp.`,
+      `Full persona lives at ${row.source} in the attest repo and is served live by attest-mcp.`,
     ].join("\n");
     return {
       content: [

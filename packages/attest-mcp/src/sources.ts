@@ -5,7 +5,7 @@
  *   1. ATTEST_ROOT env var — a live attest checkout. Required for development
  *      and for anyone running against an unreleased version of attest's rules
  *      or validators.
- *   2. The ./bundled/ tree shipped inside the installed @bpmforge/attest-mcp
+ *   2. The ./bundled/ tree shipped inside the installed attest-mcp
  *      package (populated by scripts/bundle-sources.mjs at prepack time).
  *
  * Every subsystem (validators/, phase-gate/, routing/, protocols/, prompts/)
@@ -67,7 +67,7 @@ export function attestRoot(): SourceRoots {
 
   throw new Error(
     "No attest sources found. Either set ATTEST_ROOT to a local attest " +
-      "checkout, or install @bpmforge/attest-mcp with its bundled copy " +
+      "checkout, or install attest-mcp with its bundled copy " +
       "(run `npm run build` which invokes scripts/bundle-sources.mjs).",
   );
 }

@@ -3,7 +3,7 @@ import { defineConnection } from "@cursor/bdk/connections";
 /**
  * Peer MCP connection to the attest-experts security-auditor BDK agent.
  *
- * Resolves when both this conductor and `@bpmforge/attest-experts`'s
+ * Resolves when both this conductor and `attest-experts`'s
  * security-auditor agent are mounted on the same `bdk serve --mode multi`
  * host. The peer URL resolves over loopback at serve start; no credentials.
  *

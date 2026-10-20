@@ -32,6 +32,7 @@
     "evals:compare": "node scripts/eval-compare.mjs",
     "evals:status": "node scripts/eval-status.mjs",
     "evals:compare:selftest": "node scripts/eval-compare.mjs --self-test",
-    "telemetry:report": "node scripts/telemetry-report.mjs"
+    "telemetry:report": "node scripts/telemetry-report.mjs",
+    "live-eval": "node scripts/live-eval.mjs"
   }
 }

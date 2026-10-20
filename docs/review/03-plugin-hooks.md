@@ -94,7 +94,7 @@ sequenceDiagram
 | `DELETE FROM` without `WHERE` | Mass row deletion |
 | `git push --force` | Remote history rewrite |
 | `git reset --hard` | Uncommitted work loss |
-| `npm publish` | Unintended registry publish |
+| `npm` + `publish` subcommand | Unintended registry upload |
 | `curl/wget \| bash` | Remote code execution |
 
 **Blocked File Paths:**

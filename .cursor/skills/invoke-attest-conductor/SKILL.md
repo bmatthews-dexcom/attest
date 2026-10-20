@@ -1,13 +1,13 @@
 ---
 name: invoke-attest-conductor
-description: 'Route a long-running / multi-expert / unattended attest task (autopilot, SDLC phases, fan-out code review, security audits that need multiple personas) to the attest conductor BDK agent. Use whenever the user asks for /sdlc, /security, /autopilot, /review, or any multi-persona workflow — Cursor itself does not host those personas (they live in @bpmforge/attest-experts).'
+description: 'Route a long-running / multi-expert / unattended attest task (autopilot, SDLC phases, fan-out code review, security audits that need multiple personas) to the attest conductor BDK agent. Use whenever the user asks for /sdlc, /security, /autopilot, /review, or any multi-persona workflow — Cursor itself does not host those personas (they live in attest-experts).'
 disable-model-invocation: true
 ---
 
 <!--
   attest-cursor skill — orchestrator-first architecture.
-  Expert personas live in @bpmforge/attest-experts, orchestrated by
-  @bpmforge/attest-conductor. This skill is the LOCAL Cursor side's
+  Expert personas live in attest-experts, orchestrated by
+  attest-conductor. This skill is the LOCAL Cursor side's
   "dial out" to that orchestrator.
 -->
 
@@ -15,8 +15,8 @@ disable-model-invocation: true
 
 The local Cursor Agent is a thin editor-time veneer; the attest expert
 personas (security-auditor, code-reviewer, landscape-mapper, …) run as
-BDK agents in **@bpmforge/attest-experts**, orchestrated by
-**@bpmforge/attest-conductor**. This skill teaches you to invoke that
+BDK agents in **attest-experts**, orchestrated by
+**attest-conductor**. This skill teaches you to invoke that
 orchestrator rather than attempting to run the persona workflow inline
 (which would silently drop the HANDOFF plumbing, gate scoring, delegation
 log, and multi-model review).

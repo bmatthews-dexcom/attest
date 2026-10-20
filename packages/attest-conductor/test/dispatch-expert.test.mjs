@@ -110,9 +110,9 @@ test("non-stub mode: Phase-2 stub expert short-circuits with not-ported", async 
       {
         id: "anti-slop-auditor",
         invocationHint: {
-          package: "@bpmforge/attest-experts",
+          package: "attest-experts",
           agent: "anti-slop-auditor",
-          spawn: "spawn @bpmforge/attest-experts agent \"anti-slop-auditor\"",
+          spawn: "spawn attest-experts agent \"anti-slop-auditor\"",
         },
       },
     ],
@@ -131,7 +131,7 @@ test("non-stub mode: Phase-2 stub expert short-circuits with not-ported", async 
   assert.equal(result.status, "not-ported");
   assert.equal(result.mode, "not-ported");
   assert.ok(result.summary.includes("Phase-2 stub"));
-  assert.equal(result.artifacts.package, "@bpmforge/attest-experts");
+  assert.equal(result.artifacts.package, "attest-experts");
 });
 
 test("non-stub mode: concrete expert dispatches to the catalog-derived peer slug", async () => {
@@ -143,7 +143,7 @@ test("non-stub mode: concrete expert dispatches to the catalog-derived peer slug
       {
         id: "security-auditor",
         invocationHint: {
-          package: "@bpmforge/attest-experts",
+          package: "attest-experts",
           agent: "attest-expert-security-auditor",
         },
       },
