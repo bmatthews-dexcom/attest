@@ -1,0 +1,34 @@
+{
+  "name": "@bpmforge/attest-ceo",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "attest CEO — persistent BDK agent that owns the roadmap, extracts intent from discussions, drafts/approves plans, dispatches to attest-conductor (the chief).",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmatthews-dexcom/attest.git",
+    "directory": "packages/attest-ceo"
+  },
+  "license": "Apache-2.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit",
+    "test": "tsc --noEmit && node --import tsx --test --test-reporter=spec test/*.test.mjs",
+    "validate": "bdk validate --dir .",
+    "info": "bdk info --dir . --json",
+    "dev": "bdk dev",
+    "serve": "bdk serve --dir . --mode single",
+    "eval": "bdk eval --dir .",
+    "eval:list": "bdk eval --dir . --list"
+  },
+  "dependencies": {
+    "@bpmforge/attest-ceo-mcp": "*",
+    "@cursor/bdk": "^0.2.27",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "tsx": "^4.19.0",
+    "typescript": "6.0.3"
+  }
+}
