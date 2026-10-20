@@ -1,5 +1,6 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/sre-engineer.md
+// Shape C — sandbox-required BDK agent (stub pending full persona port + eval)
+// Attest source: agents/sre-engineer.md
+// Classification rationale: Writes CI/CD pipelines (.github/workflows/*.yml) and deploy strategies — write:fs to repo source.
 import { defineStubExpert } from "../../../lib/expert-factory.js";
 import type { ExpertMetadata } from "../../../lib/expert-registry.js";
 

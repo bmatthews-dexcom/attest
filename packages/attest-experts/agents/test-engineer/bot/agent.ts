@@ -1,5 +1,6 @@
-// TODO Phase 2: full persona port + eval
-// Source: agents/test-engineer.md
+// Shape C — sandbox-required BDK agent (stub pending full persona port + eval)
+// Attest source: agents/test-engineer.md
+// Classification rationale: Senior test engineer — generates and runs real test files into tests/** and e2e/**; write:fs to repo source.
 import { defineStubExpert } from "../../../lib/expert-factory.js";
 import type { ExpertMetadata } from "../../../lib/expert-registry.js";
 

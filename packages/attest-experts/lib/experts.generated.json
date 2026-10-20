@@ -1,87 +1,10 @@
 [
   {
-    "id": "a11y-compliance",
-    "source": "agents/a11y-compliance.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Accessibility & compliance auditor — WCAG 2.2 AA/AAA conformance, ATAG, EN 301 549 / European Accessibility Act, Section 508; axe-core/Lighthouse/pa11y tooling; remediation with file:line. Use after UX design (audit t…"
-  },
-  {
-    "id": "analytics-architect",
-    "source": "agents/analytics-architect.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Analytics architect — telemetry/instrumentation design: what to measure and why. RED/USE/four-golden-signals selection, event taxonomy, observability spec, dashboard design. Use at Phase 3 design or when teams cannot…"
-  },
-  {
-    "id": "anti-slop-auditor",
-    "source": "agents/code-review/anti-slop-auditor.md",
-    "cluster": "code-review",
-    "status": "stub",
-    "summary": "AI slop detection specialist — checks all 31 ANTI_SLOP_RULES (R-01 to R-31) including 2025-2026 additions: slopsquatting (hallucinated packages), architectural privilege escalation (+322% in AI codebases), credential…"
-  },
-  {
-    "id": "api-designer",
-    "source": "agents/api-designer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "API design expert — REST/GraphQL, contracts, versioning, documentation. Use when designing new endpoints, reviewing API consistency, or planning API versioning strategy. NOT for implementation."
-  },
-  {
-    "id": "app-cartographer",
-    "source": "agents/app-cartographer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "End-user guide specialist — builds the page-graph state inventory and the per-state interactive-element inventory of a running app, the double denominator every other guide artifact is graded against. Runs first in th…"
-  },
-  {
-    "id": "architecture-designer",
-    "source": "agents/architecture-designer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Architecture designer — defines modular structure, public interfaces, plugin points, and infrastructure topology. Produces MODULE_DESIGN.md and INFRASTRUCTURE.md. Invoked by sdlc-lead during Phase 3."
-  },
-  {
-    "id": "attack-chainer",
-    "source": "agents/security/attack-chainer.md",
-    "cluster": "security",
-    "status": "stub",
-    "summary": "Master security synthesizer — reads all specialist findings and chains them into multi-step exploit paths by matching yields→preconditions. Produces ATTACK_CHAINS.md showing realistic attacker paths from entry point t…"
-  },
-  {
-    "id": "bundle-analyzer",
-    "source": "agents/performance/bundle-analyzer.md",
-    "cluster": "performance",
-    "status": "stub",
-    "summary": "Frontend bundle performance specialist — bundle size, code splitting, lazy loading, tree shaking, image optimization, Core Web Vitals impact. Skip automatically for backend-only projects. Runs webpack-bundle-analyzer,…"
-  },
-  {
-    "id": "challenger",
-    "source": "agents/challenger.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Veracity challenger — challenges factual claims in high-stakes artifacts (security findings, research reports, design docs, gate decisions) with evidence-only verdicts: CONFIRMED / CONTRADICTED / UNVERIFIABLE. Runs af…"
-  },
-  {
     "id": "changelog-writer",
     "source": "agents/changelog-writer.md",
     "cluster": "primary",
     "status": "stub",
     "summary": "Changelog and release notes writer — reads git log range, classifies commits by type, produces CHANGELOG.md entries in Keep-a-Changelog format (Added/Changed/Fixed/Removed/Security/Deprecated). Proactive: before any v…"
-  },
-  {
-    "id": "cloud-security-checker",
-    "source": "agents/security/cloud-security-checker.md",
-    "cluster": "security",
-    "status": "stub",
-    "summary": "Cloud security specialist — AWS and GCP security anti-patterns in source code and SDK usage. Checks hardcoded keys, overly permissive IAM, open security groups, missing audit logs, public storage, and GCP-specific pat…"
-  },
-  {
-    "id": "code-health-synthesizer",
-    "source": "agents/code-review/code-health-synthesizer.md",
-    "cluster": "code-review",
-    "status": "stub",
-    "summary": "Code health master synthesizer — reads all 6 specialist outputs, identifies compounding risk (complex + duplicated + bad error handling in same module), produces final CODE_REVIEW with prioritized FIX_BACKLOG. Runs la…"
   },
   {
     "id": "code-reviewer",
@@ -98,27 +21,6 @@
     "summary": "Senior implementation engineer — doc-driven coding from SDLC specs. Verifies all library APIs via Context7 before writing code. Enforces anti-slop rules: no over-engineering, no defensive bloat, no hallucinated APIs,…"
   },
   {
-    "id": "complexity-analyzer",
-    "source": "agents/code-review/complexity-analyzer.md",
-    "cluster": "code-review",
-    "status": "stub",
-    "summary": "Code complexity specialist — cyclomatic complexity, cognitive complexity, function length, nesting depth. Runs lizard/radon/complexity tools plus manual analysis. Identifies functions that are too complex to safely ma…"
-  },
-  {
-    "id": "component-mapper",
-    "source": "agents/sdlc/onboard/component-mapper.md",
-    "cluster": "onboarding",
-    "status": "stub",
-    "summary": "Onboard specialist — Step 4. Maps internal modules and deployment topology. Produces c2-containers.md (C2 Container: all services + external systems) and c3-components.md (C3 Component: internal module dependencies).…"
-  },
-  {
-    "id": "concurrency-checker",
-    "source": "agents/performance/concurrency-checker.md",
-    "cluster": "performance",
-    "status": "stub",
-    "summary": "Concurrency and async specialist — blocking operations in async paths, unguarded shared state, race conditions in concurrent handlers, missing mutex/lock patterns, unbounded Promise.all causing memory spikes. For Node…"
-  },
-  {
     "id": "container-ops",
     "source": "agents/container-ops.md",
     "cluster": "primary",
@@ -126,116 +28,11 @@
     "summary": "Container operations expert — detects the local runtime (Docker/Podman/Rancher-nerdctl/Finch/colima) and uses the right CLI + compose flavor instead of guessing; Dockerfiles, compose, networking, rootless debugging, i…"
   },
   {
-    "id": "content-designer",
-    "source": "agents/content-designer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Content design specialist — writes the actual UI text (labels, empty states, error messages, confirmations, onboarding copy) as a reviewable spec before implementation. Runs at SDLC Phase 3.5 (Design Loop), alongside…"
-  },
-  {
-    "id": "cost-engineer",
-    "source": "agents/cost-engineer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Cost engineer — cloud + LLM spend analysis, right-sizing, reserved capacity/commitments, cost observability. Use before scaling decisions, after first cloud bill shock, or when unit economics are unknown. NOT for perf…"
-  },
-  {
-    "id": "data-steward",
-    "source": "agents/data-steward.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Data steward — data governance specialist: PII classification, GDPR/CCPA/PIPEDA obligations, retention schedules, encryption-at-rest/in-transit mapping, data-subject rights (access/erasure/portability), access-control…"
-  },
-  {
-    "id": "db-architect",
-    "source": "agents/db-architect.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Senior database architect — schema design, migrations, query optimization, indexing strategy, ORM models. Use when designing or modifying database schemas. Proactive: before adding tables or writing complex joins."
-  },
-  {
-    "id": "db-query-analyzer",
-    "source": "agents/performance/db-query-analyzer.md",
-    "cluster": "performance",
-    "status": "stub",
-    "summary": "Database query performance specialist — missing indexes, slow query patterns, N+1 at the DB layer, unparameterized queries, missing pagination, unbounded queries on large tables. Checks query shapes in ORM calls and r…"
-  },
-  {
-    "id": "dead-code-detector",
-    "source": "agents/code-review/dead-code-detector.md",
-    "cluster": "code-review",
-    "status": "stub",
-    "summary": "Dead and unutilized code specialist — unimplemented stubs, functions defined but never called, unused exports, orphan files, unreachable branches, disconnected pipelines (code wired to nothing). Tools: knip/ts-prune (…"
-  },
-  {
-    "id": "dependency-auditor",
-    "source": "agents/security/dependency-auditor.md",
-    "cluster": "security",
-    "status": "stub",
-    "summary": "Dependency and supply chain security specialist — CVE scans, SBOM/SCA correlation (syft + grype, CISA KEV), outdated packages, license risk, and slopsquatting detection (AI-hallucinated package names registered by att…"
-  },
-  {
     "id": "design-iterator",
     "source": "agents/design-iterator.md",
     "cluster": "primary",
     "status": "stub",
     "summary": "Visual design iteration specialist — the closed render→screenshot→critique→fix→re-verify loop that makes a running UI match its design system (Claude-Design-style: code and pixels in one feedback cycle). Grounds every…"
-  },
-  {
-    "id": "design-system-lead",
-    "source": "agents/design-system-lead.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Design system specialist — produces the pre-code token spec (docs/design/tokens.json) and component inventory (docs/design/components.md) that high-fi mockups and implementation both build from. Runs at SDLC Phase 3.5…"
-  },
-  {
-    "id": "documentation-gap-finder",
-    "source": "agents/documentation-gap-finder.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Documentation gap finder — scans source exports against existing docs, lists undocumented public functions/classes/API endpoints, stale doc references, and coverage percentage. Proactive: before a public release or wh…"
-  },
-  {
-    "id": "duplication-detector",
-    "source": "agents/code-review/duplication-detector.md",
-    "cluster": "code-review",
-    "status": "stub",
-    "summary": "Duplication and DRY specialist — copy-paste detection, near-duplicates, R-19 (repeated logic blocks). Uses jscpd/fdupes/PMD-CPD. Flags code that was duplicated rather than refactored — the #1 driver of AI-assisted tec…"
-  },
-  {
-    "id": "end-user-simulator",
-    "source": "agents/end-user-simulator.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "End-user simulation specialist — persona-driven true UAT. Walks the live app like a first-time human user with NO spec knowledge: only the persona, a goal, and what is on screen. Produces friction logs, first-run-expe…"
-  },
-  {
-    "id": "entry-point-tracer",
-    "source": "agents/sdlc/onboard/entry-point-tracer.md",
-    "cluster": "onboarding",
-    "status": "stub",
-    "summary": "Onboard specialist — Steps 2+2b. Traces all HTTP routes, CLI commands, event listeners, webhooks. Produces entry-points.md (sequenceDiagram per entry point with error path) and sequences/ directory (auth, primary writ…"
-  },
-  {
-    "id": "error-handling-auditor",
-    "source": "agents/code-review/error-handling-auditor.md",
-    "cluster": "code-review",
-    "status": "stub",
-    "summary": "Error handling and silent failure specialist — empty catch blocks, exception-driven control flow, swallowed errors, missing error boundaries, serial awaits vs Promise.all. Enforces R-01 through R-04. Veracode 2025: er…"
-  },
-  {
-    "id": "frontend-design",
-    "source": "agents/frontend-design.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Senior frontend design engineer — production-grade visual implementation. Typography, color systems, spacing, motion, layout aesthetics, component styling. Turns UX specs into code that looks intentional, not template…"
-  },
-  {
-    "id": "game-asset-pipeline",
-    "source": "agents/game/game-asset-pipeline.md",
-    "cluster": "game",
-    "status": "stub",
-    "summary": "Game asset pipeline specialist — runs one batch of sprite assets through gen (model call) → post-process (lattice/pixel-snapper cleanup, transparency de-fringing) → sprite-sheet packing → portable engine-import manife…"
   },
   {
     "id": "game-audio-designer",
@@ -252,20 +49,6 @@
     "summary": "Game balance and economy specialist — progression curves, economy sinks/sources, difficulty tuning, drop tables. Outputs spreadsheet-style models with formulas and SIMULATES them (1000 player-sessions as a script) bef…"
   },
   {
-    "id": "game-designer",
-    "source": "agents/game/game-designer.md",
-    "cluster": "game",
-    "status": "stub",
-    "summary": "Game design specialist — core loop, mechanics, systems, and the Game Design Document (GDD, the game-project equivalent of the SRS). Use at the start of any game project or when a mechanic needs design. Owns WHAT the g…"
-  },
-  {
-    "id": "game-producer",
-    "source": "agents/game/game-producer.md",
-    "cluster": "game",
-    "status": "stub",
-    "summary": "Game production specialist — lifecycle gates on builds (prototype kill-criteria → vertical slice → alpha feature-lock → beta content-lock → cert → gold), milestone schedules, scope control, indie vs AAA mode, and indi…"
-  },
-  {
     "id": "gameplay-engineer",
     "source": "agents/game/gameplay-engineer.md",
     "cluster": "game",
@@ -273,46 +56,11 @@
     "summary": "Gameplay engineering specialist — engine-specific implementation patterns (Godot, Unity, Phaser, Bevy, vanilla canvas): game loop vs frame budget, ECS vs inheritance, physics, input buffering, state machines, determin…"
   },
   {
-    "id": "gauntlet-lead",
-    "source": "agents/gauntlet-lead.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Gauntlet-loop orchestrator — sets a real reference bar, splits the goal into independently gradeable units, dispatches builders (clean context) and blind fresh-per-round critics, loops failures until every unit beats…"
-  },
-  {
     "id": "git-expert",
     "source": "agents/git-expert.md",
     "cluster": "primary",
     "status": "stub",
     "summary": "Senior git & forge expert — repo bootstrap, feature branches, releases, history forensics, recovery, multi-remote sync. Six modes — `--init` bootstrap repo, `--feature` daily flow with atomic commits and draft PR, `--…"
-  },
-  {
-    "id": "guide",
-    "source": "agents/guide.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Expert-system concierge — the front door. Given a plain-English goal, figures out which expert(s) and workflow you need, explains the route, and drives it end to end. Use when you are not sure which command to run, or…"
-  },
-  {
-    "id": "guide-scribe",
-    "source": "agents/guide-scribe.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "End-user guide specialist — the capture engine. Turns app-cartographer''s STORIES.md into replayable JSON step specs, executes them, captures gated annotated screenshots, and triages errors as bug/documented-error/sus…"
-  },
-  {
-    "id": "health-coordinator",
-    "source": "agents/sdlc/onboard/health-coordinator.md",
-    "cluster": "onboarding",
-    "status": "stub",
-    "summary": "Onboard specialist — Step 6. Orchestrates all health reviews (code quality, security, test coverage, performance, UX) and synthesizes HEALTH_ASSESSMENT.md. Also produces USE_CASES.md from existing codebase and dispatc…"
-  },
-  {
-    "id": "iac-security-checker",
-    "source": "agents/security/iac-security-checker.md",
-    "cluster": "security",
-    "status": "stub",
-    "summary": "Infrastructure-as-Code security specialist — Terraform, CDK, Pulumi, CloudFormation. Runs Checkov (primary), KICS (breadth), Trivy config scan (replaces deprecated tfsec). Checks exposed credentials, open IAM, unencry…"
   },
   {
     "id": "landscape-mapper",
@@ -329,20 +77,6 @@
     "summary": "Level design specialist — player flow, encounter design, blockout/greybox discipline, pacing beat charts, teaching-through-space. Owns the physical/spatial experience of a level from blockout to content lock; works in…"
   },
   {
-    "id": "llm-integration-engineer",
-    "source": "agents/llm-integration-engineer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "LLM integration engineer — design-side expert for building LLM features: prompt architecture, eval harnesses, model routing and fallback chains, token budgeting, structured-output contracts, RAG shape. Use when a proj…"
-  },
-  {
-    "id": "manual-writer",
-    "source": "agents/manual-writer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "End-user guide specialist — assembles the Diátaxis-shaped user manual from app-cartographer''s APP_MAP.md/STORIES.md, guide-scribe''s specs and gated screenshots, and an end-user-simulator UAT tour. Runs last in the M…"
-  },
-  {
     "id": "migration-planner",
     "source": "agents/migration-planner.md",
     "cluster": "primary",
@@ -355,55 +89,6 @@
     "cluster": "game",
     "status": "stub",
     "summary": "Narrative design specialist — integrates story into SYSTEMS: branching structure, quest/mission logic, barks, environmental storytelling, dialogue data formats. Narrative designer ≠ writer: this agent designs how stor…"
-  },
-  {
-    "id": "owasp-llm-checker",
-    "source": "agents/security/owasp-llm-checker.md",
-    "cluster": "security",
-    "status": "stub",
-    "summary": "OWASP LLM Top 10 specialist (2025) — checks LLM01–LLM10 for projects using AI/LLM APIs. Only runs when LLM code is detected. Covers prompt injection, output handling, excessive agency, supply chain, unbounded consumpt…"
-  },
-  {
-    "id": "owasp-web-checker",
-    "source": "agents/security/owasp-web-checker.md",
-    "cluster": "security",
-    "status": "stub",
-    "summary": "OWASP Web Top 10 specialist (2021) — manual A01–A10 checks per category with confidence loop. One context window per category. Reads semgrep-runner output to avoid duplicate findings. Writes per-category OWASP_TRACKER…"
-  },
-  {
-    "id": "pattern-consistency-checker",
-    "source": "agents/code-review/pattern-consistency-checker.md",
-    "cluster": "code-review",
-    "status": "stub",
-    "summary": "Pattern and naming consistency specialist — cross-file pattern violations, naming conventions, comment accuracy (R-20, R-13, R-14). Detects AI-generated modules that use different patterns than surrounding codebase. E…"
-  },
-  {
-    "id": "perf-synthesizer",
-    "source": "agents/performance/perf-synthesizer.md",
-    "cluster": "performance",
-    "status": "stub",
-    "summary": "Performance master synthesizer — reads all specialist findings, identifies compounding slowdowns (slow query hitting in a hot O(n²) loop + no caching = multiplicative), produces final PERFORMANCE_REPORT with prioritiz…"
-  },
-  {
-    "id": "performance-engineer",
-    "source": "agents/performance-engineer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Performance audit coordinator — dispatches 5 specialist micro-agents, synthesizes compound slowdowns via perf-synthesizer. Specialists: static-perf-analyzer (5 scans), db-query-analyzer (N+1/indexes/unbounded), profil…"
-  },
-  {
-    "id": "playtest-evaluator",
-    "source": "agents/game/playtest-evaluator.md",
-    "cluster": "game",
-    "status": "stub",
-    "summary": "Playtest specialist — plays the vertical slice via browser/input automation and evaluates against fun heuristics: clarity of goal, feedback juice, difficulty ramp, time-to-first-success. The game equivalent of end-use…"
-  },
-  {
-    "id": "profiler-agent",
-    "source": "agents/performance/profiler-agent.md",
-    "cluster": "performance",
-    "status": "stub",
-    "summary": "Runtime profiling specialist — identifies actual hotspots via profiler output, not guessing. Runs Node.js --prof, py-spy, perf, or reads existing profiler data. Only runs when a performance problem is confirmed or a b…"
   },
   {
     "id": "qa-vnv-engineer",
@@ -427,102 +112,11 @@
     "summary": "Reliability engineer — load testing & resilience specialist: what breaks under stress and what happens then. Load-test strategy (k6/Locust/vegeta), chaos scenarios, circuit breakers, bulkheads, retries with backoff+ji…"
   },
   {
-    "id": "researcher",
-    "source": "agents/researcher.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Professional research analyst — four modes: QUICK LOOKUP (1-3 sources, single Q), COMPARISON (A vs B weighted table), DEEP DIVE (full iterative loop, multi-Q), FACT CHECK (verify a claim). Uses playwright-search MCP.…"
-  },
-  {
-    "id": "sdlc-feature-mode",
-    "source": "agents/sdlc-feature-mode.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Mode 3 — Add a feature to an existing system. Impact analysis, optional sub-component decomposition, design, implementation, parallel review + runtime + merge. Invoked by sdlc-lead when the user runs `/sdlc feature \"<…"
-  },
-  {
-    "id": "sdlc-improve-mode",
-    "source": "agents/sdlc-improve-mode.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Mode 4 — Audit and improve an existing system. Discovery audit, multi-specialist audit fan-out, synthesis into improvement backlog, scoped fix execution. Invoked by sdlc-lead when the user runs `/sdlc improve [\"<focus…"
-  },
-  {
-    "id": "sdlc-init-mode",
-    "source": "agents/sdlc-init-mode.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Mode 1 — New Project. Phases 0-5: ideation, planning, requirements, design, implementation, release. Invoked by sdlc-lead when the user runs `/sdlc init`."
-  },
-  {
-    "id": "sdlc-init-phase-3",
-    "source": "agents/sdlc-init-phase-3.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Mode 1 — Phase 3 & 3.5: Design and Test Design. Architecture, DB, API, security, infrastructure, test design. Loaded on demand by sdlc-init-mode.md when entering Phase 3."
-  },
-  {
-    "id": "sdlc-init-phase-4",
-    "source": "agents/sdlc-init-phase-4.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Mode 1 — Phase 4 & 5: Implementation and Release. Parallel coding waves, module branching, runtime gates, PR merges, release. Loaded on demand by sdlc-init-mode.md when entering Phase 4."
-  },
-  {
-    "id": "sdlc-init-phase-5",
-    "source": "agents/sdlc-init-phase-5.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Mode 1 phase files — Phase 5: Review and Release. Loaded on demand by sdlc-init-mode.md dispatcher when entering Phase 5."
-  },
-  {
-    "id": "sdlc-init-phases-0-2",
-    "source": "agents/sdlc-init-phases-0-2.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Mode 1 phase files — Phases 0-2: Ideation, Planning, Requirements. Loaded on demand by sdlc-init-mode.md dispatcher when entering Phase 0, 1, or 2."
-  },
-  {
-    "id": "sdlc-init-phases-3-4",
-    "source": "agents/sdlc-init-phases-3-4.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "SUPERSEDED — do not load. Split into sdlc-init-phase-3.md (Phases 3+3.5) and sdlc-init-phase-4.md (Phases 4+5). sdlc-init-mode.md already references the split files. Retained for doc references only."
-  },
-  {
-    "id": "sdlc-lead",
-    "source": "agents/sdlc-lead.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Program manager and lead architect — orchestrates the full software development lifecycle. Use for new projects (/sdlc init), understanding existing codebases (/sdlc onboard), adding features (/sdlc feature), or impro…"
-  },
-  {
-    "id": "sdlc-onboard-mode",
-    "source": "agents/sdlc-onboard-mode.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Mode 2 — Onboard to an existing codebase. Reverse-engineers a project into LANDSCAPE, entry-point diagrams, ERD, C2/C3 architecture, health assessment, and ONBOARDING guide. Dispatches 4 specialist sub-agents: landsca…"
-  },
-  {
-    "id": "secrets-scanner",
-    "source": "agents/security/secrets-scanner.md",
-    "cluster": "security",
-    "status": "stub",
-    "summary": "Secrets and credentials specialist — finds hardcoded API keys, tokens, passwords, and private keys in source code, configs, and git history. Uses TruffleHog, grep patterns, and git log. Runs in parallel with semgrep-r…"
-  },
-  {
     "id": "security-auditor",
     "source": "agents/security-auditor.md",
     "cluster": "primary",
     "status": "concrete",
     "summary": "Security audit coordinator — dispatches 8 specialist micro-agents in sequence, synthesizes final report, triggers attack chainer last. Covers: Semgrep SAST, OWASP Web Top 10, OWASP LLM Top 10, threat modeling, secrets…"
-  },
-  {
-    "id": "semgrep-runner",
-    "source": "agents/security/semgrep-runner.md",
-    "cluster": "security",
-    "status": "stub",
-    "summary": "SAST specialist — runs semgrep with all registered rule packs (community + custom), triages findings REAL/FP/UNVERIFIED, writes structured finding output. Phase 1 of any security scan. Always runs; other specialists b…"
   },
   {
     "id": "sre-engineer",
@@ -532,59 +126,10 @@
     "summary": "Senior SRE — runbooks, CI/CD pipelines, monitoring, incident response, deployment strategies. Use for operational concerns (deploy, monitor, respond to incidents). NOT for container/image building — use container-ops…"
   },
   {
-    "id": "static-perf-analyzer",
-    "source": "agents/performance/static-perf-analyzer.md",
-    "cluster": "performance",
-    "status": "stub",
-    "summary": "Static performance analysis specialist — O(n²) nested loops, N+1 query patterns, blocking I/O in async paths, try/catch in hot loops (5-20x slowdown), unnecessary allocations. No profiler needed — finds structural per…"
-  },
-  {
-    "id": "task-decomposer",
-    "source": "agents/task-decomposer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Task decomposition specialist — turns any request into a typed DAG of bounded leaf tasks (plan.json) sized for small-context models. Use before multi-step work, when a request spans 3+ files or 2+ specialists, or when…"
-  },
-  {
     "id": "test-engineer",
     "source": "agents/test-engineer.md",
     "cluster": "primary",
     "status": "stub",
     "summary": "Senior test engineer — Playwright e2e, vitest/jest unit tests, integration tests, test strategy, coverage analysis. Use when writing tests or designing test strategy. Proactive: after implementing any feature, or when…"
-  },
-  {
-    "id": "threat-modeler",
-    "source": "agents/security/threat-modeler.md",
-    "cluster": "security",
-    "status": "stub",
-    "summary": "Threat modeling specialist — STRIDE per component, DFD with trust boundaries, threat rating, and mitigation mapping. Produces THREAT_MODEL.md. Runs after semgrep-runner so it can reference confirmed findings when rati…"
-  },
-  {
-    "id": "type-safety-checker",
-    "source": "agents/code-review/type-safety-checker.md",
-    "cluster": "code-review",
-    "status": "stub",
-    "summary": "Type safety and invariant specialist — any-escapes, null coercion, type assertions without guards, runtime type violations. Checks TypeScript strict mode compliance, Python type annotation consistency, and whether typ…"
-  },
-  {
-    "id": "ui-verifier",
-    "source": "agents/ui-verifier.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Live browser verification specialist — navigates a running app with playwright-mcp, takes screenshots, checks accessibility snapshots, and verifies flows against use cases or UX specs. Works with any LLM (no vision re…"
-  },
-  {
-    "id": "ux-engineer",
-    "source": "agents/ux-engineer.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "Senior UX engineer — design direction, user workflows, component architecture, WCAG 2.2 accessibility, live-environment design review. Use when designing new interfaces (--design), reviewing PR UI changes (--review),…"
-  },
-  {
-    "id": "ux-researcher",
-    "source": "agents/ux-researcher.md",
-    "cluster": "primary",
-    "status": "stub",
-    "summary": "UX research specialist — turns personas and user stories into user-flow diagrams and a screen inventory, BEFORE any wireframe or token work starts. Runs at SDLC Phase 3.5 (Design Loop), after Phase 3 architecture and…"
   }
 ]

@@ -21,7 +21,10 @@ const PKG = resolve(HERE, "..");
 const BDK = resolve(PKG, "..", "..", "node_modules", ".bin", "bdk");
 
 const CONCRETE = ["security-auditor", "code-reviewer", "landscape-mapper"];
-const SAMPLE_STUBS = ["semgrep-runner", "dead-code-detector", "component-mapper"];
+// Shape C — the Phase-2-eligible stubs are now the sandbox-required set
+// scaffolded by sync-classification.ts. Sample three with different clusters
+// and capability shapes to exercise the refuse-not-ported path.
+const SAMPLE_STUBS = ["coding-agent", "release-manager", "gameplay-engineer"];
 const STUB_SERVER = resolve(PKG, "lib", "stub-mcp-server.mjs");
 
 const fixtureReport = (id) => ({
@@ -103,7 +106,7 @@ async function stepStubMcp() {
 }
 
 const steps = [
-  ["validate all 84 agents", stepValidateAll],
+  ["validate all sandbox-required agents", stepValidateAll],
   ...CONCRETE.map((id) => [`call submit-report on ${id}`, () => stepCallConcrete(id)]),
   ...SAMPLE_STUBS.map((id) => [`call refuse-not-ported on ${id}`, () => stepCallStub(id)]),
   ["stub MCP server initialize + tools/list", stepStubMcp],
