@@ -1,5 +1,5 @@
 /**
- * Conductor state model + kv helpers (Shape-2 + Ralph loop).
+ * Conductor state model + kv helpers (Shape C + Ralph loop).
  *
  * One **task** record per `/autopilot <goal>` invocation, keyed by task id.
  * One **active-pointer** record per session so `/autopilot resume` and
@@ -21,7 +21,23 @@
  * grows past budget. No `if (phase === "build")` branches ever belong in
  * TS: new behavior goes into attest-mcp rules, the tool palette, or the
  * Ralph prompt.
+ *
+ * **Shape C additions.** Tasks now carry an `autonomyMode` field (set at
+ * creation, mutated by `set_autonomy_mode`), an optional `githubContext`
+ * binding (originating PR/issue so `request_approval` can post comments
+ * back on the right thread), and a `pendingApprovalIds` list surfacing
+ * open HITL asks into the Ralph prompt without the chief having to
+ * cross-reference the approval ledger kv namespace itself.
  */
+
+import {
+  AUTONOMY_MODES,
+  DEFAULT_AUTONOMY_MODE,
+  type AutonomyMode,
+} from "./autonomy.js";
+
+export { AUTONOMY_MODES, DEFAULT_AUTONOMY_MODE };
+export type { AutonomyMode };
 
 export type ValidatorRun = {
   name: string;
@@ -66,7 +82,11 @@ export type PhaseChange = {
 export type IterationLog = {
   iteration: number;
   action:
+    | "invoke_expert"
     | "dispatch_expert"
+    | "pre_dispatch_check"
+    | "request_approval"
+    | "set_autonomy_mode"
     | "validate"
     | "phase_gate_check"
     | "advance_phase"
@@ -78,6 +98,21 @@ export type IterationLog = {
     | "noop";
   summary: string;
   tsMs: number;
+};
+
+/**
+ * Originating GitHub thread for an `/autopilot` run — captured when the
+ * github channel dispatches the task so `request_approval` can post
+ * comment-approve requests back on the right PR/issue.
+ */
+export type GithubTaskContext = {
+  owner: string;
+  repo: string;
+  issueNumber: number;
+  /** PR vs issue. `request_approval` uses the same comments endpoint either way. */
+  kind: "pull_request" | "issue";
+  /** Login of the user who kicked off `/autopilot`, for audit logs. */
+  requestedBy?: string;
 };
 
 export type ConductorTask = {
@@ -103,6 +138,12 @@ export type ConductorTask = {
   /** `actionId -> iteration` map so an idempotent retry can be short-circuited. */
   actionCache: Record<string, number>;
   lastSummary: string;
+  /** HITL policy mode — modulates `request_approval` behavior. */
+  autonomyMode: AutonomyMode;
+  /** Pending `request_approval` ids the Ralph prompt should display. */
+  pendingApprovalIds: string[];
+  /** Originating github thread, when the task was kicked off from the github channel. */
+  githubContext: GithubTaskContext | null;
 };
 
 export const INITIAL_PHASE = "intake";
@@ -130,6 +171,8 @@ export function newTask(args: {
   iterationCap?: number;
   wallTimeCapMs?: number;
   consecutiveNoProgressCap?: number;
+  autonomyMode?: AutonomyMode;
+  githubContext?: GithubTaskContext | null;
 }): ConductorTask {
   const now = Date.now();
   return {
@@ -162,6 +205,9 @@ export function newTask(args: {
     escalationReason: null,
     actionCache: {},
     lastSummary: "",
+    autonomyMode: args.autonomyMode ?? DEFAULT_AUTONOMY_MODE,
+    pendingApprovalIds: [],
+    githubContext: args.githubContext ?? null,
   };
 }
 

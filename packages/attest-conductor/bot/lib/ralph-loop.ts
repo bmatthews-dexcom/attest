@@ -126,6 +126,7 @@ export function renderRalphPrompt(args: RalphPromptArgs): string {
   return [
     `You are the attest autopilot conductor for task ${args.task.taskId}.`,
     `Goal: ${args.task.goal}`,
+    `Autonomy mode: ${args.task.autonomyMode} — ${describeAutonomyMode(args.task.autonomyMode)}`,
     "",
     "Current state (compact JSON — the only thing that changes between iterations):",
     "```json",
@@ -138,14 +139,32 @@ export function renderRalphPrompt(args: RalphPromptArgs): string {
     "Validators relevant to the current phase:",
     validatorList,
     "",
-    "Experts available to dispatch:",
+    "Experts available to dispatch (local hint catalog — attest-mcp's `list_experts` is authoritative):",
     expertList,
     "",
     "## Decide and perform the single next step toward the goal",
     "",
     "Pick exactly one of these tool actions, call it, then end the turn:",
     "",
-    "- `dispatch_expert` — run an expert BDK agent on one unit of work.",
+    "- `invoke_expert` — Shape-C policy-mediated expert invocation. attest-mcp",
+    "  evaluates policy, routes to the in-process handler or sandbox BDK",
+    "  expert, and returns `{ outcome: 'expert_output' | 'policy_denied' |",
+    "  'approval_required', ... }`. On `policy_denied`, escalate or route",
+    "  differently — never retry blindly. On `approval_required`, call",
+    "  `request_approval` first, then re-call `invoke_expert` with the resolved",
+    "  `approvalId`.",
+    "- `pre_dispatch_check` — Shape-C policy preview. Ask whether an expert",
+    "  invocation would be allowed, denied, or require approval, WITHOUT",
+    "  paying the dispatch cost. **Call this BEFORE `invoke_expert` on any",
+    "  dispatch that may need approval.**",
+    "- `request_approval` — HITL ask. Picks the best available transport (MCP",
+    "  elicitation preferred when attached; GitHub comment-approve otherwise;",
+    "  `pr:*` / `publish:*` under autonomy=approve-destructive prefer GitHub",
+    "  for the paper trail). Returns `{ approved, reason, approvalId, transport,",
+    "  source }`. Fail-closed when no transport is wired. On denial, escalate",
+    "  or route differently — never retry blindly.",
+    "- `set_autonomy_mode` — change the task's HITL strictness mid-task when the",
+    "  user asks (e.g. 'be more careful' → `approve-each`).",
     "- `phase_gate_check` (attest-mcp) — read the current phase's gate.",
     "  The response's `plannedValidators` field lists the shell-script",
     "  basenames (e.g. `validate-architecture.sh`) that gate the next",
@@ -164,6 +183,16 @@ export function renderRalphPrompt(args: RalphPromptArgs): string {
     "- `mark_done` — the goal is achieved. The loop ends.",
     "- `escalate` — you are stuck and need human review. The loop ends.",
     "",
+    "## Dispatch flow (Shape C)",
+    "",
+    "Before dispatching to an expert that may need approval, call",
+    "`pre_dispatch_check`. If it returns `require_approval`, call",
+    "`request_approval` first. On denial, escalate or route differently —",
+    "never retry blindly. The sequence is:",
+    "",
+    "    pre_dispatch_check → (if requires-approval) request_approval",
+    "                       → invoke_expert → consume outcome",
+    "",
     "**Idempotency.** Every mutating tool takes an `actionId` string. Make",
     "it a short, deterministic hash of (iteration + action-intent) so a",
     "crash-and-resume cannot double-execute.",
@@ -172,6 +201,17 @@ export function renderRalphPrompt(args: RalphPromptArgs): string {
     "then …`). Read the SDLC rules + the state + your scratchpad, and let",
     "those decide.",
   ].join("\n");
+}
+
+function describeAutonomyMode(mode: ConductorTask["autonomyMode"]): string {
+  switch (mode) {
+    case "auto":
+      return "auto-approve non-destructive; HITL for destructive; fail-closed when no transport.";
+    case "approve-each":
+      return "every destructive op asks a human.";
+    case "approve-destructive":
+      return "only destructive capabilities (shell:destructive, write:fs, git:write, pr:*, publish:*) ask.";
+  }
 }
 
 /**
@@ -188,6 +228,16 @@ export function renderStateForPrompt(task: ConductorTask) {
     iterationCap: task.iterationCap,
     consecutiveNoProgress: task.consecutiveNoProgress,
     consecutiveNoProgressCap: task.consecutiveNoProgressCap,
+    autonomyMode: task.autonomyMode,
+    pendingApprovalIds: task.pendingApprovalIds,
+    githubContext: task.githubContext
+      ? {
+          owner: task.githubContext.owner,
+          repo: task.githubContext.repo,
+          issueNumber: task.githubContext.issueNumber,
+          kind: task.githubContext.kind,
+        }
+      : null,
     recentPhaseHistory: task.phaseHistory.slice(-3),
     lastExpert: task.visitedExperts.at(-1) ?? null,
     openFindings: task.findings

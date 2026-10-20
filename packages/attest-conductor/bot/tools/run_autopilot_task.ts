@@ -2,8 +2,10 @@ import { defineTool, type ToolContext } from "@cursor/bdk/tools";
 import * as z from "zod/v4";
 import {
   activeTaskKey,
+  AUTONOMY_MODES,
   newTask,
   taskKey,
+  type AutonomyMode,
   type ConductorTask,
 } from "../lib/conductor-state.js";
 import {
@@ -35,6 +37,10 @@ export default defineTool({
       .optional(),
     consecutiveNoProgressCap: z.number().int().positive().max(20).optional(),
     maxTurns: z.number().int().positive().max(100).default(10),
+    autonomyMode: z
+      .enum(AUTONOMY_MODES as unknown as [AutonomyMode, ...AutonomyMode[]])
+      .optional()
+      .describe("Initial autonomy mode. Default `auto`. Use `approve-each` or `approve-destructive` to raise the HITL bar for this run."),
   }),
   async execute(input, ctx): Promise<Result> {
     const task = newTask({
@@ -42,6 +48,7 @@ export default defineTool({
       iterationCap: input.iterationCap,
       wallTimeCapMs: input.wallTimeCapMs,
       consecutiveNoProgressCap: input.consecutiveNoProgressCap,
+      autonomyMode: input.autonomyMode,
     });
     await ctx.host.kv.put(taskKey(task.taskId), task);
     await ctx.host.kv.put(activeTaskKey(ctx.session.id), { taskId: task.taskId });

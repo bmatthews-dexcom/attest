@@ -16,19 +16,19 @@ function liveTask(overrides = {}) {
   return { ...base, ...overrides };
 }
 
-test("renderRalphPrompt carries goal, taskId, state, palette, and no imperatives", () => {
+test("renderRalphPrompt carries Shape-C palette (invoke_expert, pre_dispatch_check, request_approval, set_autonomy_mode)", () => {
   const task = liveTask({ iteration: 2, currentPhase: "verify" });
   const prompt = renderRalphPrompt({ task });
   assert.ok(prompt.includes(task.taskId));
   assert.ok(prompt.includes("harden the login flow"));
   assert.ok(prompt.includes('"currentPhase": "verify"'));
-  assert.ok(prompt.includes("dispatch_expert"));
+  assert.ok(prompt.includes("invoke_expert"));
+  assert.ok(prompt.includes("pre_dispatch_check"));
+  assert.ok(prompt.includes("request_approval"));
+  assert.ok(prompt.includes("set_autonomy_mode"));
   assert.ok(prompt.includes("mark_done"));
   assert.ok(prompt.includes("escalate"));
   assert.ok(prompt.includes("Decide and perform the single next step"));
-  // Fix 1: Ralph prompt steers the agent to call phase_gate_check first and
-  // then the per-validator `validate_<name>` tools returned in
-  // `plannedValidators`, not a non-existent generic `validate(name)`.
   assert.ok(prompt.includes("phase_gate_check"));
   assert.ok(prompt.includes("plannedValidators"));
   assert.ok(prompt.includes("validate_<name>"));
@@ -36,6 +36,28 @@ test("renderRalphPrompt carries goal, taskId, state, palette, and no imperatives
     /do not.*write imperative branches/i.test(prompt),
     "prompt must warn against imperative branches",
   );
+  // Shape-C: dispatch flow guidance.
+  assert.ok(
+    /pre_dispatch_check\s*→.*request_approval\s*→.*invoke_expert/i.test(prompt) ||
+      /Before dispatching to an expert that may need approval/.test(prompt),
+    "prompt must guide the pre_dispatch_check → request_approval → invoke_expert sequence",
+  );
+  assert.ok(/never retry blindly/i.test(prompt));
+});
+
+test("renderRalphPrompt surfaces autonomy mode in the state view and header", () => {
+  const task = liveTask({ autonomyMode: "approve-destructive" });
+  const prompt = renderRalphPrompt({ task });
+  assert.ok(/Autonomy mode: approve-destructive/.test(prompt));
+  assert.ok(/"autonomyMode": "approve-destructive"/.test(prompt));
+});
+
+test("renderRalphPrompt advertises invoke_expert's three outcomes", () => {
+  const task = liveTask();
+  const prompt = renderRalphPrompt({ task });
+  assert.ok(/expert_output/.test(prompt));
+  assert.ok(/policy_denied/.test(prompt));
+  assert.ok(/approval_required/.test(prompt));
 });
 
 test("renderRalphPrompt annotates pre-fetched validators with their MCP tool name", () => {
