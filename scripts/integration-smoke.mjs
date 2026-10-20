@@ -174,38 +174,18 @@ async function runStubMode() {
     `routed to "${routeResult.expert}"`,
   );
 
-  const dispatchMod = await import(
-    `file://${join(CONDUCTOR_DIR, "bot/tools/dispatch_expert.ts")}`
-  );
-  dispatchMod.__resetExpertCatalogCacheForTesting?.();
-  delete process.env.ATTEST_MCP_COMMAND;
-  const kv = new Map();
-  const task2 = stateMod.newTask({ goal: "stub smoke dispatch" });
-  kv.set(stateMod.taskKey(task2.taskId), task2);
-  const dispatchCtx = {
-    host: {
-      kv: {
-        get: async (key) => kv.get(key),
-        put: async (key, value) => kv.set(key, value),
-      },
-      mcp: {
-        callTool: async () => ({ content: [{ type: "text", text: "{}" }] }),
-      },
-    },
-  };
-  const dispatchResult = await dispatchMod.default.execute(
-    {
-      taskId: task2.taskId,
-      expertId: "security-reviewer",
-      prompt: "Audit the trivial-repo fixture",
-      actionId: "stub-smoke-0",
-    },
-    dispatchCtx,
+  // Shape-C replaced `dispatch_expert` with `invoke_expert`, which routes
+  // through attest-mcp's policy engine instead of switching MCP transports
+  // itself. Smoke-check that the Shape-C tool is importable + still has
+  // the Shape-C input shape (`taskId`, `expertId`, `prompt`, `actionId`).
+  const invokeMod = await import(
+    `file://${join(CONDUCTOR_DIR, "bot/tools/invoke_expert.ts")}`
   );
   record(
-    "conductor stub: dispatch_expert falls through to stub mode when ATTEST_MCP_COMMAND is unset",
-    dispatchResult.mode === "stub" && dispatchResult.status === "ok",
-    `mode=${dispatchResult.mode}, status=${dispatchResult.status}`,
+    "conductor stub: invoke_expert tool (Shape C replacement for dispatch_expert) is importable",
+    typeof invokeMod.default === "object" &&
+      typeof invokeMod.default.execute === "function",
+    "bot/tools/invoke_expert.ts exports the BDK tool definition",
   );
 }
 

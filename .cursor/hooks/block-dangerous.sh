@@ -32,7 +32,7 @@ if printf '%s' "$cmd" | grep -Eqi '\bgit[[:space:]]+reset[[:space:]]+--hard\b'; 
   deny "git reset --hard — would discard uncommitted work"
 fi
 if printf '%s' "$cmd" | grep -Eqi '\bnpm[[:space:]]+publish\b'; then
-  deny "attempted npm-registry upload — this project is local-only; no package is pushed to any public registry"
+  deny "attempted public-registry upload is blocked by local-only policy (never fetched or pushed to the registry)"
 fi
 if printf '%s' "$cmd" | grep -Eqi '\bcurl[[:space:]]+.*\|[[:space:]]*bash\b|\bwget[[:space:]]+.*\|[[:space:]]*bash\b'; then
   deny "curl|bash / wget|bash — executing untrusted remote code"

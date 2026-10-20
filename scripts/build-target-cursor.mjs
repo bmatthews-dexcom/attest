@@ -957,6 +957,25 @@ function generateCeoAgent() {
   return front + header + body;
 }
 
+// Passthrough reader for hand-authored `.cursor/<rel>` files that have no
+// generator yet. Used only for files whose canonical source IS the
+// composed `.cursor/<rel>` on `release/v0.1.0`. If the file is missing on
+// disk the generator throws, so a stray `--write` can't silently drop it.
+function passthroughManual(relPaths) {
+  const out = new Map();
+  for (const rel of relPaths) {
+    const abs = join(OUT, rel);
+    if (!existsSync(abs)) {
+      throw new Error(
+        `passthroughManual: expected hand-authored ${rel} at ${abs} but ` +
+          `it is missing. See scripts/build-target-cursor.mjs comment.`,
+      );
+    }
+    out.set(rel, readFileSync(abs, 'utf8'));
+  }
+  return out;
+}
+
 function generateHooks() {
   const out = new Map();
   const hooksJson = {
@@ -2000,6 +2019,18 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   for (const [k, v] of generateHooks()) outputs.set(k, v);
   for (const [k, v] of generateMcp()) outputs.set(k, v);
   for (const [k, v] of generateReadme()) outputs.set(k, v);
+  // Director chief — hand-authored directly in `.cursor/` (feat/attest-director,
+  // PR #17). No shared source file exists yet; the Director's authoritative
+  // persona content lives in the composed `.cursor/agents/director.md` and
+  // `.cursor/skills/director/SKILL.md` on `release/v0.1.0`. We pass them
+  // through here so the parity check (`--check`) accepts them. When the
+  // next cycle factors a shared `agents/shared/chiefs/director.md`, swap
+  // this pass-through for a proper `generateDirectorAgent()` /
+  // `generateDirectorSkill()` pair mirroring the CEO pattern above.
+  for (const [k, v] of passthroughManual([
+    'agents/director.md',
+    'skills/director/SKILL.md',
+  ])) outputs.set(k, v);
 
   const manifest = [...outputs.keys()].sort();
   outputs.set(
